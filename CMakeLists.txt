@@ -20,7 +20,7 @@ list(APPEND SOURCE_FILES
 
 if(COUNT_HEADERS_AS_SOURCE)
     list(APPEND SOURCE_FILES
-        "inc/window.hpp"
+        "inc/render/window.hpp"
     )
 endif()
 
