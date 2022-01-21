@@ -15,8 +15,8 @@ enum class WindowEvent
 
 struct WindowCreateInfo
 {
-    bool is_resizable;
-    bool is_fullscreen;
+    bool isResizable;
+    bool isFullscreen;
     int width, height;
     const char* pTitle;
 };
@@ -33,7 +33,7 @@ public:
     void create(WindowCreateInfo createInfo);
     void destroy();
 
-    [[nodiscard]] bool should_close() const;
+    [[nodiscard]] bool is_active() const;
     [[nodiscard]] bool is_minimized() const;
 
     void update();
@@ -49,7 +49,7 @@ private:
     void* native_handle = nullptr;
     int width = 0;
     int height = 0;
-    bool is_active = false;
+    bool is_created = false;
 
     struct SubscriberData
     {

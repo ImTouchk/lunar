@@ -20,14 +20,14 @@ int main()
         GameWindow game_window;
         game_window.create(WindowCreateInfo
         {
-           .is_resizable = true,
-           .is_fullscreen = false,
+           .isResizable = true,
+           .isFullscreen = false,
            .width = 1280,
            .height = 720,
            .pTitle = "Hello, world!"
         });
 
-        while(!game_window.should_close())
+        while(game_window.is_active())
         {
             if(!game_window.is_minimized())
             {

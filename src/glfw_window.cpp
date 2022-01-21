@@ -70,13 +70,13 @@ void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::a
 
 void GameWindow::create(WindowCreateInfo createInfo)
 {
-    assert(is_active == false);
+    assert(is_created == false);
 
     int new_width = createInfo.width;
     int new_height = createInfo.height;
     GLFWmonitor* pMonitor = nullptr;
 
-    if(createInfo.is_fullscreen)
+    if(createInfo.isFullscreen)
     {
         pMonitor = glfwGetPrimaryMonitor();
 
@@ -88,7 +88,7 @@ void GameWindow::create(WindowCreateInfo createInfo)
         }
     }
 
-    glfwWindowHint(GLFW_RESIZABLE, createInfo.is_resizable);
+    glfwWindowHint(GLFW_RESIZABLE, createInfo.isResizable);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
 
@@ -111,7 +111,7 @@ void GameWindow::create(WindowCreateInfo createInfo)
     glfwSetCursorPosCallback(handle, GLFW_CURSOR_POS_CALLBACK);
     glfwSetFramebufferSizeCallback(handle, GLFW_FRAMEBUFFER_SIZE_CALLBACK);
 
-    is_active = true;
+    is_created = true;
     width = new_width;
     height = new_height;
 
@@ -120,25 +120,25 @@ void GameWindow::create(WindowCreateInfo createInfo)
 
 void GameWindow::destroy()
 {
-    assert(is_active == true);
+    assert(is_created == true);
     glfwDestroyWindow((GLFWwindow*)native_handle);
 }
 
-bool GameWindow::should_close() const
+bool GameWindow::is_active() const
 {
-    assert(is_active == true);
-    return glfwWindowShouldClose((GLFWwindow*)native_handle);
+    assert(is_created == true);
+    return !glfwWindowShouldClose((GLFWwindow*)native_handle);
 }
 
 bool GameWindow::is_minimized() const
 {
-    assert(is_active == true);
+    assert(is_created == true);
     return width == 0 && height == 0;
 }
 
 void GameWindow::update()
 {
-    assert(is_active == true);
+    assert(is_created == true);
     glfwSwapBuffers((GLFWwindow*)native_handle);
     glfwPollEvents();
 }
@@ -176,9 +176,9 @@ void GameWindow::unsubscribe(WindowEvent event, WindowEventSubscriber handler)
     for(auto iterator = subscribers.begin(); iterator != subscribers.end(); iterator++)
     {
         auto pointer_a = iterator->handler.target<void*>();
-        auto pointerB = handler.target<void*>();
+        auto pointer_b = handler.target<void*>();
 
-        if(iterator->event == event && pointer_a == pointerB)
+        if(iterator->event == event && pointer_a == pointer_b)
         {
             iterator = subscribers.erase(iterator);
             return;
