@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.21)
 project("lunar")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set(COUNT_HEADERS_AS_SOURCE 1)
 set(WINDOW_BACKEND "GLFW")
-
-find_package(Vulkan REQUIRED FATAL_ERROR)
+set(RENDERER_BACKEND "Vulkan")
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -21,17 +21,28 @@ list(APPEND SOURCE_FILES
 if(COUNT_HEADERS_AS_SOURCE)
     list(APPEND SOURCE_FILES
         "inc/render/window.hpp"
+        "inc/render/renderer.hpp"
     )
 endif()
 
 if(WINDOW_BACKEND STREQUAL "GLFW")
-    list(APPEND SOURCE_FILES
-        "src/glfw_window.cpp"
-    )
+    message("-- Using GLFW as the windowing backend.")
+    list(APPEND SOURCE_FILES "src/glfw_window.cpp")
+endif()
+
+if(RENDERER_BACKEND STREQUAL "Vulkan")
+    message("-- Using Vulkan as the rendering backend.")
 endif()
 
 add_executable("lunar" ${SOURCE_FILES})
-target_link_libraries("lunar" ${Vulkan_LIBRARIES} glfw fmt)
-target_include_directories("lunar" PRIVATE ${Vulkan_INCLUDE_DIRS} glfw fmt)
 target_include_directories("lunar" PUBLIC inc)
 target_compile_definitions("lunar" PRIVATE PRINT_DEBUG_OUTPUT)
+
+target_link_libraries("lunar" glfw fmt)
+target_include_directories("lunar" PRIVATE glfw fmt)
+
+if(RENDERER_BACKEND STREQUAL "Vulkan")
+    find_package(Vulkan REQUIRED FATAL_ERROR)
+    target_include_directories("lunar" PRIVATE ${Vulkan_INCLUDE_DIRS})
+    target_link_libraries("lunar" ${Vulkan_LIBRARIES})
+endif()
