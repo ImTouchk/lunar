@@ -32,6 +32,11 @@ endif()
 
 if(RENDERER_BACKEND STREQUAL "Vulkan")
     message("-- Using Vulkan as the rendering backend.")
+    list(APPEND SOURCE_FILES
+        "src/vk_renderer.cpp"
+        "src/vk_renderer.hpp"
+        "src/vk_instance.cpp"
+    )
 endif()
 
 add_executable("lunar" ${SOURCE_FILES})
@@ -40,6 +45,9 @@ target_compile_definitions("lunar" PRIVATE PRINT_DEBUG_OUTPUT)
 
 target_link_libraries("lunar" glfw fmt)
 target_include_directories("lunar" PRIVATE glfw fmt)
+
+target_compile_definitions("lunar" PRIVATE WINDOW_BACKEND=${WINDOW_BACKEND})
+target_compile_definitions("lunar" PRIVATE RENDERER_BACKEND=${RENDERER_BACKEND})
 
 if(RENDERER_BACKEND STREQUAL "Vulkan")
     find_package(Vulkan REQUIRED FATAL_ERROR)
