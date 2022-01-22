@@ -15,9 +15,9 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_executable("lunar" "src/main.cpp")
 target_include_directories("lunar" PUBLIC inc)
 target_compile_definitions("lunar" PRIVATE
-        PRINT_DEBUG_OUTPUT=1
-        WINDOW_BACKEND=${WINDOW_BACKEND}
-        RENDERER_BACKEND=${RENDERER_BACKEND}
+    PRINT_DEBUG_OUTPUT=1
+    WINDOW_BACKEND=${WINDOW_BACKEND}
+    RENDERER_BACKEND=${RENDERER_BACKEND}
 )
 
 if(COUNT_HEADERS_AS_SOURCE)
@@ -40,9 +40,10 @@ endif()
 if(RENDERER_BACKEND STREQUAL "Vulkan")
     message("-- Using Vulkan as the rendering backend.")
 
+    add_subdirectory(VulkanMemoryAllocator)
     find_package(Vulkan REQUIRED FATAL_ERROR)
-    target_include_directories("lunar" PRIVATE ${Vulkan_INCLUDE_DIRS})
-    target_link_libraries("lunar" ${Vulkan_LIBRARIES})
+    target_include_directories("lunar" PRIVATE ${Vulkan_INCLUDE_DIRS} VulkanMemoryAllocator)
+    target_link_libraries("lunar" ${Vulkan_LIBRARIES} VulkanMemoryAllocator)
 
     target_compile_definitions("lunar" PRIVATE VULKAN_USE_DEBUG_LAYERS=1)
 
@@ -51,6 +52,10 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
         "src/vk_renderer.cpp"
         "src/vk_instance.cpp"
     )
+endif()
+
+if(WIN32)
+    set(CMAKE_EXE_LINKER_FLAGS  "-static")
 endif()
 
 add_subdirectory(fmt)
