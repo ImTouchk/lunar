@@ -42,6 +42,7 @@ int main()
         {
             if(!game_window.is_minimized())
             {
+                game_renderer.draw();
                 // do rendering
             }
 

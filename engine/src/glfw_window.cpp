@@ -119,7 +119,7 @@ void GameWindow::create(WindowCreateInfo createInfo)
     native_handle = (void*)glfwCreateWindow(new_width, new_height, createInfo.pTitle, pMonitor, nullptr);
     if(!native_handle)
     {
-        CDebug::Error("Could not create a new game window (glfwCreateWindow returned null).");
+        CDebug::Error("GameWindow | Could not create a new game window (glfwCreateWindow returned null).");
         throw std::runtime_error("GameWindow-CreateError");
     }
 
@@ -181,7 +181,7 @@ void GameWindow::subscribe(WindowEvent event, WindowEventSubscriber handler)
 
         if(subscriber.event == event && pointer_a == pointer_b)
         {
-            CDebug::Error("GameWindow event handler is already subscribed to the same event.");
+            CDebug::Error("GameWindow | Event handler is already subscribed to the same event.");
             throw std::runtime_error("GameWindow-EventHandler-AlreadySubscribed");
         }
     }
@@ -192,7 +192,7 @@ void GameWindow::subscribe(WindowEvent event, WindowEventSubscriber handler)
         .handler = handler
     });
 
-    CDebug::Log("Handler subscribed to GameWindow event.");
+    CDebug::Log("GameWindow | Handler subscribed to event.");
 }
 
 void GameWindow::unsubscribe(WindowEvent event, WindowEventSubscriber handler)
@@ -209,6 +209,6 @@ void GameWindow::unsubscribe(WindowEvent event, WindowEventSubscriber handler)
         }
     }
 
-    CDebug::Error("GameWindow.unsubscribe called but handler does not exist.");
+    CDebug::Error("GameWindow | Unsubscribe called but handler does not exist.");
     throw std::runtime_error("GameWindow-EventHandler-SubscriberNotFound");
 }

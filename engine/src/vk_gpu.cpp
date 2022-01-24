@@ -60,7 +60,7 @@ namespace Vk
         {
             CDebug::Warn
             (
-            "Vulkan | Could not retrieve available device extensions"
+            "Vulkan Renderer | Could not retrieve available device extensions"
               "(vkEnumerateDeviceExtensionProperties did not return VK_SUCCESS)."
             );
             return {};
@@ -136,7 +136,7 @@ namespace Vk
 
         CDebug::Log
         (
-            "Vulkan | Found rendering device \"{}\". Driver version: {}. Local memory: {}MB.",
+            "Vulkan Renderer | Found rendering device \"{}\". Driver version: {}. Local memory: {}MB.",
             device_properties.deviceName,
             device_properties.apiVersion,
             local_vram
@@ -180,7 +180,7 @@ namespace Vk
 
         if(best_score == 0 || best_gpu == VK_NULL_HANDLE)
         {
-            CDebug::Error("Vulkan | No graphics card is suitable for rendering.");
+            CDebug::Error("Vulkan Renderer | No graphics card is suitable for rendering.");
             throw std::runtime_error("Renderer-Vulkan-GraphicsCardsNotSuitable");
         }
 

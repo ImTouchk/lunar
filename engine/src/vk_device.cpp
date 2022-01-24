@@ -58,13 +58,13 @@ namespace Vk
         result = vkCreateDevice(physical_device, &device_create_info, nullptr, &device);
         if(result != VK_SUCCESS)
         {
-            CDebug::Error("Vulkan | Failed to create a logical device (vkCreateDevice did not return VK_SUCCESS).");
+            CDebug::Error("Vulkan Renderer | Failed to create a logical device (vkCreateDevice did not return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-LogicalDevice-CreationFail");
         }
 
         vkGetDeviceQueue(device, queue_families.present.value(), 0, &presentQueue);
         vkGetDeviceQueue(device, queue_families.graphics.value(), 0, &graphicsQueue);
-        CDebug::Log("Vulkan | Logical device created.");
+        CDebug::Log("Vulkan Renderer | Logical device created.");
     }
 
     void LogicalDeviceWrapper::destroy()
@@ -74,6 +74,8 @@ namespace Vk
         graphicsQueue = VK_NULL_HANDLE;
         presentQueue = VK_NULL_HANDLE;
         device = VK_NULL_HANDLE;
+
+        CDebug::Log("Vulkan Renderer | Logical device destroyed.");
     }
 
     VkDevice LogicalDeviceWrapper::handle() const

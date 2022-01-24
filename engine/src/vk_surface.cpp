@@ -29,11 +29,11 @@ namespace Vk
         result = vkCreateWin32SurfaceKHR(GetInstance(), &surface_create_info, nullptr, &surface);
         if(result != VK_SUCCESS)
         {
-            CDebug::Error("Vulkan | Cannot create an abstract surface (vkCreateWin32SurfaceKHR did not return VK_SUCCESS).");
+            CDebug::Error("Vulkan Renderer | Cannot create an abstract surface (vkCreateWin32SurfaceKHR did not return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-Surface-CreationFail");
         }
 
-        CDebug::Log("Vulkan | Abstract surface created.");
+        CDebug::Log("Vulkan Renderer | Abstract surface created.");
 #       else
 #           error "Not implemented"
 #       endif
