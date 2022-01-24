@@ -24,6 +24,8 @@ if(COUNT_HEADERS_AS_SOURCE)
     target_sources("lunar" PRIVATE
         "inc/render/window.hpp"
         "inc/render/renderer.hpp"
+        "inc/utils/debug.hpp"
+        "inc/utils/range.hpp"
     )
 endif()
 
@@ -51,6 +53,7 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
         "src/vk_renderer.hpp"
         "src/vk_renderer.cpp"
         "src/vk_instance.cpp"
+        "src/vk_gpu.cpp"
     )
 endif()
 
