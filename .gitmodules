@@ -1,9 +1,9 @@
-[submodule "glfw"]
-	path = glfw
+[submodule "engine/glfw"]
+	path = engine/glfw
 	url = https://github.com/glfw/glfw
-[submodule "fmt"]
-	path = fmt
+[submodule "engine/fmt"]
+	path = engine/fmt
 	url = https://github.com/fmtlib/fmt
-[submodule "VulkanMemoryAllocator"]
-	path = VulkanMemoryAllocator
+[submodule "engine/VulkanMemoryAllocator"]
+	path = engine/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
