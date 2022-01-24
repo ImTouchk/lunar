@@ -2,11 +2,8 @@
 #include "vk_renderer.hpp"
 
 #include <vulkan/vulkan.h>
+#include <stdexcept>
 #include <vector>
-
-#if WINDOW_BACKEND == GLFW
-#   include <GLFW/glfw3.h>
-#endif
 
 namespace Vk
 {
@@ -88,7 +85,7 @@ namespace Vk
         {
             CDebug::Error
             (
-                "Cannot enumerate Vulkan instance extensions "
+                "Vulkan | Cannot enumerate instance extensions "
                 "(vkGetInstanceProcAddr returned NULL for vkEnumerateInstanceExtensionProperties)."
             );
 
@@ -101,7 +98,7 @@ namespace Vk
         result = vkEnumInstExtProps(nullptr, &count, nullptr);
         if (result != VK_SUCCESS)
         {
-            CDebug::Error("Cannot enumerate Vulkan instance extensions (vkEnumerateInstanceExtensionProperties did not return VK_SUCCESS).");
+            CDebug::Error("Vulkan | Cannot enumerate instance extensions (vkEnumerateInstanceExtensionProperties did not return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-NotSupported");
         }
 
@@ -180,17 +177,17 @@ namespace Vk
             result = vkCreateInstance(&instance_create_info, nullptr, &instance);
             if(result != VK_SUCCESS)
             {
-                CDebug::Error("Failed to create a Vulkan instance (vkCreateInstance returned {}).", result);
+                CDebug::Error("Vulkan | Failed to create a global instance (vkCreateInstance returned {}).", result);
                 std::exit(-1);
             }
 
-            CDebug::Log("Global vulkan instance created.");
+            CDebug::Log("Vulkan | Global instance created.");
         }
 
         ~InstanceLifeguard() noexcept
         {
             vkDestroyInstance(instance, nullptr);
-            CDebug::Log("Vulkan instance destroyed.");
+            CDebug::Log("Vulkan | Global instance destroyed.");
         }
     };
 
@@ -211,7 +208,7 @@ namespace Vk
 
             if(vkCreateDebugMessenger == VK_NULL_HANDLE)
             {
-                CDebug::Warn("Could not set up Vulkan debug layers (vkGetInstanceProcAddr returned VK_NULL_HANDLE).");
+                CDebug::Warn("Vulkan | Could not set up debug layers (vkGetInstanceProcAddr returned VK_NULL_HANDLE).");
                 return;
             }
 
@@ -220,11 +217,11 @@ namespace Vk
 
             if(result != VK_SUCCESS)
             {
-                CDebug::Warn("Could not set up Vulkan debug layers (vkCreateDebugUtilsMessengerEXT did not return VK_SUCCESS).");
+                CDebug::Warn("Vulkan | Could not set up debug layers (vkCreateDebugUtilsMessengerEXT did not return VK_SUCCESS).");
                 return;
             }
 
-            CDebug::Log("Vulkan validation layers set up.");
+            CDebug::Log("Vulkan | Validation layers set up.");
         }
 
         ~DebugMessengerLifeguard() noexcept
@@ -239,7 +236,7 @@ namespace Vk
 
                 vkDestroyDebugMessenger(GetInstance(), debugMessenger, nullptr);
 
-                CDebug::Log("Vulkan validation layers shut down.");
+                CDebug::Log("Vulkan | Validation layers shut down.");
             }
         }
     };
