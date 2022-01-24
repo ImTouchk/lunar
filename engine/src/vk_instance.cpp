@@ -251,4 +251,14 @@ namespace Vk
     {
         return VK_INSTANCE_LIFEGUARD.instance;
     }
+
+    std::vector<const char*> GetDebugLayers()
+    {
+        if(VK_DEBUG_MESSENGER_LIFEGUARD.debugMessenger == VK_NULL_HANDLE)
+        {
+            return {};
+        }
+
+        return REQUIRED_LAYERS;
+    }
 }

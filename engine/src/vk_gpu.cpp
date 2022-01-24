@@ -125,6 +125,8 @@ namespace Vk
             }
         }
 
+        // the number of GBs of VRAM will be added to the score
+        // it's not a good way of measuring performance, but it will do
         final_score += (local_vram / 1024);
 
         if(device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -134,7 +136,7 @@ namespace Vk
 
         CDebug::Log
         (
-            "Vulkan | Found rendering device \"{}\". API version: {}. Local memory: {}GB.",
+            "Vulkan | Found rendering device \"{}\". Driver version: {}. Local memory: {}MB.",
             device_properties.deviceName,
             device_properties.apiVersion,
             local_vram

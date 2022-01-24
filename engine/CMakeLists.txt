@@ -54,6 +54,8 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
         "src/vk_renderer.cpp"
         "src/vk_instance.cpp"
         "src/vk_gpu.cpp"
+        "src/vk_surface.cpp"
+        "src/vk_device.cpp"
     )
 endif()
 

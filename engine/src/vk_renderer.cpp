@@ -9,7 +9,18 @@
 
 #include <vk_mem_alloc.h>
 
-void Renderer::create(RendererCreateInfo createInfo)
+void GameRenderer::create(RendererCreateInfo createInfo)
 {
+    backend_data = Vk::RendererInternalData();
 
+    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    internal_data->surface.create(*createInfo.pWindow);
+    internal_data->device.create(internal_data->surface);
+}
+
+void GameRenderer::destroy()
+{
+    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    internal_data->device.destroy();
+    internal_data->surface.destroy();
 }
