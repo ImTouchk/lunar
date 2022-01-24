@@ -43,7 +43,19 @@ void GLFW_FRAMEBUFFER_SIZE_CALLBACK(GLFWwindow* handle, int width, int height)
 {
     auto window = (GameWindow*)glfwGetWindowUserPointer(handle);
     auto data = std::pair<int, int>(width, height);
-    GameWindow::HandleEvent(window, WindowEvent::eResized, data);
+
+    if(width == 0 && height == 0)
+    {
+        GameWindow::HandleEvent(window, WindowEvent::eMinimized, nullptr);
+    }
+    else if(window->is_minimized())
+    {
+        GameWindow::HandleEvent(window, WindowEvent::eRestored, nullptr);
+    }
+    else
+    {
+        GameWindow::HandleEvent(window, WindowEvent::eResized, data);
+    }
 }
 
 void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::any& data)
@@ -63,6 +75,18 @@ void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::a
             auto new_size = std::any_cast<std::pair<int, int>>(data);
             window->width = new_size.first;
             window->height = new_size.second;
+            break;
+        }
+
+        case WindowEvent::eMinimized:
+        {
+            window->is_inactive = true;
+            break;
+        }
+
+        case WindowEvent::eRestored:
+        {
+            window->is_inactive = false;
             break;
         }
     }
@@ -133,7 +157,7 @@ bool GameWindow::is_active() const
 bool GameWindow::is_minimized() const
 {
     assert(is_created == true);
-    return width == 0 && height == 0;
+    return is_inactive;
 }
 
 void GameWindow::update()

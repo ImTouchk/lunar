@@ -11,6 +11,8 @@ enum class WindowEvent
     eResized,
     eKeyStateChanged,
     eMouseMoved,
+    eMinimized,
+    eRestored,
 };
 
 struct WindowCreateInfo
@@ -21,7 +23,7 @@ struct WindowCreateInfo
     const char* pTitle;
 };
 
-using WindowEventSubscriber = std::function<void(void*, std::any)>;
+using WindowEventSubscriber = std::function<void(void*, const std::any&)>;
 
 // Wrapper over native windowing system; does not include any rendering capabilities.
 class GameWindow
@@ -50,6 +52,7 @@ private:
     int width = 0;
     int height = 0;
     bool is_created = false;
+    bool is_inactive = false;
 
     struct SubscriberData
     {
