@@ -1,12 +1,15 @@
+#include "utils/debug.hpp"
+#include "render/window.hpp"
+#include "render/renderer.hpp"
+
 #ifdef WIN32
 #   define WIN32_LEAN_AND_MEAN
 #   include <windows.h>
 #endif
-
 #include <stdexcept>
 
-#include "utils/debug.hpp"
-#include "render/window.hpp"
+#define STRINGIFY(s) XSTRINGIFY(s)
+#define XSTRINGIFY(s) #s
 
 int main()
 {
@@ -14,6 +17,8 @@ int main()
     // Enables color formatting for the CLion terminal.
     system(("chcp " + std::to_string(CP_UTF8)).c_str());
 #   endif
+
+    CDebug::Log("Starting game engine... (Version: 0.0.1) (Rendering backends: {}/{}).", STRINGIFY(WINDOW_BACKEND), STRINGIFY(RENDERER_BACKEND));
 
     try
     {
@@ -27,6 +32,12 @@ int main()
            .pTitle = "Hello, world!"
         });
 
+        GameRenderer game_renderer;
+        game_renderer.create(RendererCreateInfo
+        {
+            .pWindow = &game_window
+        });
+
         while(game_window.is_active())
         {
             if(!game_window.is_minimized())
@@ -37,6 +48,7 @@ int main()
             game_window.update();
         }
 
+        game_renderer.destroy();
         game_window.destroy();
     } catch(std::runtime_error& error)
     {
