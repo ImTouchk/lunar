@@ -15,7 +15,7 @@ namespace Vk
         assert(device == VK_NULL_HANDLE);
 
         const auto physical_device = GetRenderingDevice();
-        const auto queue_families = GetQueueFamilies(physical_device, surface.handle());
+        const auto queue_families = QueueFamilyIndices::query(physical_device, surface.handle());
         const auto device_extensions = GetRequiredDeviceExtensions();
         const auto device_layers = GetDebugLayers();
 

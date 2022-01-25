@@ -22,7 +22,7 @@ namespace Vk
         {
             .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
             .hinstance = GetModuleHandleW(nullptr),
-            .hwnd      = glfwGetWin32Window((GLFWwindow*)window.handle()),
+            .hwnd      = glfwGetWin32Window((GLFWwindow*) window.get_handle()),
         };
 
         VkResult result;

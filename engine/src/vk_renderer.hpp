@@ -41,10 +41,54 @@ namespace Vk
         VkQueue presentQueue = VK_NULL_HANDLE;
     };
 
+    struct SwapchainWrapper
+    {
+    public:
+        SwapchainWrapper() = default;
+        ~SwapchainWrapper() = default;
+
+        void create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device);
+        void destroy();
+
+        void resize(GameWindow& window, SurfaceWrapper& surface);
+
+        [[nodiscard]] VkSwapchainKHR handle() const;
+        [[nodiscard]] VkRenderPass render_pass() const;
+        [[nodiscard]] VkExtent2D surface_extent() const;
+        [[nodiscard]] VkFormat surface_format() const;
+        [[nodiscard]] std::vector<VkFramebuffer>& frame_buffers() const;
+        [[nodiscard]] std::vector<VkImageView>& image_views() const;
+
+    private:
+        void create_swapchain(GameWindow& window, SurfaceWrapper& surface);
+        void create_render_pass();
+        void create_image_views();
+
+        LogicalDeviceWrapper* pDevice = nullptr;
+
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+        VkFormat surfaceFormat = {};
+        VkExtent2D surfaceExtent = {};
+        std::vector<VkImage> images;
+        std::vector<VkImageView> views;
+        std::vector<VkFramebuffer> frameBuffers;
+    };
+
     struct RendererInternalData
     {
         SurfaceWrapper surface;
         LogicalDeviceWrapper device;
+        SwapchainWrapper swapchain;
+    };
+
+    struct SwapchainSupportDetails
+    {
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        std::vector<VkSurfaceFormatKHR> surfaceFormats;
+        std::vector<VkPresentModeKHR> surfacePresentModes;
+
+        static const SwapchainSupportDetails& query(VkPhysicalDevice device, VkSurfaceKHR surface);
     };
 
     struct QueueFamilyIndices
@@ -56,9 +100,9 @@ namespace Vk
         {
             return graphics.has_value() && present.has_value();
         }
-    };
 
-    QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+        static const QueueFamilyIndices& query(VkPhysicalDevice device, VkSurfaceKHR surface);
+    };
 
     VkInstance GetInstance();
     VkPhysicalDevice GetRenderingDevice();

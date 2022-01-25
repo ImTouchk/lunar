@@ -11,8 +11,6 @@ enum class WindowEvent
     eResized,
     eKeyStateChanged,
     eMouseMoved,
-    eMinimized,
-    eRestored,
 };
 
 struct WindowCreateInfo
@@ -38,9 +36,12 @@ public:
     [[nodiscard]] bool is_active() const;
     [[nodiscard]] bool is_minimized() const;
 
+    [[nodiscard]] int get_width() const;
+    [[nodiscard]] int get_height() const;
+
     void update();
 
-    void* handle();
+    void* get_handle();
 
     void subscribe(WindowEvent event, WindowEventSubscriber handler);
     void unsubscribe(WindowEvent event, WindowEventSubscriber handler);

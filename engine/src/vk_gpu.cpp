@@ -8,7 +8,7 @@
 
 namespace Vk
 {
-    QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
+    const QueueFamilyIndices& QueueFamilyIndices::query(VkPhysicalDevice device, VkSurfaceKHR surface)
     {
         static VkPhysicalDevice cached_device = VK_NULL_HANDLE;
         static QueueFamilyIndices cached_value = {};
@@ -19,6 +19,7 @@ namespace Vk
         }
 
         cached_device = device;
+        cached_value = {};
 
         unsigned family_count;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, nullptr);

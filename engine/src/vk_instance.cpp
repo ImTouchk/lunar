@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 #include <stdexcept>
 #include <vector>
+#include <array>
 
 namespace Vk
 {
