@@ -93,16 +93,12 @@ namespace Vk
 
     VkExtent2D PickSwapExtent(GameWindow& window, const VkSurfaceCapabilitiesKHR& capabilities)
     {
-        if(capabilities.currentExtent.width != UINT32_MAX && capabilities.currentExtent.height != 0)
-        {
-            return capabilities.currentExtent;
-        }
-
         VkExtent2D extent =
         {
             .width  = std::max(capabilities.minImageExtent.width, (unsigned)window.get_width()),
             .height = std::max(capabilities.minImageExtent.height, (unsigned)window.get_height())
         };
+
 
         return extent;
     }
@@ -116,7 +112,6 @@ namespace Vk
         create_swapchain(window, surface);
         create_image_views();
         create_render_pass();
-        CDebug::Log("Vulkan Renderer | Swapchain created.");
     }
 
     void SwapchainWrapper::destroy()
@@ -146,7 +141,6 @@ namespace Vk
     {
         destroy();
         create(window, surface, *pDevice);
-        CDebug::Log("Vulkan Renderer | Swapchain resized.");
     }
 
     void SwapchainWrapper::create_swapchain(GameWindow& window, SurfaceWrapper& surface)

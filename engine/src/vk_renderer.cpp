@@ -25,7 +25,7 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     {
         // memory gets corrupted here
 
-        GameWindow& window = *reinterpret_cast<GameWindow*>(handle);
+        GameWindow& window = *window_handle;
         auto* data = std::any_cast<Vk::RendererInternalData>(&backend_data);
         data->swapchain.resize(window, data->surface);
     });
