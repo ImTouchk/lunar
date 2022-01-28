@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+#cmake_minimum_required(VERSION 3.21)
 
 project("lunar")
 set(CMAKE_CXX_STANDARD 20)
@@ -56,6 +56,7 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
         "src/vk_gpu.cpp"
         "src/vk_surface.cpp"
         "src/vk_device.cpp"
+        "src/vk_swapchain.cpp"
     )
 endif()
 
