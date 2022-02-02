@@ -16,8 +16,16 @@ namespace Vk
 
         const auto physical_device = GetRenderingDevice();
         const auto queue_families = QueueFamilyIndices::query(physical_device, surface.handle());
-        const auto device_extensions = GetRequiredDeviceExtensions();
         const auto device_layers = GetDebugLayers();
+        auto device_extensions = GetRequiredDeviceExtensions();
+
+        const auto optional_extensions = GetAvailableOptionalExtensions(physical_device);
+        device_extensions.insert
+        (
+            std::end(device_extensions),
+            std::begin(optional_extensions),
+            std::end(optional_extensions)
+        );
 
         std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
         std::set<unsigned> unique_families =

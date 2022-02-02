@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 #include <optional>
 #include <vector>
 
@@ -56,8 +57,10 @@ namespace Vk
         [[nodiscard]] VkRenderPass render_pass() const;
         [[nodiscard]] VkExtent2D surface_extent() const;
         [[nodiscard]] VkFormat surface_format() const;
-        [[nodiscard]] std::vector<VkFramebuffer>& frame_buffers() const;
-        [[nodiscard]] std::vector<VkImageView>& image_views() const;
+        [[nodiscard]] const std::vector<VkFramebuffer>& frame_buffers() const;
+        [[nodiscard]] const std::vector<VkImageView>& image_views() const;
+        [[nodiscard]] int get_width() const;
+        [[nodiscard]] int get_height() const;
 
     private:
         void create_swapchain(GameWindow& window, SurfaceWrapper& surface);
@@ -70,9 +73,47 @@ namespace Vk
         VkRenderPass renderPass = VK_NULL_HANDLE;
         VkFormat surfaceFormat = {};
         VkExtent2D surfaceExtent = {};
-        std::vector<VkImage> images;
-        std::vector<VkImageView> views;
-        std::vector<VkFramebuffer> frameBuffers;
+        std::vector<VkImage> images = {};
+        std::vector<VkImageView> views = {};
+        std::vector<VkFramebuffer> frameBuffers = {};
+        int width = 0;
+        int height = 0;
+    };
+
+    struct MemoryAllocatorWrapper
+    {
+    public:
+        MemoryAllocatorWrapper() = default;
+        ~MemoryAllocatorWrapper() = default;
+
+        void create(LogicalDeviceWrapper& device);
+        void destroy();
+
+        VmaAllocator handle() const;
+    private:
+        VmaAllocator vmaAllocator;
+    };
+
+    struct ShaderPipelineCreateInfo
+    {
+        const std::vector<char>& vertexCode;
+        const std::vector<char>& fragmentCode;
+        SwapchainWrapper& swapchain;
+        LogicalDeviceWrapper& device;
+    };
+
+    struct ShaderPipeline
+    {
+    public:
+        ShaderPipeline() = default;
+        ~ShaderPipeline() = default;
+
+        void create(const std::vector<char>& vertexCode, const std::vector<char>& fragmentCode, SwapchainWrapper& swapchain, LogicalDeviceWrapper& device);
+        void destroy(LogicalDeviceWrapper& device);
+
+    private:
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     };
 
     struct RendererInternalData
@@ -80,6 +121,8 @@ namespace Vk
         SurfaceWrapper surface;
         LogicalDeviceWrapper device;
         SwapchainWrapper swapchain;
+        MemoryAllocatorWrapper memoryAllocator;
+        ShaderPipeline shader;
     };
 
     struct SwapchainSupportDetails
@@ -107,5 +150,6 @@ namespace Vk
     VkInstance GetInstance();
     VkPhysicalDevice GetRenderingDevice();
     std::vector<const char*> GetRequiredDeviceExtensions();
+    std::vector<const char*> GetAvailableOptionalExtensions(VkPhysicalDevice device);
     std::vector<const char*> GetDebugLayers();
 }

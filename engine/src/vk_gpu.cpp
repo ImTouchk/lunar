@@ -101,6 +101,31 @@ namespace Vk
         return required_extensions.empty();
     }
 
+    std::vector<const char*> GetAvailableOptionalExtensions(VkPhysicalDevice device)
+    {
+        auto optional_extensions = std::vector<const char*>
+        {
+            VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
+        };
+
+        auto available_extensions = GetAvailableDeviceExtensions(device);
+        auto final_extensions = std::vector<const char*>();
+
+        for(const auto& available : available_extensions)
+        {
+            const auto& name = available.extensionName;
+            for(const auto& optional : optional_extensions)
+            {
+                if(strcmp(name, optional) != 0)
+                    continue;
+
+                final_extensions.emplace_back(optional);
+            }
+        }
+
+        return final_extensions;
+    }
+
     unsigned GetDeviceScore(VkPhysicalDevice device)
     {
         if(!DeviceHasRequiredExtensions(device))
@@ -139,12 +164,15 @@ namespace Vk
             final_score += 1;
         }
 
+        final_score += GetAvailableOptionalExtensions(device).size();
+
         CDebug::Log
         (
-            "Vulkan Renderer | Found rendering device \"{}\". API version: {}. Local memory: {}MB.",
+            "Vulkan Renderer | Found rendering device \"{}\". API version: {}. Local memory: {}MB. Final score: {}",
             device_properties.deviceName,
             device_properties.apiVersion,
-            local_vram
+            local_vram,
+            final_score
         );
 
         return final_score;
