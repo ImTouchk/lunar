@@ -123,6 +123,7 @@ namespace Vk
         SwapchainWrapper swapchain;
         MemoryAllocatorWrapper memoryAllocator;
         ShaderPipeline shader;
+        bool hasOptionalDynamicRendering;
     };
 
     struct SwapchainSupportDetails

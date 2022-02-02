@@ -99,8 +99,47 @@ namespace Vk
             .height = std::max(capabilities.minImageExtent.height, (unsigned)window.get_height())
         };
 
-
         return extent;
+    }
+
+    int SwapchainWrapper::get_width() const
+    {
+        return width;
+    }
+
+    int SwapchainWrapper::get_height() const
+    {
+        return height;
+    }
+
+    VkSwapchainKHR SwapchainWrapper::handle() const
+    {
+        return swapchain;
+    }
+
+    VkRenderPass SwapchainWrapper::render_pass() const
+    {
+        return renderPass;
+    }
+
+    const std::vector<VkImageView>& SwapchainWrapper::image_views() const
+    {
+        return views;
+    }
+
+    const std::vector<VkFramebuffer>& SwapchainWrapper::frame_buffers() const
+    {
+        return frameBuffers;
+    }
+
+    VkExtent2D SwapchainWrapper::surface_extent() const
+    {
+        return surfaceExtent;
+    }
+
+    VkFormat SwapchainWrapper::surface_format() const
+    {
+        return surfaceFormat;
     }
 
     void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device)
@@ -108,6 +147,8 @@ namespace Vk
         assert(swapchain == VK_NULL_HANDLE);
 
         pDevice = &device;
+        width = window.get_width();
+        height = window.get_height();
 
         create_swapchain(window, surface);
         create_image_views();
