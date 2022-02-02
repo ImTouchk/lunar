@@ -44,18 +44,7 @@ void GLFW_FRAMEBUFFER_SIZE_CALLBACK(GLFWwindow* handle, int width, int height)
     auto window = (GameWindow*)glfwGetWindowUserPointer(handle);
     auto data = std::pair<int, int>(width, height);
 
-    if(width == 0 && height == 0)
-    {
-        GameWindow::HandleEvent(window, WindowEvent::eMinimized, nullptr);
-    }
-    else if(window->is_minimized())
-    {
-        GameWindow::HandleEvent(window, WindowEvent::eRestored, nullptr);
-    }
-    else
-    {
-        GameWindow::HandleEvent(window, WindowEvent::eResized, data);
-    }
+    GameWindow::HandleEvent(window, WindowEvent::eResized, data);
 }
 
 void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::any& data)
@@ -75,18 +64,15 @@ void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::a
             auto new_size = std::any_cast<std::pair<int, int>>(data);
             window->width = new_size.first;
             window->height = new_size.second;
-            break;
-        }
 
-        case WindowEvent::eMinimized:
-        {
-            window->is_inactive = true;
-            break;
-        }
-
-        case WindowEvent::eRestored:
-        {
-            window->is_inactive = false;
+            if (window->width == 0 && window->height == 0)
+            {
+                window->is_inactive = true;
+            }
+            else if (window->is_inactive)
+            {
+                window->is_inactive = false;
+            }
             break;
         }
     }
@@ -167,9 +153,19 @@ void GameWindow::update()
     glfwPollEvents();
 }
 
-void* GameWindow::handle()
+void* GameWindow::get_handle()
 {
     return native_handle;
+}
+
+int GameWindow::get_width() const
+{
+    return width;
+}
+
+int GameWindow::get_height() const
+{
+    return height;
 }
 
 void GameWindow::subscribe(WindowEvent event, WindowEventSubscriber handler)

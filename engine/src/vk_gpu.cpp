@@ -134,10 +134,14 @@ namespace Vk
         {
             final_score += 10;
         }
+        else if (device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+        {
+            final_score += 1;
+        }
 
         CDebug::Log
         (
-            "Vulkan Renderer | Found rendering device \"{}\". Driver version: {}. Local memory: {}MB.",
+            "Vulkan Renderer | Found rendering device \"{}\". API version: {}. Local memory: {}MB.",
             device_properties.deviceName,
             device_properties.apiVersion,
             local_vram
@@ -179,7 +183,7 @@ namespace Vk
             }
         }
 
-        if(best_score == 0 || best_gpu == VK_NULL_HANDLE)
+        if(best_gpu == VK_NULL_HANDLE)
         {
             CDebug::Error("Vulkan Renderer | No graphics card is suitable for rendering.");
             throw std::runtime_error("Renderer-Vulkan-GraphicsCardsNotSuitable");
