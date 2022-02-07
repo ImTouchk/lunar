@@ -65,6 +65,14 @@ void unpack_file(filesystem::path& in, filesystem::path& out)
         return;
     }
 
+    auto package_name_size = static_cast<uint64_t>(0);
+    input.read(reinterpret_cast<char*>(&package_name_size), sizeof(package_name_size));
+
+    auto package_name = string();
+    package_name.resize(package_name_size);
+    input.read(package_name.data(), streamsize(package_name_size));
+    printf("Extracting package %s...\n", package_name.c_str());
+
     filesystem::create_directory(out);
 
     auto total_files = static_cast<uint64_t>(0);

@@ -5,7 +5,7 @@
 
 using namespace std;
 
-void pack_dir(filesystem::path& in, filesystem::path& out);
+void pack_dir(filesystem::path& in, filesystem::path& out, string_view& package_name);
 void unpack_file(filesystem::path& in, filesystem::path& out);
 
 vector<string_view> parse_arguments(int argc, char* argv[])
@@ -22,7 +22,7 @@ vector<string_view> parse_arguments(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
     auto arguments = parse_arguments(argc, argv);
-    if(arguments.size() != 2)
+    if(arguments.size() < 2)
     {
         printf("asset-packer [input] [output]\n");
         return 0;
@@ -39,7 +39,14 @@ int main(int argc, char* argv[])
 
     if(is_directory(in_path))
     {
-        pack_dir(in_path, out_path);
+        if(arguments.size() != 3)
+        {
+            printf("asset-packer [input] [output] [package-name]\n");
+            return 0;
+        }
+
+        auto package_name = arguments.at(2);
+        pack_dir(in_path, out_path, package_name);
     }
     else if(is_regular_file(in_path))
     {

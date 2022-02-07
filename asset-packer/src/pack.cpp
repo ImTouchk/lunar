@@ -40,7 +40,7 @@ vector<filesystem::path> get_files_in_directory(filesystem::path& path)
     return result;
 }
 
-void pack_dir(filesystem::path& in, filesystem::path& out)
+void pack_dir(filesystem::path& in, filesystem::path& out, string_view& package_name)
 {
     auto output = fstream(out, ios::binary | ios::out);
     if(!output.is_open())
@@ -55,6 +55,11 @@ void pack_dir(filesystem::path& in, filesystem::path& out)
     auto total_files = static_cast<uint64_t>(file_paths.size());
 
     output.write(reinterpret_cast<const char*>(&MAGIC_NUMBER), sizeof(MAGIC_NUMBER));
+
+    auto package_name_size = static_cast<uint64_t>(package_name.size());
+    output.write(reinterpret_cast<const char*>(&package_name_size), sizeof(package_name_size));
+    output.write(reinterpret_cast<const char*>(package_name.data()), streamsize(package_name_size));
+
     output.write(reinterpret_cast<const char*>(&total_files), sizeof(total_files));
 
     {
