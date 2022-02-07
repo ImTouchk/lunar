@@ -27,7 +27,7 @@ void extract_file_from_pkg(ifstream& input, filesystem::path& out)
     name.insert(0, out.generic_string());
 
     auto final_path = filesystem::path(name);
-    filesystem::create_directory(final_path.parent_path());
+    filesystem::create_directories(final_path.parent_path());
 
     auto last_pos = input.tellg();
     auto file_data = vector<uint8_t>(content_size);
@@ -73,7 +73,7 @@ void unpack_file(filesystem::path& in, filesystem::path& out)
     input.read(package_name.data(), streamsize(package_name_size));
     printf("Extracting package %s...\n", package_name.c_str());
 
-    filesystem::create_directory(out);
+    filesystem::create_directories(out);
 
     auto total_files = static_cast<uint64_t>(0);
     input.read(reinterpret_cast<char*>(&total_files), sizeof(total_files));
