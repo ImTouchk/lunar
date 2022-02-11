@@ -3,6 +3,7 @@
 #include "utils/debug.hpp"
 #include "vk_renderer.hpp"
 
+#include <fmt/ranges.h> // print vector 
 #include <vulkan/vulkan.h>
 #include <fstream>
 #include <cassert>
@@ -73,16 +74,17 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     internal_data->hasOptionalDynamicRendering = true;
 
     auto optional_extensions = Vk::GetAvailableOptionalExtensions(Vk::GetRenderingDevice());
+
     for(const auto& extension : optional_extensions)
     {
-        if(strcmp(extension, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
+        if (strcmp(extension, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
             internal_data->hasOptionalDynamicRendering = true;
     }
 
     internal_data->swapchain.create(*window_handle, internal_data->surface, internal_data->device);
     internal_data->memoryAllocator.create(internal_data->device);
 
-
+    CDebug::Log("Vulkan Renderer | Activated optional extensions: {}", optional_extensions);
 
     //auto vertex = ReadFile("shaders/vert.spv");
     //auto fragment = ReadFile("shaders/frag.spv");
