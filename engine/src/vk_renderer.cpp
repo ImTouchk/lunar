@@ -12,26 +12,6 @@
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
-std::vector<char> ReadFile(const std::string& name)
-{
-    std::ifstream file(name, std::ios::ate | std::ios::binary);
-
-    if(!file.is_open())
-    {
-        throw std::runtime_error("Renderer-File-OpenFail");
-    }
-
-    size_t file_size;
-    file_size = file.tellg();
-    file.seekg(0);
-
-    auto buffer = std::vector<char>(file_size);
-    file.read(buffer.data(), file_size);
-    file.close();
-
-    return buffer;
-}
-
 void Vk::MemoryAllocatorWrapper::create(LogicalDeviceWrapper& device)
 {
     VmaAllocatorCreateInfo allocator_create_info =
@@ -86,10 +66,6 @@ void GameRenderer::create(RendererCreateInfo createInfo)
 
     CDebug::Log("Vulkan Renderer | Activated optional extensions: {}", optional_extensions);
 
-    //auto vertex = ReadFile("shaders/vert.spv");
-    //auto fragment = ReadFile("shaders/frag.spv");
-    //internal_data->shader.create(vertex, fragment, internal_data->swapchain, internal_data->device);
-
     window_handle->subscribe(WindowEvent::eResized, [this](void* handle, const std::any& eventData)
     {
         auto new_size = std::any_cast<std::pair<int, int>>(eventData);
@@ -112,6 +88,18 @@ void GameRenderer::create(RendererCreateInfo createInfo)
 void GameRenderer::destroy()
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+
+    {
+        for (auto& shader : internal_data->shaders)
+        {
+            vkDestroyPipeline(internal_data->device.handle(), shader.handle, nullptr);
+        }
+
+        vkDestroyPipelineLayout(internal_data->device.handle(), internal_data->shaders[0].layout, nullptr);
+
+        CDebug::Log("Vulkan Renderer | Shader pipelines destroyed.");
+    }
+
     internal_data->swapchain.destroy();
     internal_data->device.destroy();
     internal_data->surface.destroy();

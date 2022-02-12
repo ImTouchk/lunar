@@ -7,9 +7,31 @@
 #   include <windows.h>
 #endif
 #include <stdexcept>
+#include <fstream>
+#include <vector>
 
 #define STRINGIFY(s) XSTRINGIFY(s)
 #define XSTRINGIFY(s) #s
+
+std::vector<char> ReadFile(const std::string& name)
+{
+    std::ifstream file(name, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open())
+    {
+        throw std::runtime_error("Renderer-File-OpenFail");
+    }
+
+    size_t file_size;
+    file_size = file.tellg();
+    file.seekg(0);
+
+    auto buffer = std::vector<char>(file_size);
+    file.read(buffer.data(), file_size);
+    file.close();
+
+    return buffer;
+}
 
 int main()
 {
@@ -37,6 +59,17 @@ int main()
         {
             .pWindow = &game_window
         });
+
+        auto vert_code = ReadFile("vert.spv");
+        auto frag_code = ReadFile("frag.spv");
+
+        GraphicsShaderCreateInfo shader_create_info =
+        {
+            .vertexCode = vert_code,
+            .fragmentCode = frag_code
+        };
+
+        game_renderer.create_shaders(&shader_create_info, 1);
 
         while(game_window.is_active())
         {

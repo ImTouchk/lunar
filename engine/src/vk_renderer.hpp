@@ -90,31 +90,23 @@ namespace Vk
         void create(LogicalDeviceWrapper& device);
         void destroy();
 
-        VmaAllocator handle() const;
+        [[nodiscard]] VmaAllocator handle() const;
     private:
         VmaAllocator vmaAllocator;
     };
 
-    struct ShaderPipelineCreateInfo
+    enum class ShaderType
     {
-        const std::vector<char>& vertexCode;
-        const std::vector<char>& fragmentCode;
-        SwapchainWrapper& swapchain;
-        LogicalDeviceWrapper& device;
+        eUnknown = 0,
+        eGraphics,
+        eCompute,
     };
 
-    struct ShaderPipeline
+    struct ShaderData
     {
-    public:
-        ShaderPipeline() = default;
-        ~ShaderPipeline() = default;
-
-        void create(const std::vector<char>& vertexCode, const std::vector<char>& fragmentCode, SwapchainWrapper& swapchain, LogicalDeviceWrapper& device);
-        void destroy(LogicalDeviceWrapper& device);
-
-    private:
-        VkPipeline pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        ShaderType type = ShaderType::eUnknown;
+        VkPipelineLayout layout = VK_NULL_HANDLE;
+        VkPipeline handle = VK_NULL_HANDLE;
     };
 
     struct RendererInternalData
@@ -123,7 +115,7 @@ namespace Vk
         LogicalDeviceWrapper device;
         SwapchainWrapper swapchain;
         MemoryAllocatorWrapper memoryAllocator;
-        ShaderPipeline shader;
+        std::vector<ShaderData> shaders;
         bool hasOptionalDynamicRendering;
     };
 
@@ -148,26 +140,6 @@ namespace Vk
 
         static const QueueFamilyIndices& query(VkPhysicalDevice device, VkSurfaceKHR surface);
     };
-
-    using Shader = unsigned int;
-
-    enum class ShaderType
-    {
-        eUnknown = 0,
-        eGraphics,
-        eCompute,
-    };
-
-    struct ShaderCreateInfo
-    {
-        ShaderType type;
-        LogicalDeviceWrapper& device;
-        SwapchainWrapper& swapchain;
-        std::vector<uint8_t> bytes;
-        std::any data;
-    };
-
-    void CreateShaders(ShaderCreateInfo* pInfos, int count);
 
     VkInstance GetInstance();
     VkPhysicalDevice GetRenderingDevice();

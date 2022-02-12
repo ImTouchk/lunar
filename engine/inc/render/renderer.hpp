@@ -1,5 +1,7 @@
 #pragma once
 #include <any>
+#include <vector>
+#include <cstdint>
 
 class GameWindow;
 
@@ -7,6 +9,14 @@ struct RendererCreateInfo
 {
     GameWindow* pWindow;
 };
+
+struct GraphicsShaderCreateInfo
+{
+    std::vector<char>& vertexCode;
+    std::vector<char>& fragmentCode;
+};
+
+using Shader = unsigned int;
 
 class GameRenderer
 {
@@ -16,6 +26,8 @@ public:
 
     void create(RendererCreateInfo createInfo);
     void destroy();
+
+    std::vector<Shader> create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
 
     void draw();
 
