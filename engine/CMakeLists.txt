@@ -50,12 +50,13 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
     target_compile_definitions("lunar" PRIVATE VULKAN_USE_DEBUG_LAYERS=1)
 
     target_sources("lunar" PRIVATE
+        "src/vk_gpu.cpp"
+        "src/vk_device.cpp"
+        "src/vk_shader.cpp"
+        "src/vk_surface.cpp"
         "src/vk_renderer.hpp"
         "src/vk_renderer.cpp"
         "src/vk_instance.cpp"
-        "src/vk_gpu.cpp"
-        "src/vk_surface.cpp"
-        "src/vk_device.cpp"
         "src/vk_swapchain.cpp"
     )
 endif()

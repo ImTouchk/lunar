@@ -3,6 +3,7 @@
 #include <vk_mem_alloc.h>
 #include <optional>
 #include <vector>
+#include <any>
 
 class GameWindow;
 
@@ -147,6 +148,26 @@ namespace Vk
 
         static const QueueFamilyIndices& query(VkPhysicalDevice device, VkSurfaceKHR surface);
     };
+
+    using Shader = unsigned int;
+
+    enum class ShaderType
+    {
+        eUnknown = 0,
+        eGraphics,
+        eCompute,
+    };
+
+    struct ShaderCreateInfo
+    {
+        ShaderType type;
+        LogicalDeviceWrapper& device;
+        SwapchainWrapper& swapchain;
+        std::vector<uint8_t> bytes;
+        std::any data;
+    };
+
+    void CreateShaders(ShaderCreateInfo* pInfos, int count);
 
     VkInstance GetInstance();
     VkPhysicalDevice GetRenderingDevice();
