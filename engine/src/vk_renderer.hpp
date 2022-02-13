@@ -9,6 +9,8 @@ class GameWindow;
 
 namespace Vk
 {
+    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
     struct SurfaceWrapper
     {
     public:
@@ -67,6 +69,7 @@ namespace Vk
         void create_swapchain(GameWindow& window, SurfaceWrapper& surface);
         void create_render_pass();
         void create_image_views();
+        void create_framebuffers();
 
         LogicalDeviceWrapper* pDevice = nullptr;
 
@@ -95,6 +98,47 @@ namespace Vk
         VmaAllocator vmaAllocator;
     };
 
+    struct CommandQueueWrapper
+    {
+    public:
+        CommandQueueWrapper() = default;
+        ~CommandQueueWrapper() = default;
+
+        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain, SurfaceWrapper& surface, VkPipeline pipeline);
+        void destroy();
+
+        [[nodiscard]] std::vector<VkCommandBuffer>& buffers();
+
+    private:
+        VkCommandPool commandPool = VK_NULL_HANDLE;
+        std::vector<VkCommandBuffer> commandBuffers = {};
+        SurfaceWrapper* pSurface = nullptr;
+        LogicalDeviceWrapper* pDevice = nullptr;
+        SwapchainWrapper* pSwapchain = nullptr;
+    };
+
+    class SemaphoreWrapper
+    {
+    public:
+        SemaphoreWrapper() = default;
+        ~SemaphoreWrapper() = default;
+
+        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain);
+        void destroy();
+
+        [[nodiscard]] std::vector<VkSemaphore>& images_available();
+        [[nodiscard]] std::vector<VkSemaphore>& rendering_finished();
+        [[nodiscard]] std::vector<VkFence>& in_flight_fences();
+        [[nodiscard]] std::vector<VkFence>& images_in_flight();
+
+    private:
+        std::vector<VkSemaphore> imageAvailableSemaphores = {};
+        std::vector<VkSemaphore> renderingFinishedSemaphores = {};
+        std::vector<VkFence> inFlightFences = {};
+        std::vector<VkFence> imagesInFlight = {};
+        LogicalDeviceWrapper* pDevice = nullptr;
+    };
+
     enum class ShaderType
     {
         eUnknown = 0,
@@ -115,8 +159,11 @@ namespace Vk
         LogicalDeviceWrapper device;
         SwapchainWrapper swapchain;
         MemoryAllocatorWrapper memoryAllocator;
+        CommandQueueWrapper commandQueue;
+        SemaphoreWrapper semaphores;
         std::vector<ShaderData> shaders;
         bool hasOptionalDynamicRendering;
+        size_t currentFrame;
     };
 
     struct SwapchainSupportDetails

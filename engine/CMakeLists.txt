@@ -57,6 +57,7 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
         "src/vk_renderer.hpp"
         "src/vk_renderer.cpp"
         "src/vk_instance.cpp"
+        "src/vk_cmdqueue.cpp"
         "src/vk_swapchain.cpp"
     )
 endif()
