@@ -33,7 +33,7 @@ namespace Vk
             result_c = vkCreateFence(pDevice->handle(), &fence_create_info, nullptr, &inFlightFences[i]);
             imagesInFlight[i] = VK_NULL_HANDLE;
 
-            if(result_a != VK_SUCCESS || result_b != VK_SUCCESS | result_c != VK_SUCCESS)
+            if(result_a != VK_SUCCESS || result_b != VK_SUCCESS || result_c != VK_SUCCESS)
             {
                 CDebug::Error("Vulkan Renderer | Could not create synchronization objects (either vkCreateSemaphore or vkCreateFence did not return VK_SUCCESS).");
                 throw std::runtime_error("Renderer-Vulkan-SyncObjects-CreationFail");
