@@ -153,6 +153,7 @@ namespace Vk
         create_swapchain(window, surface);
         create_image_views();
         create_render_pass();
+        create_framebuffers();
     }
 
     void SwapchainWrapper::destroy()
@@ -161,11 +162,17 @@ namespace Vk
 
         auto device = pDevice->handle();
         vkDeviceWaitIdle(device);
+
+        for (auto& frame_buffer : frameBuffers)
+        {
+            vkDestroyFramebuffer(device, frame_buffer, nullptr);
+        }
+
         vkDestroyRenderPass(device, renderPass, nullptr);
 
-        for(auto i : range(0, views.size() - 1))
+        for(auto& image_view : views)
         {
-            vkDestroyImageView(device, views[i], nullptr);
+            vkDestroyImageView(device, image_view, nullptr);
         }
 
         vkDestroySwapchainKHR(device, swapchain, nullptr);
@@ -341,6 +348,33 @@ namespace Vk
         {
             CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkCreateRenderPass did not return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-Swapchain-CreationFail");
+        }
+    }
+
+    void SwapchainWrapper::create_framebuffers()
+    {
+        for (auto i : range(0, frameBuffers.size() - 1))
+        {
+            VkImageView attachments[] = { views[i] };
+
+            VkFramebufferCreateInfo framebuffer_create_info =
+            {
+                .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .renderPass      = renderPass,
+                .attachmentCount = 1,
+                .pAttachments    = attachments,
+                .width           = static_cast<uint32_t>(width),
+                .height          = static_cast<uint32_t>(height),
+                .layers          = 1
+            };
+
+            VkResult result;
+            result = vkCreateFramebuffer(pDevice->handle(), &framebuffer_create_info, nullptr, &frameBuffers[i]);
+            if (result != VK_SUCCESS)
+            {
+                CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkCreateFramebuffer did not return VK_SUCCESS).");
+                throw std::runtime_error("Renderer-Vulkan-Swapchain-FramebufferCreationFail");
+            }
         }
     }
 }
