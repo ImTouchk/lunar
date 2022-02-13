@@ -129,10 +129,10 @@ namespace Vk
         void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain);
         void destroy();
 
-        VkFence& image_in_flight(unsigned i);
-        VkFence& in_flight_fence(unsigned i);
-        VkSemaphore& image_available(unsigned i);
-        VkSemaphore& rendering_finished(unsigned i);
+        [[nodiscard]] VkFence& image_in_flight(unsigned i);
+        [[nodiscard]] VkFence& in_flight_fence(unsigned i);
+        [[nodiscard]] VkSemaphore& image_available(unsigned i);
+        [[nodiscard]] VkSemaphore& rendering_finished(unsigned i);
 
     private:
         LogicalDeviceWrapper* pDevice = nullptr;
