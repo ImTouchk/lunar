@@ -4,50 +4,36 @@
 #include "render/window.hpp"
 
 #include <vulkan/vulkan.h>
+#include <algorithm>
 #include <cassert>
 
 namespace Vk
 {
-    const SwapchainSupportDetails& SwapchainSupportDetails::query(VkPhysicalDevice device, VkSurfaceKHR surface)
+    const SwapchainSupportDetails SwapchainSupportDetails::query(VkPhysicalDevice device, VkSurfaceKHR surface)
     {
-        static VkPhysicalDevice cached_device = VK_NULL_HANDLE;
-        static SwapchainSupportDetails cached_value = {};
+        // This was originally cached ; however, if the window gets resized the values here become
+        // invalid, so it needs to be calculated each time
 
-        if(cached_device == device)
+        SwapchainSupportDetails value = {};
+
+        unsigned format_count;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, nullptr);
+        if (format_count != 0)
         {
-            return cached_value;
+            value.surfaceFormats.resize(format_count);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, value.surfaceFormats.data());
         }
 
-        cached_device = device;
-        cached_value = {};
-
-        auto query_surface_formats = [&]()
+        unsigned present_modes = 0;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_modes, nullptr);
+        if (present_modes != 0)
         {
-            unsigned format_count;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, nullptr);
-            if(format_count != 0)
-            {
-                cached_value.surfaceFormats.resize(format_count);
-                vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, cached_value.surfaceFormats.data());
-            }
-        };
+            value.surfacePresentModes.resize(present_modes);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_modes, value.surfacePresentModes.data());
+        }
 
-        auto query_present_modes = [&]()
-        {
-            unsigned present_modes;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_modes, nullptr);
-            if(present_modes != 0)
-            {
-                cached_value.surfacePresentModes.resize(present_modes);
-                vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_modes, cached_value.surfacePresentModes.data());
-            }
-        };
-
-        query_surface_formats();
-        query_present_modes();
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &cached_value.surfaceCapabilities);
-        return cached_value;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &value.surfaceCapabilities);
+        return value;
     }
 
     VkSurfaceFormatKHR PickSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
@@ -95,9 +81,18 @@ namespace Vk
     {
         VkExtent2D extent =
         {
-            .width  = std::max(capabilities.minImageExtent.width, (unsigned)window.get_width()),
-            .height = std::max(capabilities.minImageExtent.height, (unsigned)window.get_height())
+            .width = std::clamp((unsigned)window.get_width(), capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+            .height = std::clamp((unsigned)window.get_height(), capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
         };
+
+        CDebug::Log("Minimum ({}, {}) | Maximum ({}, {}) | Result ({}, {})",
+            capabilities.minImageExtent.width,
+            capabilities.minImageExtent.height,
+            capabilities.maxImageExtent.width,
+            capabilities.maxImageExtent.height,
+            extent.width,
+            extent.height
+        );
 
         return extent;
     }
@@ -195,6 +190,7 @@ namespace Vk
     {
         auto render_device = GetRenderingDevice();
         auto swapchain_details = SwapchainSupportDetails::query(render_device, surface.handle());
+
         auto surface_format = PickSurfaceFormat(swapchain_details.surfaceFormats);
         auto surface_present_mode = PickPresentMode(swapchain_details.surfacePresentModes);
         auto swapchain_extent = PickSwapExtent(window, swapchain_details.surfaceCapabilities);

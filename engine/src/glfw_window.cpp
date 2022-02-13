@@ -49,14 +49,6 @@ void GLFW_FRAMEBUFFER_SIZE_CALLBACK(GLFWwindow* handle, int width, int height)
 
 void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::any& data)
 {
-    for(const auto& subscriber : window->subscribers)
-    {
-        if(subscriber.event != event && subscriber.event != WindowEvent::eAny)
-            continue;
-
-        subscriber.handler(window, data);
-    }
-
     switch(event)
     {
         case WindowEvent::eResized:
@@ -75,6 +67,14 @@ void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::a
             }
             break;
         }
+    }
+
+    for(const auto& subscriber : window->subscribers)
+    {
+        if(subscriber.event != event && subscriber.event != WindowEvent::eAny)
+            continue;
+
+        subscriber.handler(window, data);
     }
 }
 

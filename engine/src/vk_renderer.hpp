@@ -176,7 +176,7 @@ namespace Vk
         std::vector<VkSurfaceFormatKHR> surfaceFormats;
         std::vector<VkPresentModeKHR> surfacePresentModes;
 
-        static const SwapchainSupportDetails& query(VkPhysicalDevice device, VkSurfaceKHR surface);
+        static const SwapchainSupportDetails query(VkPhysicalDevice device, VkSurfaceKHR surface);
     };
 
     struct QueueFamilyIndices
