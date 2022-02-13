@@ -207,22 +207,12 @@ void GameRenderer::draw()
     vkResetFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame));
     
     VkResult result;
-    result = vkQueueSubmit(device.graphics_queue(), 1, &submit_info, nullptr);
+    result = vkQueueSubmit(device.graphics_queue(), 1, &submit_info, sync_objects.in_flight_fence(current_frame));
     if (result != VK_SUCCESS)
     {
         CDebug::Error("Vulkan Renderer | Failed to render a frame (vkQueueSubmit didn't return VK_SUCCESS).");
         return;
     }
-
-    VkSubpassDependency dependency =
-    {
-        .srcSubpass    = VK_SUBPASS_EXTERNAL,
-        .dstSubpass    = 0,
-        .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .srcAccessMask = 0,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-    };
 
     VkSwapchainKHR swapchains[] =
     {

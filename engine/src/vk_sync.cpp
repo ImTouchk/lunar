@@ -31,6 +31,7 @@ namespace Vk
             result_a = vkCreateSemaphore(pDevice->handle(), &semaphore_create_info, nullptr, &imageAvailableSemaphores[i]);
             result_b = vkCreateSemaphore(pDevice->handle(), &semaphore_create_info, nullptr, &renderingFinishedSemaphore[i]);
             result_c = vkCreateFence(pDevice->handle(), &fence_create_info, nullptr, &inFlightFences[i]);
+            imagesInFlight[i] = VK_NULL_HANDLE;
 
             if(result_a != VK_SUCCESS || result_b != VK_SUCCESS | result_c != VK_SUCCESS)
             {

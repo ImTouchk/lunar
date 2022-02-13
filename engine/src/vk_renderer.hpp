@@ -112,11 +112,12 @@ namespace Vk
         [[nodiscard]] std::vector<VkCommandBuffer>& buffers();
 
     private:
+        SurfaceWrapper* pSurface = nullptr;
+        SwapchainWrapper* pSwapchain = nullptr;
+        LogicalDeviceWrapper* pDevice = nullptr;
+
         VkCommandPool commandPool = VK_NULL_HANDLE;
         std::vector<VkCommandBuffer> commandBuffers = {};
-        SurfaceWrapper* pSurface = nullptr;
-        LogicalDeviceWrapper* pDevice = nullptr;
-        SwapchainWrapper* pSwapchain = nullptr;
     };
 
     class SyncObjectsWrapper
@@ -134,12 +135,12 @@ namespace Vk
         VkSemaphore& rendering_finished(unsigned i);
 
     private:
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores;
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderingFinishedSemaphore;
-        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences;
-        std::vector<VkFence> imagesInFlight;
-        
         LogicalDeviceWrapper* pDevice = nullptr;
+
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores = {};
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderingFinishedSemaphore = {};
+        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences = {};
+        std::vector<VkFence> imagesInFlight = {};
     };
 
     enum class ShaderType
