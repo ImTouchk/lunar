@@ -51,6 +51,7 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
 
     target_sources("lunar" PRIVATE
         "src/vk_gpu.cpp"
+        "src/vk_sync.cpp"
         "src/vk_device.cpp"
         "src/vk_shader.cpp"
         "src/vk_surface.cpp"

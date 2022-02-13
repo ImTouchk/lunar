@@ -3,6 +3,7 @@
 #include <vk_mem_alloc.h>
 #include <optional>
 #include <vector>
+#include <memory>
 #include <any>
 
 class GameWindow;
@@ -117,25 +118,26 @@ namespace Vk
         SwapchainWrapper* pSwapchain = nullptr;
     };
 
-    class SemaphoreWrapper
+    class SyncObjectsWrapper
     {
     public:
-        SemaphoreWrapper() = default;
-        ~SemaphoreWrapper() = default;
+        SyncObjectsWrapper() = default;
+        ~SyncObjectsWrapper() = default;
 
         void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain);
         void destroy();
 
-        [[nodiscard]] std::vector<VkSemaphore>& images_available();
-        [[nodiscard]] std::vector<VkSemaphore>& rendering_finished();
-        [[nodiscard]] std::vector<VkFence>& in_flight_fences();
-        [[nodiscard]] std::vector<VkFence>& images_in_flight();
+        VkFence& image_in_flight(unsigned i);
+        VkFence& in_flight_fence(unsigned i);
+        VkSemaphore& image_available(unsigned i);
+        VkSemaphore& rendering_finished(unsigned i);
 
     private:
-        std::vector<VkSemaphore> imageAvailableSemaphores = {};
-        std::vector<VkSemaphore> renderingFinishedSemaphores = {};
-        std::vector<VkFence> inFlightFences = {};
-        std::vector<VkFence> imagesInFlight = {};
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores;
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderingFinishedSemaphore;
+        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences;
+        std::vector<VkFence> imagesInFlight;
+        
         LogicalDeviceWrapper* pDevice = nullptr;
     };
 
@@ -160,7 +162,7 @@ namespace Vk
         SwapchainWrapper swapchain;
         MemoryAllocatorWrapper memoryAllocator;
         CommandQueueWrapper commandQueue;
-        SemaphoreWrapper semaphores;
+        SyncObjectsWrapper syncObjects;
         std::vector<ShaderData> shaders;
         bool hasOptionalDynamicRendering;
         size_t currentFrame;

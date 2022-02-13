@@ -65,75 +65,6 @@ namespace Vk
     {
         return vmaAllocator;
     }
-
-    void SemaphoreWrapper::create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain)
-    {
-        pDevice = &device;
-
-        VkSemaphoreCreateInfo semaphore_create_info =
-        {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-        };
-
-        VkFenceCreateInfo fence_create_info =
-        {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT
-        };
-
-        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        renderingFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        imagesInFlight.resize(swapchain.image_views().size(), VK_NULL_HANDLE);
-
-        for (auto i : range(0, MAX_FRAMES_IN_FLIGHT - 1))
-        {
-            VkResult result_a;
-            VkResult result_b;
-            VkResult result_c;
-            result_a = vkCreateSemaphore(pDevice->handle(), &semaphore_create_info, nullptr, &imageAvailableSemaphores[i]);
-            result_b = vkCreateSemaphore(pDevice->handle(), &semaphore_create_info, nullptr, &renderingFinishedSemaphores[i]);
-            result_c = vkCreateFence(pDevice->handle(), &fence_create_info, nullptr, &inFlightFences[i]);
-
-            if(result_a != VK_SUCCESS || result_b != VK_SUCCESS || result_c != VK_SUCCESS)
-            {
-                CDebug::Error("Vulkan Renderer | Could not create semaphores (either vkCreateSemaphore or vkCreateFence didn't return VK_SUCCESS).");
-                throw std::runtime_error("Renderer-Vulkan-Semaphore-CreationFail");
-            }
-        }
-
-        CDebug::Log("Vulkan Renderer | Semaphores successfully created.");
-    }
-
-    void SemaphoreWrapper::destroy()
-    {
-        for (auto i : range(0, MAX_FRAMES_IN_FLIGHT - 1))
-        {
-            vkDestroySemaphore(pDevice->handle(), imageAvailableSemaphores[i], nullptr);
-            vkDestroySemaphore(pDevice->handle(), renderingFinishedSemaphores[i], nullptr);
-            vkDestroyFence(pDevice->handle(), inFlightFences[i], nullptr);
-        }
-    }
-
-    std::vector<VkSemaphore>& SemaphoreWrapper::images_available()
-    {
-        return imageAvailableSemaphores;
-    }
-
-    std::vector<VkSemaphore>& SemaphoreWrapper::rendering_finished()
-    {
-        return renderingFinishedSemaphores;
-    }
-
-    std::vector<VkFence>& SemaphoreWrapper::in_flight_fences()
-    {
-        return inFlightFences;
-    }
-
-    std::vector<VkFence>& SemaphoreWrapper::images_in_flight()
-    {
-        return imagesInFlight;
-    }
 }
 
 void GameRenderer::create(RendererCreateInfo createInfo)
@@ -142,9 +73,15 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     backend_data = Vk::RendererInternalData();
 
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
-    internal_data->surface.create(*window_handle);
-    internal_data->device.create(internal_data->surface);
-    internal_data->hasOptionalDynamicRendering = true;
+    auto& surface = internal_data->surface;
+    auto& device = internal_data->device;
+    auto& swapchain = internal_data->swapchain;
+    auto& memory_allocator = internal_data->memoryAllocator;
+    auto& sync_objects = internal_data->syncObjects;
+    auto& command_queue = internal_data->commandQueue;
+
+    surface.create(*window_handle);
+    device.create(surface);
 
     auto optional_extensions = Vk::GetAvailableOptionalExtensions(Vk::GetRenderingDevice());
 
@@ -154,9 +91,9 @@ void GameRenderer::create(RendererCreateInfo createInfo)
             internal_data->hasOptionalDynamicRendering = true;
     }
 
-    internal_data->swapchain.create(*window_handle, internal_data->surface, internal_data->device);
-    internal_data->memoryAllocator.create(internal_data->device);
-    internal_data->semaphores.create(internal_data->device, internal_data->swapchain);
+    swapchain.create(*window_handle, surface, device);
+    memory_allocator.create(device);
+    sync_objects.create(device, swapchain);
 
     auto vert_code = ReadFile("vert.spv");
     auto frag_code = ReadFile("frag.spv");
@@ -169,7 +106,8 @@ void GameRenderer::create(RendererCreateInfo createInfo)
 
     create_shaders(&shader_create_info, 1);
 
-    internal_data->commandQueue.create(internal_data->device, internal_data->swapchain, internal_data->surface, internal_data->shaders[0].handle);
+    command_queue.create(device, swapchain, surface, internal_data->shaders[0].handle);
+
     internal_data->currentFrame = 0;
 
     CDebug::Log("Vulkan Renderer | Activated optional extensions: {}", optional_extensions);
@@ -223,25 +161,25 @@ void GameRenderer::draw()
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     auto& device = internal_data->device;
     auto& swapchain = internal_data->swapchain;
-    auto& semaphores = internal_data->semaphores;
+    auto& sync_objects = internal_data->syncObjects;
     auto& command_queue = internal_data->commandQueue;
     auto& current_frame = internal_data->currentFrame;
 
-    vkWaitForFences(device.handle(), 1, &semaphores.in_flight_fences()[current_frame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame), VK_TRUE, UINT64_MAX);
 
     uint32_t image_index;
-    vkAcquireNextImageKHR(device.handle(), swapchain.handle(), UINT64_MAX, semaphores.images_available()[current_frame], VK_NULL_HANDLE, &image_index);
+    vkAcquireNextImageKHR(device.handle(), swapchain.handle(), UINT64_MAX, sync_objects.image_available(current_frame), VK_NULL_HANDLE, &image_index);
 
-    if (semaphores.images_in_flight()[image_index] != VK_NULL_HANDLE)
+    if (sync_objects.image_in_flight(image_index) != VK_NULL_HANDLE)
     {
-        vkWaitForFences(device.handle(), 1, &semaphores.images_in_flight()[image_index], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(device.handle(), 1, &sync_objects.image_in_flight(image_index), VK_TRUE, UINT64_MAX);
     }
 
-    semaphores.images_in_flight()[image_index] = semaphores.in_flight_fences()[current_frame];
+    sync_objects.image_in_flight(image_index) = sync_objects.in_flight_fence(current_frame);
 
     VkSemaphore wait_semaphores[] = 
-    { 
-        semaphores.images_available()[current_frame]
+    {
+        sync_objects.image_available(current_frame)
     };
 
     VkPipelineStageFlags wait_stages[] =
@@ -251,7 +189,7 @@ void GameRenderer::draw()
 
     VkSemaphore signal_semaphores[] =
     {
-        semaphores.rendering_finished()[current_frame]
+        sync_objects.rendering_finished(current_frame)
     };
 
     VkSubmitInfo submit_info =
@@ -266,7 +204,7 @@ void GameRenderer::draw()
         .pSignalSemaphores    = signal_semaphores
     };
 
-    vkResetFences(device.handle(), 1, &semaphores.in_flight_fences()[current_frame]);
+    vkResetFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame));
     
     VkResult result;
     result = vkQueueSubmit(device.graphics_queue(), 1, &submit_info, nullptr);
