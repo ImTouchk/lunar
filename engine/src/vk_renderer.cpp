@@ -128,12 +128,20 @@ void GameRenderer::create(RendererCreateInfo createInfo)
         GameWindow& window = *window_handle;
         auto* data = std::any_cast<Vk::RendererInternalData>(&backend_data);
         data->swapchain.resize(window, data->surface);
+        
+        data->commandQueue.destroy();
+        data->commandQueue.create(data->device, data->swapchain, data->surface, data->shaders[0].handle);
     });
 }
 
 void GameRenderer::destroy()
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+
+    vkDeviceWaitIdle(internal_data->device.handle());
+
+    internal_data->syncObjects.destroy();
+    internal_data->commandQueue.destroy();
 
     {
         for (auto& shader : internal_data->shaders)
@@ -157,7 +165,7 @@ void GameRenderer::draw()
     {
         return;
     }
-
+    
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     auto& device = internal_data->device;
     auto& swapchain = internal_data->swapchain;
