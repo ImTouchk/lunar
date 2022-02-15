@@ -69,7 +69,7 @@ void pack_dir(filesystem::path& in, filesystem::path& out, string_view& package_
         {
             auto real_path = path.generic_string();
 
-            auto name = real_path.substr(root_size, real_path.size() - root_size);
+            auto name = real_path.substr(root_size + 1, real_path.size() - root_size + 1);
             auto name_size = static_cast<uint64_t>(name.size());
 
             file_metadatas.emplace_back(static_cast<uint64_t>(output.tellp()));
