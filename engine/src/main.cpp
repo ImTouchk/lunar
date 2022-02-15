@@ -1,6 +1,7 @@
 #include "utils/debug.hpp"
 #include "render/window.hpp"
 #include "render/renderer.hpp"
+#include "io/filesystem.hpp"
 
 #ifdef WIN32
 #   define WIN32_LEAN_AND_MEAN
@@ -40,6 +41,14 @@ int main()
             .pWindow = &game_window
         });
 
+        CFilesystem::LoadPackage("default.vpak");
+
+        auto path = CVirtualPath("MyAssets/frag.spv");
+        if(path.exists())
+        {
+            CDebug::Log("Virtual path exists!");
+        }
+
         while(game_window.is_active())
         {
             if(!game_window.is_minimized())
@@ -53,6 +62,8 @@ int main()
 
         game_renderer.destroy();
         game_window.destroy();
+
+        CFilesystem::UnloadPackage("MyAssets");
     } catch(std::runtime_error& error)
     {
         CDebug::Error("Uncaught exception: {}. Program halted.", error.what());
