@@ -12,7 +12,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-add_executable("lunar" "src/main.cpp" "src/filesystem.cpp")
+add_executable("lunar" "src/main.cpp" "src/filesystem.cpp" "src/thread_pool.cpp")
 target_include_directories("lunar" PUBLIC inc)
 target_compile_definitions("lunar" PRIVATE
     PRINT_DEBUG_OUTPUT=1
@@ -26,6 +26,7 @@ if(COUNT_HEADERS_AS_SOURCE)
         "inc/render/renderer.hpp"
         "inc/utils/debug.hpp"
         "inc/utils/range.hpp"
+        "inc/utils/thread_pool.hpp"
         "inc/io/filesystem.hpp"
     )
 endif()
