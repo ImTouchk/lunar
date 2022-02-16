@@ -24,6 +24,7 @@ if(COUNT_HEADERS_AS_SOURCE)
     target_sources("lunar" PRIVATE
         "inc/render/window.hpp"
         "inc/render/renderer.hpp"
+        "inc/render/mesh.hpp"
         "inc/utils/debug.hpp"
         "inc/utils/range.hpp"
         "inc/utils/thread_pool.hpp"

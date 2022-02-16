@@ -3,6 +3,9 @@
 #include <vector>
 #include <cstdint>
 
+#include "render/mesh.hpp"
+#include "math/vec.hpp"
+
 class GameWindow;
 
 struct RendererCreateInfo
@@ -16,7 +19,12 @@ struct GraphicsShaderCreateInfo
     std::vector<char>& fragmentCode;
 };
 
-using Shader = unsigned int;
+struct MeshCreateInfo
+{
+    const std::vector<vec3f>& vertices;
+    const std::vector<unsigned>& indices;
+    Shader shader;
+};
 
 class GameRenderer
 {
@@ -27,7 +35,8 @@ public:
     void create(RendererCreateInfo createInfo);
     void destroy();
 
-    std::vector<Shader> create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
+    [[nodiscard]] std::vector<Shader> create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
+    [[nodiscard]] CMesh create_object(MeshCreateInfo meshCreateInfo);
 
     void draw();
 
