@@ -1,7 +1,12 @@
 #include "utils/debug.hpp"
+#include "utils/range.hpp"
+
 #include "render/window.hpp"
 #include "render/renderer.hpp"
 #include "io/filesystem.hpp"
+#include "utils/thread_pool.hpp"
+
+#include "math/vec.hpp"
 
 #ifdef WIN32
 #   define WIN32_LEAN_AND_MEAN
@@ -42,6 +47,7 @@ int main()
         });
 
         CFilesystem::LoadPackage("default.vpak");
+        CThreadPool::Initialize();
 
         auto path = CVirtualPath("MyAssets/frag.spv");
         if(path.exists())
@@ -64,6 +70,7 @@ int main()
         game_window.destroy();
 
         CFilesystem::UnloadPackage("MyAssets");
+        CThreadPool::Stop();
     } catch(std::runtime_error& error)
     {
         CDebug::Error("Uncaught exception: {}. Program halted.", error.what());
