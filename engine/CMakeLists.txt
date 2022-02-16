@@ -28,6 +28,7 @@ if(COUNT_HEADERS_AS_SOURCE)
         "inc/utils/range.hpp"
         "inc/utils/thread_pool.hpp"
         "inc/io/filesystem.hpp"
+        "inc/math/vec.hpp"
     )
 endif()
 
