@@ -4,68 +4,11 @@
 #include "utils/range.hpp"
 #include "vk_renderer.hpp"
 
-#include <fmt/ranges.h> // print vector 
 #include <vulkan/vulkan.h>
-#include <fstream>
-#include <cassert>
 #include <any>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
-
-std::vector<char> ReadFile(const std::string& name)
-{
-    std::ifstream file(name, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open())
-    {
-        throw std::runtime_error("Renderer-File-OpenFail");
-    }
-
-    size_t file_size;
-    file_size = file.tellg();
-    file.seekg(0);
-
-    auto buffer = std::vector<char>(file_size);
-    file.read(buffer.data(), file_size);
-    file.close();
-
-    return buffer;
-}
-
-namespace Vk
-{
-    void MemoryAllocatorWrapper::create(LogicalDeviceWrapper& device)
-    {
-        VmaAllocatorCreateInfo allocator_create_info =
-        {
-            .physicalDevice = GetRenderingDevice(),
-            .device         = device.handle(),
-            .instance       = GetInstance()
-        };
-
-        VkResult result;
-        result = vmaCreateAllocator(&allocator_create_info, &vmaAllocator);
-        if(result != VK_SUCCESS)
-        {
-            CDebug::Error("Vulkan Renderer | Memory allocator creation fail (vmaCreateAllocator did not return VK_SUCCESS).");
-            throw std::runtime_error("Renderer-Vulkan-MemoryAllocator-CreationFail");
-        }
-
-        CDebug::Log("Vulkan Renderer | Memory allocator created.");
-    }
-
-    void MemoryAllocatorWrapper::destroy()
-    {
-        vmaDestroyAllocator(vmaAllocator);
-        CDebug::Log("Vulkan Renderer | Memory allocator destroyed.");
-    }
-
-    VmaAllocator MemoryAllocatorWrapper::handle() const
-    {
-        return vmaAllocator;
-    }
-}
 
 void GameRenderer::create(RendererCreateInfo createInfo)
 {
@@ -76,8 +19,8 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     auto& surface = internal_data->surface;
     auto& device = internal_data->device;
     auto& swapchain = internal_data->swapchain;
-    auto& memory_allocator = internal_data->memoryAllocator;
     auto& sync_objects = internal_data->syncObjects;
+    auto& object_manager = internal_data->objectManager;
     auto& command_queue = internal_data->commandQueue;
 
     surface.create(*window_handle);
@@ -92,21 +35,10 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     }
 
     swapchain.create(*window_handle, surface, device);
-    memory_allocator.create(device);
     sync_objects.create(device, swapchain);
+    object_manager.create(device, swapchain, surface);
 
-    auto vert_code = ReadFile("vert.spv");
-    auto frag_code = ReadFile("frag.spv");
-
-    GraphicsShaderCreateInfo shader_create_info =
-    {
-        .vertexCode = vert_code,
-        .fragmentCode = frag_code
-    };
-
-    create_shaders(&shader_create_info, 1);
-
-    command_queue.create(device, swapchain, surface, internal_data->shaders[0].handle);
+    //command_queue.create(device, swapchain, surface, internal_data->shaders[0].handle);
 
     internal_data->currentFrame = 0;
 
@@ -140,8 +72,9 @@ void GameRenderer::destroy()
 
     vkDeviceWaitIdle(internal_data->device.handle());
 
+    internal_data->objectManager.destroy();
     internal_data->syncObjects.destroy();
-    internal_data->commandQueue.destroy();
+    //internal_data->commandQueue.destroy();
 
     {
         for (auto& shader : internal_data->shaders)
@@ -149,7 +82,10 @@ void GameRenderer::destroy()
             vkDestroyPipeline(internal_data->device.handle(), shader.handle, nullptr);
         }
 
-        vkDestroyPipelineLayout(internal_data->device.handle(), internal_data->shaders[0].layout, nullptr);
+        if (!internal_data->shaders.empty())
+        {
+            vkDestroyPipelineLayout(internal_data->device.handle(), internal_data->shaders[0].layout, nullptr);
+        }
 
         CDebug::Log("Vulkan Renderer | Shader pipelines destroyed.");
     }
@@ -172,6 +108,8 @@ void GameRenderer::draw()
     auto& sync_objects = internal_data->syncObjects;
     auto& command_queue = internal_data->commandQueue;
     auto& current_frame = internal_data->currentFrame;
+
+    return;
 
     vkWaitForFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame), VK_TRUE, UINT64_MAX);
 

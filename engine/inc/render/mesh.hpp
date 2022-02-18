@@ -19,6 +19,9 @@ public:
     [[nodiscard]] bool active() const;
     [[nodiscard]] std::any& internal_data() const;
 private:
+    std::vector<vec3f> vertices = {};
+    std::vector<unsigned> indices = {};
+
     std::any data = 0;
     bool is_active = false;
 };

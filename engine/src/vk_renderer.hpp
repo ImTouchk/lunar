@@ -1,17 +1,30 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+#include <shared_mutex>
 #include <optional>
 #include <vector>
 #include <memory>
 #include <array>
 #include <any>
 
+#include "render/renderer.hpp"
+
 class GameWindow;
 
 namespace Vk
 {
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
+    struct MeshHandleInternalData
+    {
+        bool needsUpdating;
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vbMemory;
+        VkBuffer indexBuffer;
+        VkDeviceMemory ibMemory;
+        unsigned shader;
+    };
 
     struct SurfaceWrapper
     {
@@ -86,20 +99,6 @@ namespace Vk
         int height = 0;
     };
 
-    struct MemoryAllocatorWrapper
-    {
-    public:
-        MemoryAllocatorWrapper() = default;
-        ~MemoryAllocatorWrapper() = default;
-
-        void create(LogicalDeviceWrapper& device);
-        void destroy();
-
-        [[nodiscard]] VmaAllocator handle() const;
-    private:
-        VmaAllocator vmaAllocator;
-    };
-
     struct CommandQueueWrapper
     {
     public:
@@ -157,14 +156,62 @@ namespace Vk
         VkPipeline handle = VK_NULL_HANDLE;
     };
 
+    struct ShaderManager
+    {
+    public:
+        ShaderManager() = default;
+        ~ShaderManager() = default;
+
+        void create(LogicalDeviceWrapper& device);
+        void destroy();
+
+        void create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
+        //void create_compute();
+
+    private:
+        LogicalDeviceWrapper* pDevice = nullptr;
+        std::vector<ShaderData> shaders;
+    };
+
+    struct ObjectManager
+    {
+    public:
+        ObjectManager() = default;
+        ~ObjectManager() = default;
+
+        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain, SurfaceWrapper& surface);
+        void destroy();
+
+        CMesh create_object(const MeshCreateInfo& meshCreateInfo);
+
+    private:
+        void create_memory_allocator();
+        void destroy_memory_allocator();
+
+        void create_command_pool();
+        void destroy_command_pool();
+
+        void update_command_buffer_block(unsigned block);
+
+    private:
+        LogicalDeviceWrapper* pDevice = nullptr;
+        SurfaceWrapper* pSurface = nullptr;
+        SwapchainWrapper* pSwapchain = nullptr;
+
+        VmaAllocator memoryAllocator = VK_NULL_HANDLE;
+        VkCommandPool commandPool = VK_NULL_HANDLE;
+        VkCommandBuffer mainCmdBuffer = VK_NULL_HANDLE;
+        std::vector<VkCommandBuffer> secondaryCmdBuffers = {};
+    };
+
     struct RendererInternalData
     {
         SurfaceWrapper surface;
         LogicalDeviceWrapper device;
         SwapchainWrapper swapchain;
-        MemoryAllocatorWrapper memoryAllocator;
         CommandQueueWrapper commandQueue;
         SyncObjectsWrapper syncObjects;
+        ObjectManager objectManager;
         std::vector<ShaderData> shaders;
         bool hasOptionalDynamicRendering;
         size_t currentFrame;
