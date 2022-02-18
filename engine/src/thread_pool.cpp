@@ -77,4 +77,9 @@ namespace CThreadPool
 
         CONDITION.notify_one();
     }
+
+    unsigned GetThreadCount()
+    {
+        return WORKERS.size();
+    }
 }

@@ -7,4 +7,6 @@ namespace CThreadPool
     void Stop();
 
     void DoTask(const std::function<void()>& task);
+
+    unsigned GetThreadCount();
 }
