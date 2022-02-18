@@ -30,6 +30,9 @@ int main()
 
     try
     {
+        CThreadPool::Initialize();
+        CFilesystem::LoadPackage("default.vpak");
+
         GameWindow game_window;
         game_window.create(WindowCreateInfo
         {
@@ -46,9 +49,6 @@ int main()
             .pWindow = &game_window
         });
 
-        CFilesystem::LoadPackage("default.vpak");
-        CThreadPool::Initialize();
-
         auto path = CVirtualPath("MyAssets/frag.spv");
         if(path.exists())
         {
@@ -64,6 +64,10 @@ int main()
             }
 
             game_window.update();
+
+#           ifdef WIN32
+            fflush(stdout); // necessary for CLion to print stuff before the program ends
+#           endif
         }
 
         game_renderer.destroy();
