@@ -85,15 +85,6 @@ namespace Vk
             .height = std::clamp((unsigned)window.get_height(), capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
         };
 
-        CDebug::Log("Minimum ({}, {}) | Maximum ({}, {}) | Result ({}, {})",
-            capabilities.minImageExtent.width,
-            capabilities.minImageExtent.height,
-            capabilities.maxImageExtent.width,
-            capabilities.maxImageExtent.height,
-            extent.width,
-            extent.height
-        );
-
         return extent;
     }
 
