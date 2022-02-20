@@ -9,14 +9,14 @@
 #include <functional>
 #include <condition_variable>
 
-std::vector<std::thread> WORKERS;
-std::queue<std::function<void()>> WORK_QUEUE = {};
-std::condition_variable CONDITION = {};
-std::mutex WORK_MUTEX = {};
-bool TERMINATE_POOL = false;
-
 namespace CThreadPool
 {
+    std::vector<std::thread> WORKERS;
+    std::queue<std::function<void()>> WORK_QUEUE = {};
+    std::condition_variable CONDITION = {};
+    std::mutex WORK_MUTEX = {};
+    bool TERMINATE_POOL = false;
+
     void WorkerThread()
     {
         while(true)
