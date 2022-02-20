@@ -9,6 +9,8 @@
 #include <any>
 
 #include "render/renderer.hpp"
+#include "vk_shader_manager.hpp"
+#include "vk_object_manager.hpp"
 
 class GameWindow;
 
@@ -16,14 +18,26 @@ namespace Vk
 {
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-    struct MeshHandleInternalData
+    struct SwapchainSupportDetails
     {
-        bool needsUpdating;
-        VkBuffer vertexBuffer;
-        VkDeviceMemory vbMemory;
-        VkBuffer indexBuffer;
-        VkDeviceMemory ibMemory;
-        unsigned shader;
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        std::vector<VkSurfaceFormatKHR> surfaceFormats;
+        std::vector<VkPresentModeKHR> surfacePresentModes;
+
+        static const SwapchainSupportDetails query(VkPhysicalDevice device, VkSurfaceKHR surface);
+    };
+
+    struct QueueFamilyIndices
+    {
+        std::optional<unsigned> graphics;
+        std::optional<unsigned> present;
+
+        [[nodiscard]] bool is_complete() const
+        {
+            return graphics.has_value() && present.has_value();
+        }
+
+        static const QueueFamilyIndices& query(VkPhysicalDevice device, VkSurfaceKHR surface);
     };
 
     struct SurfaceWrapper
@@ -142,68 +156,6 @@ namespace Vk
         std::vector<VkFence> imagesInFlight = {};
     };
 
-    enum class ShaderType
-    {
-        eUnknown = 0,
-        eGraphics,
-        eCompute,
-    };
-
-    struct ShaderData
-    {
-        ShaderType type = ShaderType::eUnknown;
-        VkPipelineLayout layout = VK_NULL_HANDLE;
-        VkPipeline handle = VK_NULL_HANDLE;
-    };
-
-    struct ShaderManager
-    {
-    public:
-        ShaderManager() = default;
-        ~ShaderManager() = default;
-
-        void create(LogicalDeviceWrapper& device);
-        void destroy();
-
-        void create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
-        //void create_compute();
-
-    private:
-        LogicalDeviceWrapper* pDevice = nullptr;
-        std::vector<ShaderData> shaders;
-    };
-
-    struct ObjectManager
-    {
-    public:
-        ObjectManager() = default;
-        ~ObjectManager() = default;
-
-        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain, SurfaceWrapper& surface);
-        void destroy();
-
-        CMesh create_object(const MeshCreateInfo& meshCreateInfo);
-
-    private:
-        void create_memory_allocator();
-        void destroy_memory_allocator();
-
-        void create_command_pool();
-        void destroy_command_pool();
-
-        void update_command_buffer_block(unsigned block);
-
-    private:
-        LogicalDeviceWrapper* pDevice = nullptr;
-        SurfaceWrapper* pSurface = nullptr;
-        SwapchainWrapper* pSwapchain = nullptr;
-
-        VmaAllocator memoryAllocator = VK_NULL_HANDLE;
-        VkCommandPool commandPool = VK_NULL_HANDLE;
-        VkCommandBuffer mainCmdBuffer = VK_NULL_HANDLE;
-        std::vector<VkCommandBuffer> secondaryCmdBuffers = {};
-    };
-
     struct RendererInternalData
     {
         SurfaceWrapper surface;
@@ -211,32 +163,10 @@ namespace Vk
         SwapchainWrapper swapchain;
         CommandQueueWrapper commandQueue;
         SyncObjectsWrapper syncObjects;
+        ShaderManager shaderManager;
         ObjectManager objectManager;
-        std::vector<ShaderData> shaders;
         bool hasOptionalDynamicRendering;
         size_t currentFrame;
-    };
-
-    struct SwapchainSupportDetails
-    {
-        VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        std::vector<VkSurfaceFormatKHR> surfaceFormats;
-        std::vector<VkPresentModeKHR> surfacePresentModes;
-
-        static const SwapchainSupportDetails query(VkPhysicalDevice device, VkSurfaceKHR surface);
-    };
-
-    struct QueueFamilyIndices
-    {
-        std::optional<unsigned> graphics;
-        std::optional<unsigned> present;
-
-        [[nodiscard]] bool is_complete() const
-        {
-            return graphics.has_value() && present.has_value();
-        }
-
-        static const QueueFamilyIndices& query(VkPhysicalDevice device, VkSurfaceKHR surface);
     };
 
     VkInstance GetInstance();

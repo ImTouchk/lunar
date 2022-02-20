@@ -64,7 +64,9 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
         "src/vk_instance.cpp"
         "src/vk_cmdqueue.cpp"
         "src/vk_swapchain.cpp"
-        "src/vk_object_manager.cpp"
+        "src/vk_shader_manager.hpp"
+        "src/vk_object_manager.hpp"
+        #"src/vk_object_manager.cpp"
     )
 endif()
 

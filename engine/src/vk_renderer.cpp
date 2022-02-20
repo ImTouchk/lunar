@@ -21,6 +21,7 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     auto& swapchain = internal_data->swapchain;
     auto& sync_objects = internal_data->syncObjects;
     auto& object_manager = internal_data->objectManager;
+    auto& shader_manager = internal_data->shaderManager;
     auto& command_queue = internal_data->commandQueue;
 
     surface.create(*window_handle);
@@ -36,7 +37,8 @@ void GameRenderer::create(RendererCreateInfo createInfo)
 
     swapchain.create(*window_handle, surface, device);
     sync_objects.create(device, swapchain);
-    object_manager.create(device, swapchain, surface);
+    shader_manager.create(device, swapchain);
+    //object_manager.create(device, swapchain, surface);
 
     //command_queue.create(device, swapchain, surface, internal_data->shaders[0].handle);
 
@@ -60,9 +62,6 @@ void GameRenderer::create(RendererCreateInfo createInfo)
         GameWindow& window = *window_handle;
         auto* data = std::any_cast<Vk::RendererInternalData>(&backend_data);
         data->swapchain.resize(window, data->surface);
-        
-        data->commandQueue.destroy();
-        data->commandQueue.create(data->device, data->swapchain, data->surface, data->shaders[0].handle);
     });
 }
 
@@ -72,23 +71,10 @@ void GameRenderer::destroy()
 
     vkDeviceWaitIdle(internal_data->device.handle());
 
-    internal_data->objectManager.destroy();
+    internal_data->shaderManager.destroy();
+    //internal_data->objectManager.destroy();
     internal_data->syncObjects.destroy();
     //internal_data->commandQueue.destroy();
-
-    {
-        for (auto& shader : internal_data->shaders)
-        {
-            vkDestroyPipeline(internal_data->device.handle(), shader.handle, nullptr);
-        }
-
-        if (!internal_data->shaders.empty())
-        {
-            vkDestroyPipelineLayout(internal_data->device.handle(), internal_data->shaders[0].layout, nullptr);
-        }
-
-        CDebug::Log("Vulkan Renderer | Shader pipelines destroyed.");
-    }
 
     internal_data->swapchain.destroy();
     internal_data->device.destroy();
