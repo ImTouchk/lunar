@@ -5,6 +5,26 @@
 
 using Shader = unsigned int;
 
+enum class MeshType
+{
+    eUnknown = 0,
+    eStatic,
+    eDynamic
+};
+
+struct GraphicsShaderCreateInfo
+{
+    std::vector<char>& vertexCode;
+    std::vector<char>& fragmentCode;
+};
+
+struct MeshCreateInfo
+{
+    const std::vector<vec3f>& vertices;
+    const std::vector<unsigned>& indices;
+    Shader shader;
+};
+
 class CMesh
 {
 public:
@@ -19,9 +39,6 @@ public:
     [[nodiscard]] bool active() const;
     [[nodiscard]] std::any& internal_data() const;
 private:
-    std::vector<vec3f> vertices = {};
-    std::vector<unsigned> indices = {};
-
-    std::any data = 0;
+    unsigned handle = 0;
     bool is_active = false;
 };

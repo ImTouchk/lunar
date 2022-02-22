@@ -13,19 +13,6 @@ struct RendererCreateInfo
     GameWindow* pWindow;
 };
 
-struct GraphicsShaderCreateInfo
-{
-    std::vector<char>& vertexCode;
-    std::vector<char>& fragmentCode;
-};
-
-struct MeshCreateInfo
-{
-    const std::vector<vec3f>& vertices;
-    const std::vector<unsigned>& indices;
-    Shader shader;
-};
-
 class GameRenderer
 {
 public:

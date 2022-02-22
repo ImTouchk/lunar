@@ -38,7 +38,7 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     swapchain.create(*window_handle, surface, device);
     sync_objects.create(device, swapchain);
     shader_manager.create(device, swapchain);
-    //object_manager.create(device, swapchain, surface);
+    object_manager.create(device, swapchain, surface, shader_manager);
 
     //command_queue.create(device, swapchain, surface, internal_data->shaders[0].handle);
 
@@ -72,7 +72,7 @@ void GameRenderer::destroy()
     vkDeviceWaitIdle(internal_data->device.handle());
 
     internal_data->shaderManager.destroy();
-    //internal_data->objectManager.destroy();
+    internal_data->objectManager.destroy();
     internal_data->syncObjects.destroy();
     //internal_data->commandQueue.destroy();
 
@@ -94,7 +94,9 @@ void GameRenderer::draw()
     auto& sync_objects = internal_data->syncObjects;
     auto& command_queue = internal_data->commandQueue;
     auto& current_frame = internal_data->currentFrame;
+    auto& object_manager = internal_data->objectManager;
 
+    object_manager.update();
     return;
 
     vkWaitForFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame), VK_TRUE, UINT64_MAX);
