@@ -20,6 +20,7 @@ struct GraphicsShaderCreateInfo
 
 struct MeshCreateInfo
 {
+    MeshType type;
     const std::vector<vec3f>& vertices;
     const std::vector<unsigned>& indices;
     Shader shader;

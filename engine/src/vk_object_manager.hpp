@@ -25,9 +25,9 @@ namespace Vk
         unsigned indexCount = 0;
 
         VkBuffer vertexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory vbMemory = VK_NULL_HANDLE;
+        VmaAllocation vbMemory = VK_NULL_HANDLE;
         VkBuffer indexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory ibMemory = VK_NULL_HANDLE;
+        VmaAllocation ibMemory = VK_NULL_HANDLE;
     };
 
     struct ObjectManager
@@ -50,6 +50,11 @@ namespace Vk
         void update_command_buffers();
             bool try_allocate_new_command_buffers();
             void record_secondary_command_buffers();
+
+        void create_index_buffer(MeshData& meshData, const std::vector<unsigned>& indices);
+        void create_vertex_buffer(MeshData& meshData, const std::vector<vec3f>& vertices);
+            void create_buffer(unsigned size, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage, VkBuffer& buffer, VmaAllocation& allocation);
+            void copy_buffer(VkBuffer src, VkBuffer dst, unsigned size);
 
     private:
         LogicalDeviceWrapper* pDevice = nullptr;

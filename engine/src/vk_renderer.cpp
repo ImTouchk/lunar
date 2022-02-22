@@ -168,3 +168,15 @@ void GameRenderer::draw()
 
     current_frame = (current_frame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
 }
+
+std::vector<Shader> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned int count)
+{
+    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    return internal_data->shaderManager.create_graphics(pCreateInfos, count);
+}
+
+CMesh GameRenderer::create_object(MeshCreateInfo meshCreateInfo)
+{
+    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    return internal_data->objectManager.create_object(meshCreateInfo);
+}

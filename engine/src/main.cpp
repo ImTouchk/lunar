@@ -49,6 +49,14 @@ int main()
             .pWindow = &game_window
         });
 
+        game_renderer.create_object(MeshCreateInfo
+        {
+            .type     = MeshType::eUnknown,
+            .vertices = { { 0, 0, 0 }, },
+            .indices  = {},
+            .shader   = 0,
+        });
+
         auto path = CVirtualPath("MyAssets/frag.spv");
         if(path.exists())
         {

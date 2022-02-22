@@ -110,7 +110,7 @@ namespace Vk
                 rebuildNeeded = true;
         }
 
-        rebuildNeeded = rebuildNeeded || try_allocate_new_command_buffers();
+        rebuildNeeded = try_allocate_new_command_buffers() || rebuildNeeded;
 
         if(rebuildNeeded)
         {
@@ -192,7 +192,7 @@ namespace Vk
             VkCommandBufferBeginInfo buffer_begin_info =
             {
                 .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                .flags            = 0,
+                .flags            = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
                 .pInheritanceInfo = &buffer_inheritance_info
             };
 
@@ -251,10 +251,145 @@ namespace Vk
         update_command_buffers();
     }
 
+    void
+    ObjectManager::create_buffer
+    (
+        unsigned int size,
+        VkBufferUsageFlags usageFlags,
+        VmaMemoryUsage memoryUsage,
+        VkBuffer& buffer,
+        VmaAllocation& allocation
+    )
+    {
+        VkBufferCreateInfo buffer_create_info =
+        {
+            .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size        = size,
+            .usage       = usageFlags,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        };
+
+        VmaAllocationCreateInfo allocation_create_info =
+        {
+            .usage = memoryUsage
+        };
+
+        VkResult result;
+        result = vmaCreateBuffer(memoryAllocator, &buffer_create_info, &allocation_create_info, &buffer, &allocation, nullptr);
+        if(result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Could not create new buffer.");
+            throw std::runtime_error("Renderer-Vulkan-ObjectManager-BufferCreationFail");
+        }
+    }
+
+    void ObjectManager::copy_buffer(VkBuffer src, VkBuffer dst, unsigned int size)
+    {
+        VkCommandBufferAllocateInfo buffer_allocate_info =
+        {
+            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool        = commandPool,
+            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1
+        };
+
+        VkCommandBuffer command_buffer;
+        vkAllocateCommandBuffers(pDevice->handle(), &buffer_allocate_info, &command_buffer);
+
+        VkCommandBufferBeginInfo buffer_begin_info =
+        {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+        };
+
+        vkBeginCommandBuffer(command_buffer, &buffer_begin_info);
+
+        VkBufferCopy buffer_copy_region =
+        {
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size      = size,
+        };
+
+        vkCmdCopyBuffer(command_buffer, src, dst, 1, &buffer_copy_region);
+        vkEndCommandBuffer(command_buffer);
+
+        VkSubmitInfo submit_info =
+        {
+            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers    = &command_buffer,
+        };
+
+        vkQueueSubmit(pDevice->graphics_queue(), 1, &submit_info, VK_NULL_HANDLE);
+        vkQueueWaitIdle(pDevice->graphics_queue());
+
+        vkFreeCommandBuffers(pDevice->handle(), commandPool, 1, &command_buffer);
+    }
+
+    // TODO: Do different buffer allocations depending on the mesh type
+
+    void ObjectManager::create_index_buffer(MeshData& meshData, const std::vector<unsigned>& indices)
+    {
+
+    }
+
+    void ObjectManager::create_vertex_buffer(MeshData& meshData, const std::vector<vec3f>& vertices)
+    {
+        if(meshData.vertexBuffer != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(memoryAllocator, meshData.vertexBuffer, meshData.vbMemory);
+        }
+
+        auto buffer_size = meshData.vertexCount * sizeof(vec3f);
+
+        VkBuffer staging_buffer;
+        VmaAllocation staging_allocation;
+        create_buffer
+        (
+            buffer_size,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VMA_MEMORY_USAGE_CPU_TO_GPU,
+            staging_buffer,
+            staging_allocation
+        );
+
+        create_buffer
+        (
+            buffer_size,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VMA_MEMORY_USAGE_GPU_ONLY,
+            meshData.vertexBuffer,
+            meshData.vbMemory
+        );
+
+        void* pData = nullptr;
+        vmaMapMemory(memoryAllocator, staging_allocation, &pData);
+        memcpy(pData, vertices.data(), buffer_size);
+        vmaUnmapMemory(memoryAllocator, staging_allocation);
+
+        copy_buffer(staging_buffer, meshData.vertexBuffer, buffer_size);
+    }
+
     CMesh ObjectManager::create_object(const MeshCreateInfo& meshCreateInfo)
     {
-        
+        MeshData new_mesh =
+        {
+            .type          = meshCreateInfo.type,
+            .shader        = meshCreateInfo.shader,
+            .needsUpdating = true,
+            .vertexCount   = static_cast<unsigned int>(meshCreateInfo.vertices.size()),
+            .indexCount    = static_cast<unsigned int>(meshCreateInfo.indices.size())
+        };
 
+        auto vb_size = sizeof(meshCreateInfo.vertices[0]) * meshCreateInfo.vertices.size();
+        auto ib_size = sizeof(meshCreateInfo.indices[0]) * meshCreateInfo.indices.size();
+
+        create_vertex_buffer(new_mesh, meshCreateInfo.vertices);
+
+        CDebug::Log("Allocation worked :D");
+
+        //meshes.push_back(std::move(new_mesh));
         return {};
     }
 }
