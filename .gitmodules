@@ -10,3 +10,6 @@
 	path = engine/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 	ignore = dirty
+[submodule "engine/glm"]
+	path = engine/glm
+	url = https://github.com/g-truc/glm

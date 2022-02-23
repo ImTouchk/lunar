@@ -1,3 +1,4 @@
+#ifdef USE_OWN_IMPLEMENTATION
 #pragma once
 #include <fmt/core.h>
 #include <fmt/ranges.h>
@@ -13,17 +14,20 @@ private:
     static_assert(std::is_arithmetic_v<T>, "vec<T, U> | T must be a number type");
     const unsigned scalar_values = (U != 4) ? U : 3; // for vec4 there are only 3 scalar values & the W component
 
-protected:
-    std::array<T, U> values;
-
 public:
+    [[nodiscard]] T& values(unsigned pos)
+    {
+        T* pBuf = reinterpret_cast<T*>(this);
+        return pBuf[pos];
+    }
+
     template<typename V, unsigned W>
     explicit vec(const vec<V, W>& other)
     {
         static_assert(W <= U, "vec<T, U> | Cannot create template copy ctor vec<V, W> | W must be between [0, U]");
         for(int i = 0; i < W; i++)
         {
-            values[i] = static_cast<T>(other.values[i]);
+            values(i) = static_cast<T>(other.values(i));
         }
     }
 
@@ -31,7 +35,7 @@ public:
     {
         for (int i = 0; i < U; i++)
         {
-            values[i] = other.values[i];
+            values(i) = other.values(i);
         }
     }
 
@@ -39,7 +43,7 @@ public:
     {
         for(int i = 0; i < scalar_values; i++)
         {
-            values[i] = a;
+            values(i) = a;
         }
     }
 
@@ -47,7 +51,7 @@ public:
     {
         for(int i = 0; i < U; i++)
         {
-            values[i] = static_cast<T>(0);
+            values(i) = static_cast<T>(0);
         }
     }
 
@@ -56,7 +60,7 @@ public:
         T square_sum = 0;
         for(int i = 0; i < scalar_values; i++)
         {
-            square_sum += (values[i] * values[i]);
+            square_sum += (values(i) * values(i));
         }
         return std::sqrt(square_sum);
     }
@@ -71,7 +75,7 @@ public:
         T sum = 0;
         for(int i = 0; i < scalar_values; i++)
         {
-            sum += (values[i] * other.values[i]);
+            sum += (values(i) * other.values(i));
         }
         return sum;
     }
@@ -86,12 +90,12 @@ public:
         vec result;
         for(int i = 0; i < scalar_values; i++)
         {
-            result.values[i] = -values[i];
+            result.values(i) = -values(i);
         }
 
         if(U == 4)
         {
-            result.values[3] = values[3]; // w component
+            result.values(3) = values(3); // w component
         }
         return result;
     }
@@ -101,34 +105,35 @@ public:
     {                                                        \
         vec result;                                          \
         for(int i = 0; i < scalar_values; i++)               \
-        { result.values[i] = values[i] op other.values[i]; } \
+        { result.values(i) = values(i) op other.values(i); } \
         return result;                                       \
     }
 
-#   define ARITHMETIC_VEC_T(op)                     \
-    [[nodiscard]] vec operator op(const T& a) const \
-    {                                               \
-        vec result;                                 \
-        for(int i = 0; i < scalar_values; i++)      \
-        { result.values[i] = values[i] op a; }      \
-        return result;                              \
+#   define ARITHMETIC_VEC_T(op)                         \
+    [[nodiscard]] vec operator op(const T& a) const     \
+    {                                                   \
+        vec result;                                     \
+        for(int i = 0; i < scalar_values; i++)          \
+        { result.values(i) = values(i) op a; }          \
+        return result;                                  \
     }
 
-#   define APPEND_VEC_VEC(op)                  \
-    vec& operator op(const vec& other)         \
-    {                                          \
-        for(int i = 0; i < scalar_values; i++) \
-        { values[i] op##= other.values[i]; }   \
-        return *this;                          \
+#   define APPEND_VEC_VEC(op)                           \
+    vec& operator op(const vec& other)                  \
+    {                                                   \
+        for(int i = 0; i < scalar_values; i++)          \
+        { values(i) op##= other.values(i); }            \
+        return *this;                                   \
     }
 
-#   define APPEND_VEC_T(op)                    \
-    vec& operator op(const T& a)               \
-    {                                          \
-        for(int i = 0; i < scalar_values; i++) \
-        { values[i] op##= a; }                 \
-        return *this;                          \
+#   define APPEND_VEC_T(op)                             \
+    vec& operator op(const T& a)                        \
+    {                                                   \
+        for(int i = 0; i < scalar_values; i++)          \
+        { values(i) op##= a; }                          \
+        return *this;                                   \
     }
+
     ARITHMETIC_VEC_VEC(+) ARITHMETIC_VEC_T(+) APPEND_VEC_VEC(+) APPEND_VEC_T(+)
     ARITHMETIC_VEC_VEC(-) ARITHMETIC_VEC_T(-) APPEND_VEC_VEC(-) APPEND_VEC_T(-)
     ARITHMETIC_VEC_VEC(*) ARITHMETIC_VEC_T(*) APPEND_VEC_VEC(*) APPEND_VEC_T(*)
@@ -141,15 +146,15 @@ public:
 
     [[nodiscard]] std::string to_string() const
     {
-        return fmt::format("vec{} {}", U, values);
+        return fmt::format("vec{} {}", U, values());
     }
 };
 
 struct vec2f : public vec<float, 2>
 {
 public:
-    float& x = values[0];
-    float& y = values[1];
+    float x;
+    float y;
 
     vec2f(float x, float y)
     {
@@ -161,9 +166,9 @@ public:
 struct vec3f : public vec<float, 3>
 {
 public:
-    float& x = values[0];
-    float& y = values[1];
-    float& z = values[2];
+    float x;
+    float y;
+    float z;
 
     vec3f(float x, float y, float z)
     {
@@ -176,8 +181,9 @@ public:
 struct vec4f : public vec<float, 4>
 {
 public:
-    float& x = values[0];
-    float& y = values[1];
-    float& z = values[2];
-    float& w = values[3];
+    float x;
+    float y;
+    float z;
+    float w;
 };
+#endif
