@@ -2,6 +2,7 @@
 #include "utils/debug.hpp"
 #include "vk_renderer.hpp"
 #include "vk_shader_manager.hpp"
+#include "vk_object_manager.hpp"
 #include "render/renderer.hpp"
 
 #include <vulkan/vulkan.h>
@@ -65,25 +66,60 @@ namespace Vk
 
     void ShaderManager::destroy()
     {
+        for(auto& shader : shaders)
+        {
+            vkDestroyPipeline(pDevice->handle(), shader.handle, nullptr);
+        }
+
         vkDestroyPipelineLayout(pDevice->handle(), layout, nullptr);
 
         CDebug::Log("Vulkan Renderer | Shader manager destroyed.");
     }
 
-    VkPipeline ShaderManager::get(Shader handle)
+    VkPipeline ShaderManager::try_get(Shader handle)
     {
+        if(handle >= shaders.size())
+            return VK_NULL_HANDLE;
+
         return shaders[handle].handle;
+    }
+
+    VkVertexInputBindingDescription ShaderManager::get_vertex_binding_desc()
+    {
+        return VkVertexInputBindingDescription
+        {
+            .binding   = 0,
+            .stride    = sizeof(Vertex),
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+        };
+    }
+
+    std::vector<VkVertexInputAttributeDescription> ShaderManager::get_vertex_attribute_desc()
+    {
+        return std::vector<VkVertexInputAttributeDescription>
+        {
+            VkVertexInputAttributeDescription
+            {
+                .location = 0,
+                .binding  = 0,
+                .format   = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset   = 0,
+            }
+        };
     }
 
     std::vector<Shader> ShaderManager::create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count)
     {
+        auto vertex_binding_desc = get_vertex_binding_desc();
+        auto vertex_attribute_desc = get_vertex_attribute_desc();
+
         VkPipelineVertexInputStateCreateInfo vertex_input_info =
         {
             .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount   = 0,
-            .pVertexBindingDescriptions      = nullptr,
-            .vertexAttributeDescriptionCount = 0,
-            .pVertexAttributeDescriptions    = nullptr
+            .vertexBindingDescriptionCount   = 1,
+            .pVertexBindingDescriptions      = &vertex_binding_desc,
+            .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_desc.size()),
+            .pVertexAttributeDescriptions    = vertex_attribute_desc.data()
         };
 
         VkPipelineInputAssemblyStateCreateInfo assembly_state_create_info =

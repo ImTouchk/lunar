@@ -71,8 +71,8 @@ void GameRenderer::destroy()
 
     vkDeviceWaitIdle(internal_data->device.handle());
 
-    internal_data->shaderManager.destroy();
     internal_data->objectManager.destroy();
+    internal_data->shaderManager.destroy();
     internal_data->syncObjects.destroy();
     //internal_data->commandQueue.destroy();
 
@@ -97,7 +97,6 @@ void GameRenderer::draw()
     auto& object_manager = internal_data->objectManager;
 
     object_manager.update();
-    return;
 
     vkWaitForFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame), VK_TRUE, UINT64_MAX);
 
@@ -126,6 +125,8 @@ void GameRenderer::draw()
         sync_objects.rendering_finished(current_frame)
     };
 
+    VkCommandBuffer buffer = object_manager.get_main(image_index);
+
     VkSubmitInfo submit_info =
     {
         .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -133,7 +134,7 @@ void GameRenderer::draw()
         .pWaitSemaphores      = wait_semaphores,
         .pWaitDstStageMask    = wait_stages,
         .commandBufferCount   = 1,
-        .pCommandBuffers      = &command_queue.buffers()[image_index],
+        .pCommandBuffers      = &buffer,
         .signalSemaphoreCount = 1,
         .pSignalSemaphores    = signal_semaphores
     };

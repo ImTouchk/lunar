@@ -33,8 +33,10 @@ namespace Vk
         std::vector<Shader> create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
         //void create_compute();
 
-        VkPipeline get(Shader handle);
+        VkPipeline try_get(Shader handle);
 
+        static VkVertexInputBindingDescription get_vertex_binding_desc();
+        static std::vector<VkVertexInputAttributeDescription> get_vertex_attribute_desc();
     private:
         SwapchainWrapper* pSwapchain = nullptr;
         LogicalDeviceWrapper* pDevice = nullptr;

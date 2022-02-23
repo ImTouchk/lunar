@@ -29,7 +29,7 @@ if(COUNT_HEADERS_AS_SOURCE)
         "inc/utils/range.hpp"
         "inc/utils/thread_pool.hpp"
         "inc/io/filesystem.hpp"
-        "inc/math/vec.hpp"
+        #"inc/math/vec.hpp"
     )
 endif()
 
@@ -67,6 +67,8 @@ if(RENDERER_BACKEND STREQUAL "Vulkan")
         "src/vk_shader_manager.hpp"
         "src/vk_object_manager.hpp"
         "src/vk_object_manager.cpp"
+        "src/vk_object_command_buffers.cpp"
+        "src/vk_object_data_buffers.cpp"
     )
 endif()
 
@@ -75,5 +77,6 @@ if(WIN32)
 endif()
 
 add_subdirectory(fmt)
-target_link_libraries("lunar" fmt)
-target_include_directories("lunar" PRIVATE fmt)
+add_subdirectory(glm)
+target_link_libraries("lunar" fmt glm)
+target_include_directories("lunar" PRIVATE fmt glm)

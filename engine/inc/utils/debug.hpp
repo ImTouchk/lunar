@@ -1,7 +1,8 @@
 #pragma once
 #include <string_view>
-#include "include/fmt/core.h"
-#include "include/fmt/color.h"
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 #define MAX_LINE_CHARACTERS 80
 
 namespace CDebug

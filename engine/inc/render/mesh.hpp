@@ -1,5 +1,5 @@
 #pragma once
-#include "math/vec.hpp"
+#include <glm/glm.hpp>
 #include <vector>
 #include <any>
 
@@ -18,11 +18,14 @@ struct GraphicsShaderCreateInfo
     std::vector<char>& fragmentCode;
 };
 
+using Vertex = glm::vec3;
+using Index = uint16_t;
+
 struct MeshCreateInfo
 {
     MeshType type;
-    const std::vector<vec3f>& vertices;
-    const std::vector<unsigned>& indices;
+    const std::vector<Vertex>& vertices;
+    const std::vector<Index>& indices;
     Shader shader;
 };
 
@@ -32,8 +35,8 @@ public:
     CMesh() = default;
     ~CMesh() = default;
 
-    void set_vertices(const std::vector<vec3f> vertices);
-    void set_indices(const std::vector<unsigned> indices);
+    void set_vertices(const std::vector<Vertex> vertices);
+    void set_indices(const std::vector<Index> indices);
     void set_active(bool new_state);
     void use_shader(Shader shader);
 
