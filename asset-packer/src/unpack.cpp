@@ -25,6 +25,7 @@ void extract_file_from_pkg(ifstream& input, filesystem::path& out)
     name.resize(name_len);
     input.read(name.data(), streamsize(name_len));
     name.insert(0, out.generic_string());
+    name.insert(0 + out.generic_string().size(), "/");
 
     auto final_path = filesystem::path(name);
     filesystem::create_directories(final_path.parent_path());
