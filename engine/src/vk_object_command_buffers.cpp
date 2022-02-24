@@ -23,56 +23,71 @@ namespace Vk
         if(rebuildNeeded)
         {
             record_secondary_command_buffers();
-
-            for(auto i : range(0, mainCmdBuffers.size() - 1))
-            {
-                auto& command_buffer = mainCmdBuffers[i];
-
-                VkCommandBufferBeginInfo buffer_begin_info =
-                {
-                    .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                    .flags            = 0,
-                    .pInheritanceInfo = nullptr
-                };
-
-                VkResult result;
-                result = vkBeginCommandBuffer(command_buffer, &buffer_begin_info);
-                if(result != VK_SUCCESS)
-                {
-                    CDebug::Error("Vulkan Renderer | Failed to rebuild object command buffers (vkBeginCommandBuffer didn't return VK_SUCCESS).");
-                    throw std::runtime_error("Renderer-Vulkan-ObjectManager-CommandBuffers-BeginFail");
-                }
-
-                VkClearValue clear_color = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-                VkRenderPassBeginInfo render_pass_begin_info =
-                {
-                    .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                    .renderPass      = pSwapchain->render_pass(),
-                    .framebuffer     = pSwapchain->frame_buffers()[i],
-                    .renderArea      =
-                    {
-                        .offset = { 0, 0 },
-                        .extent = pSwapchain->surface_extent()
-                    },
-                    .clearValueCount = 1,
-                    .pClearValues    = &clear_color,
-                };
-
-                vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-                vkCmdExecuteCommands(command_buffer, secondaryCmdBuffers.size(), secondaryCmdBuffers.data());
-                vkCmdEndRenderPass(command_buffer);
-
-                result = vkEndCommandBuffer(command_buffer);
-                if (result != VK_SUCCESS)
-                {
-                    CDebug::Error("Vulkan Renderer | Failed to rebuild object command buffers (vkEndCommandBuffer didn't return VK_SUCCESS).");
-                    throw std::runtime_error("Renderer-Vulkan-ObjectManager-CommandBuffers-EndFail");
-                }
-            }
+            rebuild_primary_buffers();
 
             CDebug::Log("Vulkan Renderer | Object command buffers rebuilt.");
         }
+    }
+
+    void ObjectManager::rebuild_primary_buffers()
+    {
+        for(auto i : range(0, mainCmdBuffers.size() - 1))
+        {
+            auto& command_buffer = mainCmdBuffers[i];
+
+            if(command_buffer != VK_NULL_HANDLE)
+            {
+                vkResetCommandBuffer(command_buffer, 0);
+            }
+
+            VkCommandBufferBeginInfo buffer_begin_info =
+            {
+                .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                .flags            = 0,
+                .pInheritanceInfo = nullptr
+            };
+
+            VkResult result;
+            result = vkBeginCommandBuffer(command_buffer, &buffer_begin_info);
+            if(result != VK_SUCCESS)
+            {
+                CDebug::Error("Vulkan Renderer | Failed to rebuild object command buffers (vkBeginCommandBuffer didn't return VK_SUCCESS).");
+                throw std::runtime_error("Renderer-Vulkan-ObjectManager-CommandBuffers-BeginFail");
+            }
+
+            VkClearValue clear_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+            VkRenderPassBeginInfo render_pass_begin_info =
+            {
+                .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                .renderPass      = pSwapchain->render_pass(),
+                .framebuffer     = pSwapchain->frame_buffers()[i],
+                .renderArea      =
+                {
+                    .offset = { 0, 0 },
+                    .extent = pSwapchain->surface_extent()
+                },
+                .clearValueCount = 1,
+                .pClearValues    = &clear_color,
+            };
+
+            vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+            vkCmdExecuteCommands(command_buffer, secondaryCmdBuffers.size(), secondaryCmdBuffers.data());
+            vkCmdEndRenderPass(command_buffer);
+
+            result = vkEndCommandBuffer(command_buffer);
+            if (result != VK_SUCCESS)
+            {
+                CDebug::Error("Vulkan Renderer | Failed to rebuild object command buffers (vkEndCommandBuffer didn't return VK_SUCCESS).");
+                throw std::runtime_error("Renderer-Vulkan-ObjectManager-CommandBuffers-EndFail");
+            }
+        }
+    }
+
+    void ObjectManager::handle_resize()
+    {
+        vkDeviceWaitIdle(pDevice->handle());
+        rebuild_primary_buffers();
     }
 
     void ObjectManager::record_secondary_command_buffers()
@@ -123,6 +138,8 @@ namespace Vk
                 VkDeviceSize offsets[] = { 0 };
 
                 vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                vkCmdSetViewport(command_buffer, 0, 1, &pSwapchain->get_viewport());
+                vkCmdSetScissor(command_buffer, 0, 1, &pSwapchain->get_scissor());
                 vkCmdBindVertexBuffers(command_buffer, 0, 1, &mesh.vertexBuffer, offsets);
                 vkCmdBindIndexBuffer(command_buffer, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
                 vkCmdDrawIndexed(command_buffer, mesh.indexCount, 1, 0, 0, 0);

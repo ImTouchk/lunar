@@ -62,6 +62,7 @@ void GameRenderer::create(RendererCreateInfo createInfo)
         GameWindow& window = *window_handle;
         auto* data = std::any_cast<Vk::RendererInternalData>(&backend_data);
         data->swapchain.resize(window, data->surface);
+        data->objectManager.handle_resize();
     });
 }
 

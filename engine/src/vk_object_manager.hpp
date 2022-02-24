@@ -41,6 +41,7 @@ namespace Vk
         void destroy();
 
         void update();
+        void handle_resize();
 
         [[nodiscard]] VkCommandBuffer get_main(unsigned frame) const;
 
@@ -53,6 +54,7 @@ namespace Vk
         void update_command_buffers();
             bool try_allocate_new_command_buffers();
             void record_secondary_command_buffers();
+            void rebuild_primary_buffers();
 
         void create_index_buffer(MeshData& meshData, const std::vector<Index>& indices);
         void create_vertex_buffer(MeshData& meshData, const std::vector<Vertex>& vertices);

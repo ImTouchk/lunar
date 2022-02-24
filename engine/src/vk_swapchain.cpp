@@ -108,6 +108,16 @@ namespace Vk
         return renderPass;
     }
 
+    const VkRect2D& SwapchainWrapper::get_scissor() const
+    {
+        return scissor;
+    }
+
+    const VkViewport& SwapchainWrapper::get_viewport() const
+    {
+        return viewport;
+    }
+
     const std::vector<VkImageView>& SwapchainWrapper::image_views() const
     {
         return views;
@@ -138,7 +148,12 @@ namespace Vk
 
         create_swapchain(window, surface);
         create_image_views();
-        create_render_pass();
+
+        if (renderPass == VK_NULL_HANDLE)
+        {
+            create_render_pass();
+        }
+
         create_framebuffers();
     }
 
@@ -173,7 +188,29 @@ namespace Vk
 
     void SwapchainWrapper::resize(GameWindow& window, SurfaceWrapper& surface)
     {
-        destroy();
+        // resize optimization: render pass does not need to get recreated
+        auto device = pDevice->handle();
+        vkDeviceWaitIdle(device);
+
+        for (auto& frame_buffer : frameBuffers)
+        {
+            vkDestroyFramebuffer(device, frame_buffer, nullptr);
+        }
+
+        for (auto& image_view : views)
+        {
+            vkDestroyImageView(device, image_view, nullptr);
+        }
+
+        vkDestroySwapchainKHR(device, swapchain, nullptr);
+
+        swapchain = VK_NULL_HANDLE;
+        frameBuffers.clear();
+        images.clear();
+        views.clear();
+        surfaceFormat = {};
+        surfaceExtent = {};
+        
         create(window, surface, *pDevice);
     }
 
@@ -244,6 +281,22 @@ namespace Vk
         frameBuffers.resize(image_count);
         surfaceFormat = surface_format.format;
         surfaceExtent = swapchain_extent;
+
+        viewport = VkViewport
+        {
+            .x        = 0.f,
+            .y        = 0.f,
+            .width    = static_cast<float>(surfaceExtent.width),
+            .height   = static_cast<float>(surfaceExtent.height),
+            .minDepth = 0.f,
+            .maxDepth = 1.f
+        };
+
+        scissor = VkRect2D
+        {
+            .offset = { 0, 0 },
+            .extent = surfaceExtent
+        };
     }
 
     void SwapchainWrapper::create_image_views()

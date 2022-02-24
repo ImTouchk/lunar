@@ -93,6 +93,8 @@ namespace Vk
         [[nodiscard]] const std::vector<VkImageView>& image_views() const;
         [[nodiscard]] int get_width() const;
         [[nodiscard]] int get_height() const;
+        [[nodiscard]] const VkViewport& get_viewport() const;
+        [[nodiscard]] const VkRect2D& get_scissor() const;
 
     private:
         void create_swapchain(GameWindow& window, SurfaceWrapper& surface);
@@ -106,6 +108,8 @@ namespace Vk
         VkRenderPass renderPass = VK_NULL_HANDLE;
         VkFormat surfaceFormat = {};
         VkExtent2D surfaceExtent = {};
+        VkViewport viewport = {};
+        VkRect2D scissor = {};
         std::vector<VkImage> images = {};
         std::vector<VkImageView> views = {};
         std::vector<VkFramebuffer> frameBuffers = {};

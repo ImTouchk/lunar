@@ -133,14 +133,14 @@ namespace Vk
         {
             .x      = 0.f,
             .y      = 0.f,
-            .width  = static_cast<float>(pSwapchain->get_width()),
-            .height = static_cast<float>(pSwapchain->get_height())
+            .width  = 0.f,
+            .height = 0.f,
         };
 
         VkRect2D scissor =
         {
             .offset = { 0, 0 },
-            .extent = pSwapchain->surface_extent()
+            .extent = { 0 }
         };
 
         VkPipelineViewportStateCreateInfo viewport_state_create_info =
@@ -203,14 +203,14 @@ namespace Vk
         VkDynamicState dynamic_states[] =
         {
             VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_LINE_WIDTH
+            VK_DYNAMIC_STATE_SCISSOR,
         };
 
         VkPipelineDynamicStateCreateInfo dynamic_state_create_info =
         {
             .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            .dynamicStateCount = 0,
-            .pDynamicStates    = nullptr,
+            .dynamicStateCount = 2,
+            .pDynamicStates    = dynamic_states,
         };
 
         struct CreateInfoData
@@ -271,7 +271,7 @@ namespace Vk
                 .pMultisampleState   = &multisample_state_create_info,
                 .pDepthStencilState  = nullptr,
                 .pColorBlendState    = &color_blend_create_info,
-                .pDynamicState       = nullptr,
+                .pDynamicState       = &dynamic_state_create_info,
                 .layout              = layout,
                 .renderPass          = pSwapchain->render_pass(),
                 .subpass             = 0,
