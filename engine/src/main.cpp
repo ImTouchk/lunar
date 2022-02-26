@@ -40,7 +40,7 @@ int main()
            .isFullscreen = false,
            .width = 1280,
            .height = 720,
-           .pTitle = "Hello, world!"
+           .pTitle = "Vulkan app"
         });
 
         GameRenderer game_renderer;
@@ -49,19 +49,32 @@ int main()
             .pWindow = &game_window
         });
 
+        auto vertex_code = CVirtualPath("Default/shader.vert").get_bytes();
+        auto fragment_code = CVirtualPath("Default/shader.frag").get_bytes();
+
+        GraphicsShaderCreateInfo shader_create_info =
+        {
+            .vertexCode   = vertex_code,
+            .fragmentCode = fragment_code
+        };
+
+        auto shaders = game_renderer.create_shaders(&shader_create_info, 1);
+        std::vector<Vertex> vertices =
+        {
+            { 0.0, -0.5, 0.0 },
+            { 0.5,  0.5, 0.0 },
+            {-0.5,  0.5, 0.0 }
+        };
+
+        std::vector<Index> indices = { 0, 1, 2, };
+
         game_renderer.create_object(MeshCreateInfo
         {
             .type     = MeshType::eUnknown,
-            .vertices = { { 0, 0, 0 }, },
-            .indices  = {},
-            .shader   = 0,
+            .vertices = vertices,
+            .indices  = indices,
+            .shader   = shaders[0],
         });
-
-        auto path = CVirtualPath("MyAssets/frag.spv");
-        if(path.exists())
-        {
-            CDebug::Log("Virtual path exists!");
-        }
 
         while(game_window.is_active())
         {
@@ -81,7 +94,7 @@ int main()
         game_renderer.destroy();
         game_window.destroy();
 
-        CFilesystem::UnloadPackage("MyAssets");
+        CFilesystem::UnloadPackage("Default");
         CThreadPool::Stop();
     } catch(std::runtime_error& error)
     {

@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.21)
+project(lunar)
+
+add_subdirectory(engine)
+add_subdirectory(asset-packer)
+
+add_custom_target("lunar-assets")
+
+if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
+	list(APPEND VULKAN_SHADERS "shader.vert" "shader.frag")
+
+	foreach(shader ${VULKAN_SHADERS})
+		add_custom_command(
+			TARGET "lunar-assets" POST_BUILD
+			COMMAND ${glslc} "${CMAKE_CURRENT_SOURCE_DIR}/assets/${shader}" -o "${CMAKE_CURRENT_SOURCE_DIR}/assets/compiled/${shader}"
+			DEPENDS ${shader} "assets/compiled"
+		)
+	endforeach()
+endif()
+
+add_custom_command(
+	TARGET "lunar-assets" POST_BUILD
+	COMMAND $<TARGET_FILE:asset-packer> "${CMAKE_CURRENT_SOURCE_DIR}/assets/compiled" "${CMAKE_CURRENT_SOURCE_DIR}/assets/default.vpak" "Default"
+	COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/assets/default.vpak" "${LUNAR_BINARY_DIR}/default.vpak"
+	COMMAND ${CMAKE_COMMAND} -E remove -f "${CMAKE_CURRENT_SOURCE_DIR}/assets/default.vpak"
+	DEPENDS "default.vpak" "${LUNAR_BINARY_DIR}"
+)
+
+add_dependencies("lunar" "lunar-assets")
+
+
