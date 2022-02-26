@@ -88,8 +88,6 @@ namespace CFilesystem
             file_name.resize(name_length);
             stream.read(file_name.data(), std::streamsize(name_length));
 
-            CDebug::Log("filename: {}", file_name);
-
             package_data.filesWithin.push_back
             (
                 std::pair<std::string, PackageData::FileData>
