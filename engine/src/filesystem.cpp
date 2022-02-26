@@ -184,14 +184,15 @@ bool CVirtualPath::is_directory() const
 
 std::vector<char> CVirtualPath::get_bytes()
 {
-    if(!is_valid)
+    if (!is_valid)
     {
         CDebug::Error("Filesystem | CVirtualPath::get_bytes() called on invalid path \"{}\".", full_path.generic_string());
         throw std::runtime_error("Filesystem-VirtualPath-CalledOnInvalid");
+        return {};
     }
 
     std::lock_guard<std::mutex> lock(MAP_MUTEX);
-    if(!PACKAGES.contains(package_name))
+    if (!PACKAGES.contains(package_name))
     {
         // Package could have been unloaded in the meantime
         CDebug::Warn(R"(Filesystem | Path "{}" refers to package "{}" that no longer exists.)", full_path.generic_string(), package_name);
@@ -200,15 +201,15 @@ std::vector<char> CVirtualPath::get_bytes()
     }
 
     auto& package = PACKAGES[package_name];
-    for(auto& file : package.filesWithin)
+    for (auto& file : package.filesWithin)
     {
-        if(file.first == local_path)
+        if (file.first == local_path)
         {
             uint64_t content_pos = file.second.content_pos;
             uint64_t content_size = file.second.content_size;
 
-            auto stream = std::ifstream(package.realPath);
-            if(!stream.is_open())
+            auto stream = std::ifstream(package.realPath, std::ios::binary);
+            if (!stream.is_open())
             {
                 CDebug::Error(R"(Filesystem | Could not read path "{}" (could not open real path "{}").)", full_path.generic_string(), package.realPath.generic_string());
                 return {};
