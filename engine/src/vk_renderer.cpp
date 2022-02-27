@@ -10,6 +10,40 @@
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
+namespace Vk
+{
+    void MemoryAllocatorWrapper::create(LogicalDeviceWrapper& device)
+    {
+        VmaAllocatorCreateInfo allocator_create_info =
+        {
+            .physicalDevice   = GetRenderingDevice(),
+            .device           = device.handle(),
+            .instance         = GetInstance(),
+            .vulkanApiVersion = VK_API_VERSION_1_2
+        };
+
+        VkResult result;
+        result = vmaCreateAllocator(&allocator_create_info, &memoryAllocator);
+        if(result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Memory allocator creation fail.");
+            throw std::runtime_error("Renderer-Vulkan-MemoryAllocator-CreationFail");
+        }
+
+        CDebug::Log("Vulkan Renderer | Memory allocator created.");
+    }
+
+    void MemoryAllocatorWrapper::destroy()
+    {
+        vmaDestroyAllocator(memoryAllocator);
+    }
+
+    VmaAllocator MemoryAllocatorWrapper::handle() const
+    {
+        return memoryAllocator;
+    }
+}
+
 void GameRenderer::create(RendererCreateInfo createInfo)
 {
     window_handle = createInfo.pWindow;
@@ -23,9 +57,11 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     auto& object_manager = internal_data->objectManager;
     auto& shader_manager = internal_data->shaderManager;
     auto& command_queue = internal_data->commandQueue;
+    auto& memory_allocator = internal_data->memoryAllocator;
 
     surface.create(*window_handle);
     device.create(surface);
+    memory_allocator.create(device);
 
     auto optional_extensions = Vk::GetAvailableOptionalExtensions(Vk::GetRenderingDevice());
 
@@ -35,10 +71,10 @@ void GameRenderer::create(RendererCreateInfo createInfo)
             internal_data->hasOptionalDynamicRendering = true;
     }
 
-    swapchain.create(*window_handle, surface, device);
+    swapchain.create(*window_handle, surface, device, memory_allocator);
     sync_objects.create(device, swapchain);
     shader_manager.create(device, swapchain);
-    object_manager.create(device, swapchain, surface, shader_manager);
+    object_manager.create(device, memory_allocator, swapchain, surface, shader_manager);
 
     //command_queue.create(device, swapchain, surface, internal_data->shaders[0].handle);
 
@@ -78,6 +114,7 @@ void GameRenderer::destroy()
     //internal_data->commandQueue.destroy();
 
     internal_data->swapchain.destroy();
+    internal_data->memoryAllocator.destroy();
     internal_data->device.destroy();
     internal_data->surface.destroy();
 }

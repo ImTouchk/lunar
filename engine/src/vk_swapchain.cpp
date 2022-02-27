@@ -79,6 +79,11 @@ namespace Vk
 
     VkExtent2D PickSwapExtent(GameWindow& window, const VkSurfaceCapabilitiesKHR& capabilities)
     {
+        if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        {
+            return capabilities.currentExtent;
+        }
+
         VkExtent2D extent =
         {
             .width = std::clamp((unsigned)window.get_width(), capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
@@ -138,11 +143,13 @@ namespace Vk
         return surfaceFormat;
     }
 
-    void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device)
+    void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device, MemoryAllocatorWrapper& memoryAllocator)
     {
         assert(swapchain == VK_NULL_HANDLE);
 
         pDevice = &device;
+        pMemoryAllocator = &memoryAllocator;
+
         width = window.get_width();
         height = window.get_height();
 
@@ -211,7 +218,7 @@ namespace Vk
         surfaceFormat = {};
         surfaceExtent = {};
         
-        create(window, surface, *pDevice);
+        create(window, surface, *pDevice, *pMemoryAllocator);
     }
 
     void SwapchainWrapper::create_swapchain(GameWindow& window, SurfaceWrapper& surface)

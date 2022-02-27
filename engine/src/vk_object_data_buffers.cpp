@@ -38,7 +38,7 @@ namespace Vk
         };
 
         VkResult result;
-        result = vmaCreateBuffer(memoryAllocator, &buffer_create_info, &allocation_create_info, &buffer, &allocation, nullptr);
+        result = vmaCreateBuffer(pMemoryAllocator->handle(), &buffer_create_info, &allocation_create_info, &buffer, &allocation, nullptr);
         if(result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Could not create new buffer.");
@@ -96,7 +96,7 @@ namespace Vk
     {
         if(meshData.indexBuffer != VK_NULL_HANDLE)
         {
-            vmaDestroyBuffer(memoryAllocator, meshData.indexBuffer, meshData.ibMemory);
+            vmaDestroyBuffer(pMemoryAllocator->handle(), meshData.indexBuffer, meshData.ibMemory);
         }
 
         auto buffer_size = sizeof(Index) * indices.size();
@@ -131,20 +131,20 @@ namespace Vk
         );
 
         void* pData = nullptr;
-        vmaMapMemory(memoryAllocator, staging_allocation, &pData);
+        vmaMapMemory(pMemoryAllocator->handle(), staging_allocation, &pData);
         memcpy(pData, indices.data(), buffer_size);
-        vmaUnmapMemory(memoryAllocator, staging_allocation);
+        vmaUnmapMemory(pMemoryAllocator->handle(), staging_allocation);
 
         copy_buffer(staging_buffer, meshData.indexBuffer, buffer_size);
 
-        vmaDestroyBuffer(memoryAllocator, staging_buffer, staging_allocation);
+        vmaDestroyBuffer(pMemoryAllocator->handle(), staging_buffer, staging_allocation);
     }
 
     void ObjectManager::create_vertex_buffer(MeshData& meshData, const std::vector<Vertex>& vertices)
     {
         if(meshData.vertexBuffer != VK_NULL_HANDLE)
         {
-            vmaDestroyBuffer(memoryAllocator, meshData.vertexBuffer, meshData.vbMemory);
+            vmaDestroyBuffer(pMemoryAllocator->handle(), meshData.vertexBuffer, meshData.vbMemory);
         }
 
         auto buffer_size = sizeof(Vertex) * vertices.size();
@@ -179,13 +179,13 @@ namespace Vk
         );
 
         void* pData = nullptr;
-        vmaMapMemory(memoryAllocator, staging_allocation, &pData);
+        vmaMapMemory(pMemoryAllocator->handle(), staging_allocation, &pData);
         memcpy(pData, (char*)vertices.data(), buffer_size);
-        vmaUnmapMemory(memoryAllocator, staging_allocation);
+        vmaUnmapMemory(pMemoryAllocator->handle(), staging_allocation);
 
         copy_buffer(staging_buffer, meshData.vertexBuffer, buffer_size);
 
-        vmaDestroyBuffer(memoryAllocator, staging_buffer, staging_allocation);
+        vmaDestroyBuffer(pMemoryAllocator->handle(), staging_buffer, staging_allocation);
     }
 
     CMesh ObjectManager::create_object(const MeshCreateInfo& meshCreateInfo)

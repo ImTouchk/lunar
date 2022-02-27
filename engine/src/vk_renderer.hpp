@@ -74,13 +74,27 @@ namespace Vk
         VkQueue presentQueue = VK_NULL_HANDLE;
     };
 
+    struct MemoryAllocatorWrapper
+    {
+    public:
+        MemoryAllocatorWrapper() = default;
+        ~MemoryAllocatorWrapper() = default;
+
+        void create(LogicalDeviceWrapper& device);
+        void destroy();
+
+        [[nodiscard]] VmaAllocator handle() const;
+    private:
+        VmaAllocator memoryAllocator = VK_NULL_HANDLE;
+    };
+
     struct SwapchainWrapper
     {
     public:
         SwapchainWrapper() = default;
         ~SwapchainWrapper() = default;
 
-        void create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device);
+        void create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device, MemoryAllocatorWrapper& memoryAllocator);
         void destroy();
 
         void resize(GameWindow& window, SurfaceWrapper& surface);
@@ -103,6 +117,14 @@ namespace Vk
         void create_framebuffers();
 
         LogicalDeviceWrapper* pDevice = nullptr;
+        MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
+
+        struct
+        {
+            VmaAllocation allocation = VK_NULL_HANDLE;
+            VkImage image = VK_NULL_HANDLE;
+            VkImageView view = VK_NULL_HANDLE;
+        } depthBuffer = {};
 
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;
         VkRenderPass renderPass = VK_NULL_HANDLE;
@@ -115,6 +137,8 @@ namespace Vk
         std::vector<VkFramebuffer> frameBuffers = {};
         int width = 0;
         int height = 0;
+
+
     };
 
     struct CommandQueueWrapper
@@ -164,6 +188,7 @@ namespace Vk
     {
         SurfaceWrapper surface;
         LogicalDeviceWrapper device;
+        MemoryAllocatorWrapper memoryAllocator;
         SwapchainWrapper swapchain;
         CommandQueueWrapper commandQueue;
         SyncObjectsWrapper syncObjects;

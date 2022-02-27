@@ -14,6 +14,7 @@ namespace Vk
     struct SwapchainWrapper;
     struct SurfaceWrapper;
     struct ShaderManager;
+    struct MemoryAllocatorWrapper;
 
     struct MeshData
     {
@@ -38,7 +39,7 @@ namespace Vk
         ObjectManager() = default;
         ~ObjectManager() = default;
 
-        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain, SurfaceWrapper& surface, ShaderManager& shaderManager);
+        void create(LogicalDeviceWrapper& device, MemoryAllocatorWrapper& memoryAllocator, SwapchainWrapper& swapchain, SurfaceWrapper& surface, ShaderManager& shaderManager);
         void destroy();
 
         void update();
@@ -63,6 +64,7 @@ namespace Vk
             void copy_buffer(VkBuffer src, VkBuffer dst, unsigned size);
     private:
         LogicalDeviceWrapper* pDevice = nullptr;
+        MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
         SurfaceWrapper* pSurface = nullptr;
         SwapchainWrapper* pSwapchain = nullptr;
         ShaderManager* pShaderManager = nullptr;
@@ -73,7 +75,6 @@ namespace Vk
         VkViewport viewport = {};
 
         VkCommandPool commandPool = VK_NULL_HANDLE;
-        VmaAllocator memoryAllocator = VK_NULL_HANDLE;
         std::vector<VkCommandBuffer> mainCmdBuffers = {};
         std::vector<VkCommandBuffer> secondaryCmdBuffers = {};
     };
