@@ -55,7 +55,11 @@ namespace Vk
                 throw std::runtime_error("Renderer-Vulkan-ObjectManager-CommandBuffers-BeginFail");
             }
 
-            VkClearValue clear_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+            VkClearValue clear_values[2] =
+            {
+                { .color = { 0.f, 0.f, 0.f, 1.f } },
+                { .depthStencil = { 1.f, 0 } }
+            };
 
             VkRenderPassBeginInfo render_pass_begin_info =
             {
@@ -67,8 +71,8 @@ namespace Vk
                     .offset = { 0, 0 },
                     .extent = pSwapchain->surface_extent()
                 },
-                .clearValueCount = 1,
-                .pClearValues    = &clear_color,
+                .clearValueCount = 2,
+                .pClearValues    = clear_values,
             };
 
             vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);

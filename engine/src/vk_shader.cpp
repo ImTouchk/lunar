@@ -225,6 +225,20 @@ namespace Vk
             .pDynamicStates    = dynamic_states,
         };
 
+        VkPipelineDepthStencilStateCreateInfo depth_stencil_state_create_info =
+        {
+            .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable       = VK_TRUE,
+            .depthWriteEnable      = VK_TRUE,
+            .depthCompareOp        = VK_COMPARE_OP_LESS,
+            .depthBoundsTestEnable = VK_FALSE,
+            .stencilTestEnable     = VK_FALSE,
+            .front                 = {},
+            .back                  = {},
+            .minDepthBounds        = 0.f,
+            .maxDepthBounds        = 1.f,
+        };
+
         struct CreateInfoData
         {
             VkShaderModule modules[2];
@@ -281,7 +295,7 @@ namespace Vk
                 .pViewportState      = &viewport_state_create_info,
                 .pRasterizationState = &rasterizer,
                 .pMultisampleState   = &multisample_state_create_info,
-                .pDepthStencilState  = nullptr,
+                .pDepthStencilState  = &depth_stencil_state_create_info,
                 .pColorBlendState    = &color_blend_create_info,
                 .pDynamicState       = &dynamic_state_create_info,
                 .layout              = graphicsLayout,

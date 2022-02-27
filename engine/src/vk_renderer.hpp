@@ -115,6 +115,7 @@ namespace Vk
         void create_render_pass();
         void create_image_views();
         void create_framebuffers();
+        void create_depth_buffer();
 
         LogicalDeviceWrapper* pDevice = nullptr;
         MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
@@ -124,6 +125,7 @@ namespace Vk
             VmaAllocation allocation = VK_NULL_HANDLE;
             VkImage image = VK_NULL_HANDLE;
             VkImageView view = VK_NULL_HANDLE;
+            VkFormat format = {};
         } depthBuffer = {};
 
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;
