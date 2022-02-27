@@ -43,17 +43,24 @@ namespace Vk
         pDevice = &device;
         pSwapchain = &swapchain;
 
+        VkPushConstantRange push_constant =
+        {
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .offset     = 0,
+            .size       = sizeof(glm::mat4),
+        };
+
         VkPipelineLayoutCreateInfo pipeline_layout_create_info =
         {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount         = 0,
             .pSetLayouts            = nullptr,
-            .pushConstantRangeCount = 0,
-            .pPushConstantRanges    = nullptr
+            .pushConstantRangeCount = 1,
+            .pPushConstantRanges    = &push_constant
         };
 
         VkResult result;
-        result = vkCreatePipelineLayout(pDevice->handle(), &pipeline_layout_create_info, nullptr, &layout);
+        result = vkCreatePipelineLayout(pDevice->handle(), &pipeline_layout_create_info, nullptr, &graphicsLayout);
 
         if (result != VK_SUCCESS)
         {
@@ -71,17 +78,22 @@ namespace Vk
             vkDestroyPipeline(pDevice->handle(), shader.handle, nullptr);
         }
 
-        vkDestroyPipelineLayout(pDevice->handle(), layout, nullptr);
+        vkDestroyPipelineLayout(pDevice->handle(), graphicsLayout, nullptr);
 
         CDebug::Log("Vulkan Renderer | Shader manager destroyed.");
     }
 
-    VkPipeline ShaderManager::try_get(Shader handle)
+    VkPipeline ShaderManager::try_get(Shader handle) const
     {
         if(handle >= shaders.size())
             return VK_NULL_HANDLE;
 
         return shaders[handle].handle;
+    }
+
+    VkPipelineLayout ShaderManager::get_graphics_layout() const
+    {
+        return graphicsLayout;
     }
 
     VkVertexInputBindingDescription ShaderManager::get_vertex_binding_desc()
@@ -272,7 +284,7 @@ namespace Vk
                 .pDepthStencilState  = nullptr,
                 .pColorBlendState    = &color_blend_create_info,
                 .pDynamicState       = &dynamic_state_create_info,
-                .layout              = layout,
+                .layout              = graphicsLayout,
                 .renderPass          = pSwapchain->render_pass(),
                 .subpass             = 0,
                 .basePipelineHandle  = nullptr,

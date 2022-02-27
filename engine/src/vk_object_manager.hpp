@@ -24,6 +24,7 @@ namespace Vk
         std::optional<std::vector<unsigned>> indices = {};
         unsigned vertexCount = 0;
         unsigned indexCount = 0;
+        glm::mat4 transform = glm::mat4(1.f);
 
         VkBuffer vertexBuffer = VK_NULL_HANDLE;
         VmaAllocation vbMemory = VK_NULL_HANDLE;

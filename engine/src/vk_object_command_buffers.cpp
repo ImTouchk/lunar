@@ -132,12 +132,15 @@ namespace Vk
                 throw std::runtime_error("Renderer-Vulkan-ObjectManager-CommandBuffers-BeginFail");
             }
 
+
+            auto graphics_layout = pShaderManager->get_graphics_layout();
             auto pipeline = pShaderManager->try_get(mesh.shader);
             if(pipeline != VK_NULL_HANDLE)
             {
                 VkDeviceSize offsets[] = { 0 };
 
                 vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                vkCmdPushConstants(command_buffer, graphics_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mesh.transform);
                 vkCmdSetViewport(command_buffer, 0, 1, &pSwapchain->get_viewport());
                 vkCmdSetScissor(command_buffer, 0, 1, &pSwapchain->get_scissor());
                 vkCmdBindVertexBuffers(command_buffer, 0, 1, &mesh.vertexBuffer, offsets);
