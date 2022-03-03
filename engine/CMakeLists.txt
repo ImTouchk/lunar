@@ -33,6 +33,7 @@ if(LUNAR_COUNT_HEADERS_AS_SOURCE)
         "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/debug.hpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/range.hpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/thread_pool.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/identifier.hpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/inc/io/filesystem.hpp"
         #"inc/math/vec.hpp"
     )
@@ -72,10 +73,13 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_cmdqueue.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_swapchain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_shader_manager.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_manager.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_manager.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_command_buffers.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_data_buffers.cpp"
+        #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_manager.hpp"
+        #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_manager.cpp"
+        #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_command_buffers.cpp"
+        #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_data_buffers.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_buffer.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_buffer.hpp"
+        #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_mesh.cpp"
     )
 endif()
 

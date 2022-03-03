@@ -1,0 +1,35 @@
+#pragma once
+#include <algorithm>
+#include <vector>
+#include <mutex>
+#include <cassert>
+
+// Returns a simple identifier generated from a thread-safe counter
+unsigned get_unique_number()
+{
+	static unsigned counter = 0;
+	static std::mutex counter_mutex = {};
+
+	std::lock_guard lock(counter_mutex);
+	return ++counter;
+}
+
+template<typename T>
+T* find_by_identifier(std::vector<T>& elements, unsigned identifier)
+{
+	assert(not elements.empty());
+
+	T* pElements = elements.data();
+
+	for (int i = 0; i < elements.size(); i++)
+	{
+		T* pElement = pElements + i;
+		unsigned* pElementId = reinterpret_cast<unsigned*>(pElement);
+		if (*pElementId == identifier)
+		{
+			return pElement;
+		}
+	}
+
+	return nullptr;
+}

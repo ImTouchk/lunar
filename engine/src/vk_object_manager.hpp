@@ -1,12 +1,13 @@
 #pragma once
-#include "math/vec.hpp"
 #include "render/mesh.hpp"
 #include "render/renderer.hpp"
+
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <glm/glm.hpp>
 #include <optional>
 #include <vector>
+#include <any>
 
 namespace Vk
 {
@@ -15,6 +16,17 @@ namespace Vk
     struct SurfaceWrapper;
     struct ShaderManager;
     struct MemoryAllocatorWrapper;
+
+    struct BufferData
+    {
+        VkBuffer handle = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        VkBufferUsageFlags usageFlags = {};
+        VmaMemoryUsage memoryUsageFlags = {};
+
+
+        void create(MemoryAllocatorWrapper& memoryAllocator);
+    };
 
     struct MeshData
     {
@@ -62,6 +74,8 @@ namespace Vk
         void create_vertex_buffer(MeshData& meshData, const std::vector<Vertex>& vertices);
             void create_buffer(unsigned size, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage, VkBuffer& buffer, VmaAllocation& allocation);
             void copy_buffer(VkBuffer src, VkBuffer dst, unsigned size);
+            void update_buffer(VkBuffer& buffer, VmaAllocation& allocation, void* pData, unsigned dataSize);
+
     private:
         LogicalDeviceWrapper* pDevice = nullptr;
         MemoryAllocatorWrapper* pMemoryAllocator = nullptr;

@@ -5,8 +5,8 @@
 
 namespace Vk
 {
-    class SwapchainWrapper;
-    class LogicalDeviceWrapper;
+    struct SwapchainWrapper;
+    struct LogicalDeviceWrapper;
 
     enum class ShaderType
     {

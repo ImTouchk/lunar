@@ -89,6 +89,37 @@ namespace Vk
 
         vkFreeCommandBuffers(pDevice->handle(), commandPool, 1, &command_buffer);
     }
+    
+    void ObjectManager::update_buffer(VkBuffer& buffer, VmaAllocation& allocation, void* pData, unsigned dataSize)
+    {
+        VmaAllocationInfo allocation_info;
+        vmaGetAllocationInfo(pMemoryAllocator->handle(), allocation, &allocation_info);
+
+        if (allocation_info.size < dataSize)
+        {
+            throw std::runtime_error("Unimplemented");
+        }
+
+        VkBuffer staging_buffer;
+        VmaAllocation staging_allocation;
+        create_buffer
+        (
+            dataSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VMA_MEMORY_USAGE_CPU_ONLY,
+            staging_buffer,
+            staging_allocation
+        );
+
+        void* pBufData = nullptr;
+        vmaMapMemory(pMemoryAllocator->handle(), staging_allocation, &pBufData);
+        memcpy(pBufData, pData, dataSize);
+        vmaUnmapMemory(pMemoryAllocator->handle(), staging_allocation);
+
+        copy_buffer(staging_buffer, buffer, dataSize);
+
+        vmaDestroyBuffer(pMemoryAllocator->handle(), staging_buffer, staging_allocation);
+    }
 
     // TODO: Do different buffer allocations depending on the mesh type ; right now it only accounts for static meshes
 
@@ -203,6 +234,9 @@ namespace Vk
         create_vertex_buffer(new_mesh, meshCreateInfo.vertices);
 
         meshes.push_back(std::move(new_mesh));
-        return {};
+        
+        auto handle = CMesh();
+        handle.create(&meshes, meshes.size() - 1);
+        return handle;
     }
 }

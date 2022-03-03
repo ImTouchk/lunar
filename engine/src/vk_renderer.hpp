@@ -9,8 +9,10 @@
 #include <any>
 
 #include "render/renderer.hpp"
+
+#include "vk_buffer.hpp"
 #include "vk_shader_manager.hpp"
-#include "vk_object_manager.hpp"
+//#include "vk_object_manager.hpp"
 
 class GameWindow;
 
@@ -139,8 +141,6 @@ namespace Vk
         std::vector<VkFramebuffer> frameBuffers = {};
         int width = 0;
         int height = 0;
-
-
     };
 
     struct CommandQueueWrapper
@@ -192,12 +192,12 @@ namespace Vk
         LogicalDeviceWrapper device;
         MemoryAllocatorWrapper memoryAllocator;
         SwapchainWrapper swapchain;
-        CommandQueueWrapper commandQueue;
         SyncObjectsWrapper syncObjects;
         ShaderManager shaderManager;
-        ObjectManager objectManager;
-        bool hasOptionalDynamicRendering;
-        size_t currentFrame;
+        BufferManager bufferManager;
+        //ObjectManager objectManager;
+        bool hasOptionalDynamicRendering = false;
+        size_t currentFrame = 0;
     };
 
     VkInstance GetInstance();

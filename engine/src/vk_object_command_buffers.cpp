@@ -104,9 +104,11 @@ namespace Vk
             if(!mesh.needsUpdating)
                 continue;
 
-            if(command_buffer != VK_NULL_HANDLE)
+            if (mesh.vertices.has_value())
             {
-                vkResetCommandBuffer(command_buffer, 0);
+                update_buffer(mesh.vertexBuffer, mesh.vbMemory, mesh.vertices.value().data(), mesh.vertices.value().size());
+                mesh.vertices.reset();
+                CDebug::Log("Vulkan Renderer | Vertex buffer updated.");
             }
 
             VkCommandBufferInheritanceInfo buffer_inheritance_info =
