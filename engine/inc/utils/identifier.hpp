@@ -7,6 +7,8 @@
 #include <cassert>
 
 // Returns a simple identifier generated from a thread-safe counter
+// The function guarantees that numbers are obviously given in an ascending order
+// which might prove useful
 inline unsigned get_unique_number()
 {
 	static unsigned counter = 0;
@@ -16,6 +18,9 @@ inline unsigned get_unique_number()
 	return ++counter;
 }
 
+// The idea is that since most element vectors will have their identifiers
+// in an ascending order, there's faster solutions available for finding an element
+// TODO: Implement some sort of binary search for large vectors
 template<typename T>
 T* find_by_identifier(std::vector<T>& elements, unsigned identifier)
 {
