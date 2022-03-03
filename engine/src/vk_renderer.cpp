@@ -44,7 +44,7 @@ namespace Vk
     }
 }
 
-void GameRenderer::create(RendererCreateInfo createInfo)
+void GameRenderer::create(RendererCreateInfo&& createInfo)
 {
     window_handle = createInfo.pWindow;
     backend_data = Vk::RendererInternalData();
@@ -56,22 +56,15 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     auto& swapchain    = internal_data->swapchain;
     auto& sync_objects = internal_data->syncObjects;
 
-    auto& shader_manager   = internal_data->shaderManager;
-    auto& buffer_manager   = internal_data->bufferManager;
-    auto& object_manager   = internal_data->objectManager;
-    auto& memory_allocator = internal_data->memoryAllocator;
+    auto& shader_manager      = internal_data->shaderManager;
+    auto& buffer_manager      = internal_data->bufferManager;
+    auto& object_manager      = internal_data->objectManager;
+    auto& memory_allocator    = internal_data->memoryAllocator;
+    auto& render_call_manager = internal_data->renderCallManager;
 
     surface.create(*window_handle);
     device.create(surface);
     memory_allocator.create(device);
-
-    auto optional_extensions = Vk::GetAvailableOptionalExtensions(Vk::GetRenderingDevice());
-
-    for(const auto& extension : optional_extensions)
-    {
-        if (strcmp(extension, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
-            internal_data->hasOptionalDynamicRendering = true;
-    }
 
     swapchain.create(*window_handle, surface, device, memory_allocator);
     sync_objects.create(device, swapchain);
@@ -92,12 +85,19 @@ void GameRenderer::create(RendererCreateInfo createInfo)
         .pMemoryAllocator = &memory_allocator,
         .pSwapchain       = &swapchain,
         .pSurface         = &surface,
-        .pShaderManager   = &shader_manager
+        .pShaderManager   = &shader_manager,
+        .pBufferManager   = &buffer_manager,
     });
 
-    internal_data->currentFrame = 0;
-
-    CDebug::Log("Vulkan Renderer | Activated optional extensions: {}", optional_extensions);
+    render_call_manager.create
+    (Vk::RenderCallManagerCreateInfo
+    {
+        .pDevice        = &device,
+        .pSurface       = &surface,
+        .pSwapchain     = &swapchain,
+        .pObjectManager = &object_manager,
+        .pSyncObjects   = &sync_objects
+    });
 
     window_handle->subscribe(WindowEvent::eResized, [this](void* handle, const std::any& eventData)
     {
@@ -115,7 +115,6 @@ void GameRenderer::create(RendererCreateInfo createInfo)
         GameWindow& window = *window_handle;
         auto* data = std::any_cast<Vk::RendererInternalData>(&backend_data);
         data->swapchain.resize(window, data->surface);
-        //data->objectManager.handle_resize();
     });
 }
 
@@ -125,11 +124,11 @@ void GameRenderer::destroy()
 
     vkDeviceWaitIdle(internal_data->device.handle());
 
+    internal_data->renderCallManager.destroy();
     internal_data->objectManager.destroy();
     internal_data->bufferManager.destroy();
     internal_data->shaderManager.destroy();
     internal_data->syncObjects.destroy();
-    //internal_data->commandQueue.destroy();
 
     internal_data->swapchain.destroy();
     internal_data->memoryAllocator.destroy();
@@ -144,87 +143,28 @@ void GameRenderer::draw()
         return;
     }
     
-    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
-    auto& device = internal_data->device;
-    auto& swapchain = internal_data->swapchain;
-    auto& sync_objects = internal_data->syncObjects;
-    auto& current_frame = internal_data->currentFrame;
-    //auto& object_manager = internal_data->objectManager;
+    auto* internal_data       = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    auto& device              = internal_data->device;
+    auto& render_call_manager = internal_data->renderCallManager;
+    auto& object_manager      = internal_data->objectManager;
+    auto& sync_objects        = internal_data->syncObjects;
+    auto& swapchain           = internal_data->swapchain;
+    auto current_frame        = render_call_manager.current_image();
 
-    return;
+    vkWaitForFences(device.handle(), 1, &sync_objects.in_flight_fence(render_call_manager.current_image()), VK_TRUE, UINT64_MAX);
 
-    //vkWaitForFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame), VK_TRUE, UINT64_MAX);
+    object_manager.update();
+    render_call_manager.update();
 
-    //object_manager.update();
+    uint32_t image_index;
+    vkAcquireNextImageKHR(device.handle(), swapchain.handle(), UINT64_MAX, sync_objects.image_available(current_frame), VK_NULL_HANDLE, &image_index);
 
-    //uint32_t image_index;
-    //vkAcquireNextImageKHR(device.handle(), swapchain.handle(), UINT64_MAX, sync_objects.image_available(current_frame), VK_NULL_HANDLE, &image_index);
+    if (sync_objects.image_in_flight(image_index) != VK_NULL_HANDLE)
+    {
+        vkWaitForFences(device.handle(), 1, &sync_objects.image_in_flight(image_index), VK_TRUE, UINT64_MAX);
+    }
 
-    //if (sync_objects.image_in_flight(image_index) != VK_NULL_HANDLE)
-    //{
-    //    vkWaitForFences(device.handle(), 1, &sync_objects.image_in_flight(image_index), VK_TRUE, UINT64_MAX);
-    //}
-
-    //sync_objects.image_in_flight(image_index) = sync_objects.in_flight_fence(current_frame);
-
-    //VkSemaphore wait_semaphores[] = 
-    //{
-    //    sync_objects.image_available(current_frame)
-    //};
-
-    //VkPipelineStageFlags wait_stages[] =
-    //{
-    //    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    //};
-
-    //VkSemaphore signal_semaphores[] =
-    //{
-    //    sync_objects.rendering_finished(current_frame)
-    //};
-
-    //VkCommandBuffer buffer = object_manager.get_main(image_index);
-
-    //VkSubmitInfo submit_info =
-    //{
-    //    .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-    //    .waitSemaphoreCount   = 1,
-    //    .pWaitSemaphores      = wait_semaphores,
-    //    .pWaitDstStageMask    = wait_stages,
-    //    .commandBufferCount   = 1,
-    //    .pCommandBuffers      = &buffer,
-    //    .signalSemaphoreCount = 1,
-    //    .pSignalSemaphores    = signal_semaphores
-    //};
-
-    //vkResetFences(device.handle(), 1, &sync_objects.in_flight_fence(current_frame));
-    //
-    //VkResult result;
-    //result = vkQueueSubmit(device.graphics_queue(), 1, &submit_info, sync_objects.in_flight_fence(current_frame));
-    //if (result != VK_SUCCESS)
-    //{
-    //    CDebug::Error("Vulkan Renderer | Failed to render a frame (vkQueueSubmit didn't return VK_SUCCESS).");
-    //    return;
-    //}
-
-    //VkSwapchainKHR swapchains[] =
-    //{
-    //    swapchain.handle()
-    //};
-
-    //VkPresentInfoKHR present_info =
-    //{
-    //    .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-    //    .waitSemaphoreCount = 1,
-    //    .pWaitSemaphores    = signal_semaphores,
-    //    .swapchainCount     = 1,
-    //    .pSwapchains        = swapchains,
-    //    .pImageIndices      = &image_index,
-    //    .pResults           = nullptr
-    //};
-
-    //vkQueuePresentKHR(device.present_queue(), &present_info);
-
-    //current_frame = (current_frame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
+    render_call_manager.draw(image_index);
 }
 
 std::vector<Shader> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned int count)
@@ -233,9 +173,8 @@ std::vector<Shader> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCrea
     return internal_data->shaderManager.create_graphics(pCreateInfos, count);
 }
 
-MeshWrapper GameRenderer::create_object(MeshCreateInfo meshCreateInfo)
+MeshWrapper GameRenderer::create_object(MeshCreateInfo&& meshCreateInfo)
 {
-    //auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
-    //return internal_data->objectManager.create_object(meshCreateInfo);
-    return {};
+    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    return internal_data->objectManager.create_mesh(std::move(meshCreateInfo));
 }

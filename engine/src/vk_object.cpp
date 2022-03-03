@@ -16,12 +16,14 @@ namespace Vk
 		assert(createInfo.pSurface != nullptr);
 		assert(createInfo.pSwapchain != nullptr);
 		assert(createInfo.pShaderManager != nullptr);
+		assert(createInfo.pBufferManager != nullptr);
 		assert(createInfo.pMemoryAllocator != nullptr);
 
 		pDevice = createInfo.pDevice;
 		pSurface = createInfo.pSurface;
 		pSwapchain = createInfo.pSwapchain;
 		pShaderManager = createInfo.pShaderManager;
+		pBufferManager = createInfo.pBufferManager;
 		pMemoryAllocator = createInfo.pMemoryAllocator;
 
 		auto& queue_indices = QueueFamilyIndices::query(GetRenderingDevice(), pSurface->handle());
@@ -69,6 +71,7 @@ namespace Vk
 		pSwapchain       = nullptr;
 		pShaderManager   = nullptr;
 		pMemoryAllocator = nullptr;
+		pBufferManager   = nullptr;
 	}
 
 	void ObjectManager::update()
@@ -115,7 +118,52 @@ namespace Vk
 		if (do_rebuild)
 		{
 			rebuild_cmd_buffers();
+			command_buffers_modified = true;
 		}
+	}
+
+	MeshWrapper ObjectManager::create_mesh(MeshCreateInfo&& createInfo)
+	{
+		BufferWrapper vertex_buffer = pBufferManager->create_buffer(BufferCreateInfo
+		{
+			.type       = BufferType::eVertex,
+			.memoryType = BufferMemoryType::eGpuStatic,
+			.pData      = createInfo.vertices.data(),
+			.dataSize   = static_cast<unsigned>(createInfo.vertices.size() * sizeof(Vertex)),
+		});
+
+		BufferWrapper index_buffer = pBufferManager->create_buffer(BufferCreateInfo
+		{
+			.type       = BufferType::eIndex,
+			.memoryType = BufferMemoryType::eGpuStatic,
+			.pData      = createInfo.indices.data(),
+			.dataSize   = static_cast<unsigned>(createInfo.indices.size() * sizeof(Index))
+		});
+
+		DrawableObjectData object_data =
+		{
+			.identifier   = get_unique_number(),
+			.type         = createInfo.type,
+			.shader       = createInfo.shader,
+			.vertexBuffer = std::move(vertex_buffer),
+			.indexBuffer  = std::move(index_buffer),
+			.wasModified  = true,
+			.vertexCount  = static_cast<unsigned>(createInfo.vertices.size()),
+			.indexCount   = static_cast<unsigned>(createInfo.indices.size()),
+			.transform    = glm::mat4(1.f),
+			.vertices     = {},
+			.indices      = {},
+		};
+
+		meshes.push_back(std::move(object_data));
+		return {};
+	}
+
+	bool ObjectManager::cmd_buffers_need_rebuilding()
+	{
+		bool last_value = command_buffers_modified;
+		command_buffers_modified = false;
+		return last_value;
 	}
 
 	void ObjectManager::create_cmd_buffers(VkCommandPool pool, VkCommandBuffer* pBuffer, unsigned count)

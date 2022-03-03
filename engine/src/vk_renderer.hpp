@@ -12,6 +12,7 @@
 
 #include "vk_buffer.hpp"
 #include "vk_object.hpp"
+#include "vk_draw_call.hpp"
 #include "vk_shader_manager.hpp"
 //#include "vk_object_manager.hpp"
 
@@ -197,8 +198,7 @@ namespace Vk
         ShaderManager shaderManager;
         BufferManager bufferManager;
         ObjectManager objectManager;
-        bool hasOptionalDynamicRendering = false;
-        size_t currentFrame = 0;
+        RenderCallManager renderCallManager;
     };
 
     VkInstance GetInstance();

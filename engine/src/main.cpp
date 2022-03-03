@@ -66,15 +66,15 @@ int main()
             {-0.5,  0.5, 0.0 }
         };
 
-        //std::vector<Index> indices = { 0, 1, 2, };
+        std::vector<Index> indices = { 0, 1, 2 };
 
-        //auto mesh = game_renderer.create_object(MeshCreateInfo
-        //{
-        //    .type     = MeshType::eUnknown,
-        //    .vertices = vertices,
-        //    .indices  = indices,
-        //    .shader   = shaders[0],
-        //});
+        auto mesh = game_renderer.create_object(MeshCreateInfo
+        {
+            .type     = MeshType::eUnknown,
+            .vertices = vertices,
+            .indices  = indices,
+            .shader   = shaders[0],
+        });
 
         while(game_window.is_active())
         {
