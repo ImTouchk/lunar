@@ -103,7 +103,7 @@ namespace Vk
 			.commandBufferCount = 1,
 		};
 
-		result = vkAllocateCommandBuffers(pDevice->handle(), &command_buffer_allocate_info, &staging.commandBuffer);
+		result = vkAllocateCommandBuffers(pDevice->handle(), &command_buffer_allocate_info, &staging_command);
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | Buffer manager creation failed (vkAllocateCommandBuffers didn't return VK_SUCCESS).");
@@ -119,7 +119,7 @@ namespace Vk
 	{
 		assert(active == true);
 		
-		vkFreeCommandBuffers(pDevice->handle(), command_pool, 1, &staging.commandBuffer);
+		vkFreeCommandBuffers(pDevice->handle(), command_pool, 1, &staging_command);
 		vkDestroyCommandPool(pDevice->handle(), command_pool, nullptr);
 		
 		// TODO: Destroy all buffers
@@ -127,8 +127,8 @@ namespace Vk
 		pDevice = nullptr;
 		pMemoryAllocator = nullptr;
 		command_pool = VK_NULL_HANDLE;
+		staging_command = VK_NULL_HANDLE;
 		buffers.clear();
-		staging = {};
 
 		active = false;
 	}
@@ -167,34 +167,31 @@ namespace Vk
 			throw std::runtime_error("Not-Implemented");
 		}
 
+		unsigned identifier = new_buffer.identifier;
+
 		buffers.push_back(std::move(new_buffer));
-		return BufferWrapper(*this, static_cast<unsigned>(buffers.size() - 1));
+		return BufferWrapper(*this, identifier);
 	}
 
-	void BufferManager::upload_to_gpu_buffer(void* pData, unsigned dataSize, VkBuffer dst)
+	void BufferManager::upload_to_gpu_buffer(const void* pData, unsigned dataSize, VkBuffer dst)
 	{
-		if (dataSize > staging.size)
-		{
-			if (staging.buffer != VK_NULL_HANDLE)
-			{
-				vmaDestroyBuffer(pMemoryAllocator->handle(), staging.buffer, staging.memory);
-			}
+		VkBuffer staging_buffer;
+		VmaAllocation staging_memory;
 
-			create_real_buffer
-			(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VMA_MEMORY_USAGE_CPU_ONLY,
-				dataSize,
-				staging.buffer,
-				staging.memory,
-				pMemoryAllocator
-			);
-		}
+		create_real_buffer
+		(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VMA_MEMORY_USAGE_CPU_ONLY,
+			dataSize,
+			staging_buffer,
+			staging_memory,
+			pMemoryAllocator
+		);
 
 		void* mapped_buf = nullptr;
-		vmaMapMemory(pMemoryAllocator->handle(), staging.memory, &mapped_buf);
+		vmaMapMemory(pMemoryAllocator->handle(), staging_memory, &mapped_buf);
 		memcpy(mapped_buf, pData, dataSize);
-		vmaUnmapMemory(pMemoryAllocator->handle(), staging.memory);
+		vmaUnmapMemory(pMemoryAllocator->handle(), staging_memory);
 
 		VkCommandBufferBeginInfo command_buffer_begin_info =
 		{
@@ -205,7 +202,7 @@ namespace Vk
 		};
 
 		VkResult result;
-		result = vkBeginCommandBuffer(staging.commandBuffer, &command_buffer_begin_info);
+		result = vkBeginCommandBuffer(staging_command, &command_buffer_begin_info);
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | GPU upload of buffer failed (vkBeginCommandBuffer didn't return VK_SUCCESS).");
@@ -219,9 +216,9 @@ namespace Vk
 			.size      = dataSize
 		};
 
-		vkCmdCopyBuffer(staging.commandBuffer, staging.buffer, dst, 1, &buffer_copy_region);
+		vkCmdCopyBuffer(staging_command, staging_buffer, dst, 1, &buffer_copy_region);
 		
-		result = vkEndCommandBuffer(staging.commandBuffer);
+		result = vkEndCommandBuffer(staging_command);
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | GPU upload of buffer failed (vkEndCommandBuffer didn't return VK_SUCCESS).");
@@ -232,19 +229,22 @@ namespace Vk
 		{
 			.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 			.commandBufferCount = 1,
-			.pCommandBuffers    = &staging.commandBuffer
+			.pCommandBuffers    = &staging_command
 		};
 
 		vkQueueSubmit(pDevice->graphics_queue(), 1, &submit_info, VK_NULL_HANDLE);
 		vkQueueWaitIdle(pDevice->graphics_queue());
 
-		vkResetCommandBuffer(staging.commandBuffer, 0);
+		vkResetCommandBuffer(staging_command, 0);
+
+		vmaDestroyBuffer(pMemoryAllocator->handle(), staging_buffer, staging_memory);
 	}
 
 	BufferWrapper::BufferWrapper(BufferManager& bufferManager, unsigned handle)
 		: bufferManager(bufferManager),
 		identifier(handle)
 	{
+		buffer = get_handle_safe().handle;
 	}
 
 	BufferData& BufferWrapper::get_handle_safe() const

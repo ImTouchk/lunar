@@ -27,7 +27,7 @@ namespace Vk
 	{
 		BufferType type;
 		BufferMemoryType memoryType;
-		void* pData;
+		const void* pData;
 		unsigned dataSize;
 	};
 
@@ -59,7 +59,7 @@ namespace Vk
 		BufferWrapper create_buffer(BufferCreateInfo&& createInfo);
 
 	private:
-		void upload_to_gpu_buffer(void* pData, unsigned dataSize, VkBuffer dst);
+		void upload_to_gpu_buffer(const void* pData, unsigned dataSize, VkBuffer dst);
 
 	private:
 		LogicalDeviceWrapper* pDevice = nullptr;
@@ -67,14 +67,7 @@ namespace Vk
 		bool active = false;
 
 		VkCommandPool command_pool = VK_NULL_HANDLE;
-
-		struct
-		{
-			VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-			VkBuffer buffer = VK_NULL_HANDLE;
-			VmaAllocation memory = VK_NULL_HANDLE;
-			unsigned size = 0;
-		} staging;
+		VkCommandBuffer staging_command = VK_NULL_HANDLE;
 
 		std::vector<BufferData> buffers = {};
 	};
@@ -96,5 +89,6 @@ namespace Vk
 	private:
 		unsigned identifier;
 		BufferManager& bufferManager;
+		VkBuffer buffer;
 	};
 }
