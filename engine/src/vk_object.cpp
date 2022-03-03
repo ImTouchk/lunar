@@ -1,8 +1,8 @@
 #include "utils/identifier.hpp"
 #include "utils/debug.hpp"
 #include "vk_object.hpp"
+#include "vk_shader.hpp"
 #include "vk_renderer.hpp"
-#include "vk_shader_manager.hpp"
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>

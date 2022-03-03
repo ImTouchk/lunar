@@ -12,8 +12,8 @@
 
 #include "vk_buffer.hpp"
 #include "vk_object.hpp"
+#include "vk_shader.hpp"
 #include "vk_draw_call.hpp"
-#include "vk_shader_manager.hpp"
 //#include "vk_object_manager.hpp"
 
 class GameWindow;

@@ -1,8 +1,7 @@
 #include "utils/range.hpp"
 #include "utils/debug.hpp"
+#include "vk_shader.hpp"
 #include "vk_renderer.hpp"
-#include "vk_shader_manager.hpp"
-//#include "vk_object_manager.hpp"
 #include "render/renderer.hpp"
 
 #include <vulkan/vulkan.h>
