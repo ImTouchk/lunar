@@ -247,25 +247,36 @@ namespace Vk
 	{
 	}
 
-	VkBuffer BufferWrapper::handle() const
+	BufferData& BufferWrapper::get_handle_safe() const
 	{
+		assert(identifier != 0);
 		BufferData* buffer = find_by_identifier(bufferManager.buffers, identifier);
 		if (buffer == nullptr)
 		{
 			throw std::runtime_error("Renderer-Vulkan-BufferWrapper-Nullptr");
 		}
 
-		return buffer->handle;
+		return *buffer;
+	}
+
+	void BufferWrapper::destroy()
+	{
+		auto& data = get_handle_safe();
+		vmaDestroyBuffer(bufferManager.pMemoryAllocator->handle(), data.handle, data.memory);
+		delete_element_with_identifier(bufferManager.buffers, identifier);
+
+		identifier = 0;
+	}
+
+	VkBuffer BufferWrapper::handle() const
+	{
+		auto& data = get_handle_safe();
+		return data.handle;
 	}
 
 	VmaAllocation BufferWrapper::memory_handle() const
 	{
-		BufferData* buffer = find_by_identifier(bufferManager.buffers, identifier);
-		if (buffer == nullptr)
-		{
-			throw std::runtime_error("Renderer-Vulkan-BufferWrapper-Nullptr");
-		}
-		
-		return buffer->memory;
+		auto& data = get_handle_safe();
+		return data.memory;
 	}
 }

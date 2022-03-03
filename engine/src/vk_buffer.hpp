@@ -91,6 +91,9 @@ namespace Vk
 		[[nodiscard]] VkBuffer handle() const;
 		[[nodiscard]] VmaAllocation memory_handle() const;
 	private:
+		BufferData& get_handle_safe() const;
+
+	private:
 		unsigned identifier;
 		BufferManager& bufferManager;
 	};
