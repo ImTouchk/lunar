@@ -19,11 +19,11 @@ public:
     GameRenderer() = default;
     ~GameRenderer() = default;
 
-    void create(RendererCreateInfo createInfo);
+    void create(RendererCreateInfo&& createInfo);
     void destroy();
 
     [[nodiscard]] std::vector<Shader> create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
-    [[nodiscard]] MeshWrapper create_object(MeshCreateInfo meshCreateInfo);
+    [[nodiscard]] MeshWrapper create_object(MeshCreateInfo&& meshCreateInfo);
 
     void draw();
 
