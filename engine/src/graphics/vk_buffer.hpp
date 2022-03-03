@@ -45,6 +45,8 @@ namespace Vk
 		VmaAllocation memory;
 	};
 
+    class BufferWrapper;
+
 	class BufferManager
 	{
 	public:
