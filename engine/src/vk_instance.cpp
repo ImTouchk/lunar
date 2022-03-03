@@ -27,7 +27,6 @@ namespace Vk
         if(messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
             CDebug::Error("[VULKAN-LAYER] {}", pCallbackData->pMessage);
-            throw std::runtime_error("Renderer-Vulkan-ValidationError");
         }
 
         return VK_FALSE;
