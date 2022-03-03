@@ -79,6 +79,8 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object_data_buffers.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_buffer.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_buffer.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/vk_object.cpp"
         #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_mesh.cpp"
     )
 endif()

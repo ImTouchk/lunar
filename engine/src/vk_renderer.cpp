@@ -56,9 +56,9 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     auto& swapchain    = internal_data->swapchain;
     auto& sync_objects = internal_data->syncObjects;
 
-    //auto& object_manager = internal_data->objectManager;
     auto& shader_manager   = internal_data->shaderManager;
     auto& buffer_manager   = internal_data->bufferManager;
+    auto& object_manager   = internal_data->objectManager;
     auto& memory_allocator = internal_data->memoryAllocator;
 
     surface.create(*window_handle);
@@ -76,6 +76,7 @@ void GameRenderer::create(RendererCreateInfo createInfo)
     swapchain.create(*window_handle, surface, device, memory_allocator);
     sync_objects.create(device, swapchain);
     shader_manager.create(device, swapchain);
+
     buffer_manager.create
     (Vk::BufferManagerCreateInfo
     {
@@ -83,9 +84,16 @@ void GameRenderer::create(RendererCreateInfo createInfo)
         .pSurface         = &surface,
         .pMemoryAllocator = &memory_allocator
     });
-    //object_manager.create(device, memory_allocator, swapchain, surface, shader_manager);
 
-    //command_queue.create(device, swapchain, surface, internal_data->shaders[0].handle);
+    object_manager.create
+    (Vk::ObjectManagerCreateInfo
+    {
+        .pDevice          = &device,
+        .pMemoryAllocator = &memory_allocator,
+        .pSwapchain       = &swapchain,
+        .pSurface         = &surface,
+        .pShaderManager   = &shader_manager
+    });
 
     internal_data->currentFrame = 0;
 
@@ -117,7 +125,7 @@ void GameRenderer::destroy()
 
     vkDeviceWaitIdle(internal_data->device.handle());
 
-    //internal_data->objectManager.destroy();
+    internal_data->objectManager.destroy();
     internal_data->bufferManager.destroy();
     internal_data->shaderManager.destroy();
     internal_data->syncObjects.destroy();
@@ -225,7 +233,7 @@ std::vector<Shader> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCrea
     return internal_data->shaderManager.create_graphics(pCreateInfos, count);
 }
 
-CMesh GameRenderer::create_object(MeshCreateInfo meshCreateInfo)
+MeshWrapper GameRenderer::create_object(MeshCreateInfo meshCreateInfo)
 {
     //auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     //return internal_data->objectManager.create_object(meshCreateInfo);

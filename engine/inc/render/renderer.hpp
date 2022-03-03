@@ -23,7 +23,7 @@ public:
     void destroy();
 
     [[nodiscard]] std::vector<Shader> create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
-    [[nodiscard]] CMesh create_object(MeshCreateInfo meshCreateInfo);
+    [[nodiscard]] MeshWrapper create_object(MeshCreateInfo meshCreateInfo);
 
     void draw();
 

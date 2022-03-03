@@ -11,6 +11,7 @@
 #include "render/renderer.hpp"
 
 #include "vk_buffer.hpp"
+#include "vk_object.hpp"
 #include "vk_shader_manager.hpp"
 //#include "vk_object_manager.hpp"
 
@@ -195,7 +196,7 @@ namespace Vk
         SyncObjectsWrapper syncObjects;
         ShaderManager shaderManager;
         BufferManager bufferManager;
-        //ObjectManager objectManager;
+        ObjectManager objectManager;
         bool hasOptionalDynamicRendering = false;
         size_t currentFrame = 0;
     };

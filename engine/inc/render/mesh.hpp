@@ -29,20 +29,23 @@ struct MeshCreateInfo
     Shader shader;
 };
 
-class CMesh
+class MeshWrapper
 {
 public:
-    CMesh() = default;
-    ~CMesh() = default;
+    MeshWrapper() = default;
+    ~MeshWrapper() = default;
 
-    void set_vertices(const std::vector<Vertex> vertices);
-    void set_indices(const std::vector<Index> indices);
+    void set_vertices(const std::vector<Vertex>& vertices);
+    void set_indices(const std::vector<Index>& indices);
     void set_active(bool new_state);
     void use_shader(Shader shader);
 
+    void create(void* pMeshVector, unsigned handle);
+    void destroy();
+
     [[nodiscard]] bool active() const;
-    [[nodiscard]] std::any& internal_data() const;
 private:
+    void* pMeshVector = nullptr;
     unsigned handle = 0;
     bool is_active = false;
 };
