@@ -1,10 +1,11 @@
 #pragma once
 #include "utils/debug.hpp"
 
+#include <cassert>
+#include <stdexcept>
 #include <algorithm>
 #include <vector>
 #include <mutex>
-#include <cassert>
 
 // Returns a simple identifier generated from a thread-safe counter
 // The function guarantees that numbers are obviously given in an ascending order
@@ -39,6 +40,18 @@ T* find_by_identifier(std::vector<T>& elements, unsigned identifier)
 	}
 
 	return nullptr;
+}
+
+// Wraps raw function find_by_identifier with error handling
+template<typename T>
+T& find_by_identifier_safe(std::vector<T>& elements, unsigned identifier)
+{
+	T* element = find_by_identifier(elements, identifier);
+	if (element == nullptr)
+	{
+		throw std::runtime_error("Utils-FindByIdentifier-NullPtrException");
+	}
+	return *element;
 }
 
 template<typename T>
