@@ -78,7 +78,7 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_object.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_draw_call.hpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_draw_call.cpp"
-        #"${CMAKE_CURRENT_SOURCE_DIR}/src/vk_mesh.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_mesh.cpp"
     )
 endif()
 

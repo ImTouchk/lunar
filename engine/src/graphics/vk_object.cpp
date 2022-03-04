@@ -155,8 +155,10 @@ namespace Vk
 			.indices      = {},
 		};
 
+		unsigned identifier = object_data.identifier;
+
 		meshes.push_back(std::move(object_data));
-		return {};
+		return { *this, identifier };
 	}
 
 	bool ObjectManager::cmd_buffers_need_rebuilding()

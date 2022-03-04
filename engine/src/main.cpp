@@ -80,6 +80,23 @@ int main()
         {
             if(!game_window.is_minimized())
             {
+                mesh.set_vertices
+                ({
+                    {-0.5, -0.5, 0.0 },
+                    {-0.5,  0.5, 0.0 },
+                    { 0.5,  0.5, 0.0 },
+
+                    { 0.5,  0.5, 0.0 },
+                    { 0.5, -0.5, 0.0 },
+                    {-0.5, -0.5, 0.0 },
+                });
+
+                mesh.set_indices
+                ({
+                    0, 1, 2,
+                    3, 4, 5
+                });
+
                 game_renderer.draw();
             }
 

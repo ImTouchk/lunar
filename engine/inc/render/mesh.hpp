@@ -29,14 +29,19 @@ struct MeshCreateInfo
     Shader shader;
 };
 
+namespace Vk
+{
+    class ObjectManager;
+}
+
 class MeshWrapper
 {
 public:
-    MeshWrapper() = default;
+    MeshWrapper(Vk::ObjectManager& objectManager, unsigned handle);
     ~MeshWrapper() = default;
 
-    void set_vertices(const std::vector<Vertex>& vertices);
-    void set_indices(const std::vector<Index>& indices);
+    void set_vertices(std::vector<Vertex>&& vertices);
+    void set_indices(std::vector<Index>&& indices);
     void set_active(bool new_state);
     void use_shader(Shader shader);
 
@@ -45,7 +50,6 @@ public:
 
     [[nodiscard]] bool active() const;
 private:
-    void* pMeshVector = nullptr;
-    unsigned handle = 0;
-    bool is_active = false;
+    Vk::ObjectManager& objectManager;
+    unsigned identifier;
 };
