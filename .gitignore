@@ -3,3 +3,4 @@
 bin/
 out/
 assets/compiled/
+stb_image.h

@@ -12,10 +12,12 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
+file(DOWNLOAD "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h" "inc/utils/stb_image.h")
+
 add_executable("lunar" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/filesystem.cpp" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/thread_pool.cpp"
+    "src/main.cpp" 
+    "src/filesystem.cpp" 
+    "src/thread_pool.cpp"
 )
 target_include_directories("lunar" PUBLIC inc)
 target_compile_definitions("lunar" PRIVATE
@@ -26,14 +28,15 @@ target_compile_definitions("lunar" PRIVATE
 
 if(LUNAR_COUNT_HEADERS_AS_SOURCE)
     target_sources("lunar" PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/render/window.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/render/renderer.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/render/mesh.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/debug.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/range.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/thread_pool.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/utils/identifier.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/io/filesystem.hpp"
+        "inc/render/window.hpp"
+        "inc/render/renderer.hpp"
+        "inc/render/mesh.hpp"
+        "inc/utils/debug.hpp"
+        "inc/utils/range.hpp"
+        "inc/utils/thread_pool.hpp"
+        "inc/utils/identifier.hpp"
+        "inc/utils/stb_image.h"
+        "inc/io/filesystem.hpp"
         #"inc/math/vec.hpp"
     )
 endif()
@@ -41,7 +44,7 @@ endif()
 if(LUNAR_WINDOW_BACKEND STREQUAL "GLFW")
     message("-- Using GLFW as the windowing backend.")
 
-    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/glfw")
+    add_subdirectory("glfw")
     target_link_libraries("lunar" glfw)
     target_include_directories("lunar" PRIVATE glfw)
 
@@ -54,30 +57,30 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
     find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc REQUIRED)
     set(glslc ${glslc_executable} PARENT_SCOPE)
 
-    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/VulkanMemoryAllocator")
+    add_subdirectory("VulkanMemoryAllocator")
     target_include_directories("lunar" PRIVATE ${Vulkan_INCLUDE_DIRS} VulkanMemoryAllocator)
     target_link_libraries("lunar" ${Vulkan_LIBRARIES} VulkanMemoryAllocator)
 
     target_compile_definitions("lunar" PRIVATE VULKAN_USE_DEBUG_LAYERS=1)
 
     target_sources("lunar" PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_gpu.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_sync.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_device.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_surface.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_renderer.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_renderer.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_instance.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_swapchain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_shader.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_shader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_buffer.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_buffer.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_object.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_object.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_draw_call.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_draw_call.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/vk_mesh.cpp"
+        "src/graphics/vk_gpu.cpp"
+        "src/graphics/vk_sync.cpp"
+        "src/graphics/vk_device.cpp"
+        "src/graphics/vk_surface.cpp"
+        "src/graphics/vk_renderer.hpp"
+        "src/graphics/vk_renderer.cpp"
+        "src/graphics/vk_instance.cpp"
+        "src/graphics/vk_swapchain.cpp"
+        "src/graphics/vk_shader.hpp"
+        "src/graphics/vk_shader.cpp"
+        "src/graphics/vk_buffer.cpp"
+        "src/graphics/vk_buffer.hpp"
+        "src/graphics/vk_object.hpp"
+        "src/graphics/vk_object.cpp"
+        "src/graphics/vk_draw_call.hpp"
+        "src/graphics/vk_draw_call.cpp"
+        "src/graphics/vk_mesh.cpp"
     )
 endif()
 
@@ -85,8 +88,8 @@ if(WIN32)
     set(CMAKE_EXE_LINKER_FLAGS  "-static")
 endif()
 
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/fmt")
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/glm")
+add_subdirectory("fmt")
+add_subdirectory("glm")
 target_link_libraries("lunar" fmt glm)
 target_include_directories("lunar" PRIVATE fmt glm)
 
