@@ -3,8 +3,14 @@ project(lunar)
 
 add_subdirectory(engine)
 add_subdirectory(asset-packer)
+#add_subdirectory(lunarsl)
 
 add_custom_target("lunar-assets")
+
+add_custom_command(
+	TARGET "lunar-assets" POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets/compiled"
+)
 
 if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
 	list(APPEND VULKAN_SHADERS "shader.vert" "shader.frag")
