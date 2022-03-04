@@ -145,7 +145,10 @@ namespace Vk
 		{
 			.identifier = get_unique_number(),
 			.handle     = VK_NULL_HANDLE,
-			.memory     = VK_NULL_HANDLE
+			.memory     = VK_NULL_HANDLE,
+			.type       = createInfo.type,
+			.memoryType = createInfo.memoryType,
+			.dataSize   = createInfo.dataSize
 		};
 
 		create_real_buffer
@@ -257,6 +260,37 @@ namespace Vk
 		}
 
 		return *buffer;
+	}
+
+	void BufferWrapper::update(const void* pNewData, unsigned size)
+	{	
+		auto& data = get_handle_safe();
+		
+		if (size > data.dataSize)
+		{
+			vmaDestroyBuffer(bufferManager.pMemoryAllocator->handle(), data.handle, data.memory);
+			
+			create_real_buffer
+			(
+				get_usage_flags(data.type),
+				get_memory_flags(data.memoryType),
+				size,
+				data.handle,
+				data.memory,
+				bufferManager.pMemoryAllocator
+			);
+
+			data.dataSize = size;
+		}
+
+		if (data.memoryType == BufferMemoryType::eGpuStatic)
+		{
+			bufferManager.upload_to_gpu_buffer(pNewData, size, data.handle);
+		}
+		else
+		{
+			throw std::runtime_error("Not-Implemented");
+		}
 	}
 
 	void BufferWrapper::destroy()

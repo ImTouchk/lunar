@@ -43,6 +43,9 @@ namespace Vk
 		unsigned identifier;
 		VkBuffer handle;
 		VmaAllocation memory;
+		BufferType type;
+		BufferMemoryType memoryType;
+		unsigned dataSize;
 	};
 
     class BufferWrapper;
@@ -57,8 +60,6 @@ namespace Vk
 
 		void create(BufferManagerCreateInfo&& createInfo);
 		void destroy();
-
-        void update(const void* pData, unsigned dataSize);
 
 		BufferWrapper create_buffer(BufferCreateInfo&& createInfo);
 
@@ -83,7 +84,7 @@ namespace Vk
 		~BufferWrapper() = default;
 
 		void destroy();
-		void update(void* pNewData, unsigned size);
+		void update(const void* pNewData, unsigned size);
 
 		[[nodiscard]] VkBuffer handle() const;
 		[[nodiscard]] VmaAllocation memory_handle() const;
