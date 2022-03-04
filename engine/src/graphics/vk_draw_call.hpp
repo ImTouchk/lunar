@@ -4,11 +4,11 @@
 
 namespace Vk
 {
+	class ObjectManager;
 	struct LogicalDeviceWrapper;
 	struct SwapchainWrapper;
 	struct SurfaceWrapper;
-	struct ObjectManager;
-	struct SyncObjectsWrapper;
+	class SyncObjectsWrapper;
 
 	struct RenderCallManagerCreateInfo
 	{

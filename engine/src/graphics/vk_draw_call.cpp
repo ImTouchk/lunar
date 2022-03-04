@@ -65,7 +65,7 @@ namespace Vk
 	{
 		assert(active == true);
 
-		vkFreeCommandBuffers(pDevice->handle(), cmd_pool, cmd_buffers.size(), cmd_buffers.data());
+		vkFreeCommandBuffers(pDevice->handle(), cmd_pool, static_cast<uint32_t>(cmd_buffers.size()), cmd_buffers.data());
 		vkDestroyCommandPool(pDevice->handle(), cmd_pool, nullptr);
 
 		pDevice = nullptr;
@@ -139,7 +139,7 @@ namespace Vk
 
 			if (mesh_commands.size() != 0)
 			{
-				vkCmdExecuteCommands(command_buffer, mesh_commands.size(), mesh_commands.data());
+				vkCmdExecuteCommands(command_buffer, static_cast<uint32_t>(mesh_commands.size()), mesh_commands.data());
 			}
 
 			vkCmdEndRenderPass(command_buffer);

@@ -83,7 +83,7 @@ namespace Vk
 			if (mesh_command_buffers.empty())
 			{
 				mesh_command_buffers.resize(meshes.size(), VK_NULL_HANDLE);
-				create_cmd_buffers(command_pool, mesh_command_buffers.data(), meshes.size());
+				create_cmd_buffers(command_pool, mesh_command_buffers.data(), static_cast<unsigned>(meshes.size()));
 				CDebug::Log("Vulkan Renderer | Created {} initial secondary command buffers.", meshes.size());
 			}
 			else
@@ -97,7 +97,7 @@ namespace Vk
 				);
 
 				auto* pBuffer = mesh_command_buffers.data() + old_size;
-				create_cmd_buffers(command_pool, mesh_command_buffers.data(), meshes.size());
+				create_cmd_buffers(command_pool, mesh_command_buffers.data(), static_cast<unsigned>(meshes.size()));
 				CDebug::Log("Vulkan Renderer | Created {} new secondary command buffers.", meshes.size() - old_size);
 			}
 

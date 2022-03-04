@@ -58,6 +58,8 @@ namespace Vk
 		void create(BufferManagerCreateInfo&& createInfo);
 		void destroy();
 
+        void update(const void* pData, unsigned dataSize);
+
 		BufferWrapper create_buffer(BufferCreateInfo&& createInfo);
 
 	private:

@@ -14,7 +14,7 @@ namespace Vk
 	struct SwapchainWrapper;
 	struct SurfaceWrapper;
 	struct ShaderManager;
-	struct BufferManager;
+	class BufferManager;
 
 	struct ObjectManagerCreateInfo
 	{

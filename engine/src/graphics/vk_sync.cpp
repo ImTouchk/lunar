@@ -53,22 +53,22 @@ namespace Vk
         }
     }
 
-    VkSemaphore& SyncObjectsWrapper::image_available(unsigned int i)
+    VkSemaphore& SyncObjectsWrapper::image_available(size_t i)
     {
         return imageAvailableSemaphores[i];
     }
 
-    VkSemaphore& SyncObjectsWrapper::rendering_finished(unsigned int i)
+    VkSemaphore& SyncObjectsWrapper::rendering_finished(size_t i)
     {
         return renderingFinishedSemaphore[i];
     }
 
-    VkFence& SyncObjectsWrapper::in_flight_fence(unsigned int i)
+    VkFence& SyncObjectsWrapper::in_flight_fence(size_t i)
     {
         return inFlightFences[i];
     }
 
-    VkFence& SyncObjectsWrapper::image_in_flight(unsigned int i)
+    VkFence& SyncObjectsWrapper::image_in_flight(size_t i)
     {
         return imagesInFlight[i];
     }

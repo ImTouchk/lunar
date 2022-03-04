@@ -327,7 +327,7 @@ namespace Vk
                 .handle = result_pipelines[i]
             });
 
-            final_handles.push_back(start_index + i);
+            final_handles.push_back(static_cast<Shader>(start_index + i));
         }
 
         CDebug::Log("Vulkan Renderer | Compiled {} (graphics) pipelines.", final_handles.size());
@@ -338,6 +338,6 @@ namespace Vk
             vkDestroyShaderModule(pDevice->handle(), pipeline_stage_create_infos[i].modules[1], nullptr);
         }
 
-        return std::move(final_handles);
+        return final_handles;
     }
 }

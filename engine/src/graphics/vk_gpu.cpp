@@ -147,7 +147,7 @@ namespace Vk
             VkMemoryHeap heap = device_memory_properties.memoryHeaps[i];
             if(heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
             {
-                local_vram += (heap.size / 1024 / 1024);
+                local_vram += (static_cast<unsigned>(heap.size) / 1024 / 1024);
             }
         }
 
@@ -164,7 +164,7 @@ namespace Vk
             final_score += 1;
         }
 
-        final_score += GetAvailableOptionalExtensions(device).size();
+        final_score += static_cast<unsigned>(GetAvailableOptionalExtensions(device).size());
 
         CDebug::Log
         (
