@@ -10,5 +10,6 @@ layout (push_constant) uniform constants
 void main()
 {
 	gl_Position = transform * vec4(pos.xyz, 1);
+	gl_Position.y = -gl_Position.y;
 }
 
