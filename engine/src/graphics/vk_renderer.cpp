@@ -62,7 +62,7 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     auto& command_submitter   = internal_data->commandSubmitter;
     auto& render_call_manager = internal_data->renderCallManager;
 
-    Vk::GetDevice();
+    Vk::SignalRendererCreation();
 
     surface.create(*window_handle);
     memory_allocator.create();
@@ -133,6 +133,8 @@ void GameRenderer::destroy()
     internal_data->commandSubmitter.destroy();
     internal_data->memoryAllocator.destroy();
     internal_data->surface.destroy();
+
+    Vk::SignalRendererDestroy();
 }
 
 void GameRenderer::draw()

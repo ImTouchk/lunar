@@ -85,6 +85,7 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         #"src/graphics/vk_texture.cpp"
         "src/graphics/vk_cmd_submitter.hpp"
         "src/graphics/vk_cmd_submitter.cpp"
+        "src/graphics/vk_lifetime.cpp"
     )
 endif()
 

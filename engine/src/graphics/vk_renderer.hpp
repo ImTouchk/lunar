@@ -167,8 +167,6 @@ namespace Vk
     VkInstance GetInstance();
     VkPhysicalDevice GetRenderingDevice();
 
-    using PresentIndex = unsigned;
-    using GraphicsIndex = unsigned;
 
     struct LogicalDeviceWrapperV2
     {
@@ -196,4 +194,7 @@ namespace Vk
     QueueIndices GetPhysicalDeviceQueues(VkPhysicalDevice device);
 
     std::vector<const char*> GetDebugLayers();
+
+    void SignalRendererCreation();
+    void SignalRendererDestroy();
 }
