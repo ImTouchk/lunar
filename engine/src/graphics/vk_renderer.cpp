@@ -60,11 +60,20 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     auto& buffer_manager      = internal_data->bufferManager;
     auto& object_manager      = internal_data->objectManager;
     auto& memory_allocator    = internal_data->memoryAllocator;
+    auto& command_submitter   = internal_data->commandSubmitter;
     auto& render_call_manager = internal_data->renderCallManager;
 
     surface.create(*window_handle);
     device.create(surface);
     memory_allocator.create(device);
+    command_submitter.create
+    (Vk::CmdSubmitterCreateInfo
+    {
+        .device        = device.handle(),
+        .graphicsQueue = device.graphics_queue(),
+        .queueIndex    = Vk::QueueFamilyIndices::query(Vk::GetRenderingDevice(), surface.handle())
+                                .graphics.value()
+    });
 
     swapchain.create(*window_handle, surface, device, memory_allocator);
     sync_objects.create(device, swapchain);
@@ -74,7 +83,7 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     (Vk::BufferManagerCreateInfo
     {
         .pDevice          = &device,
-        .pSurface         = &surface,
+        .pCmdSubmitter    = &command_submitter,
         .pMemoryAllocator = &memory_allocator
     });
 
@@ -131,6 +140,7 @@ void GameRenderer::destroy()
     internal_data->syncObjects.destroy();
 
     internal_data->swapchain.destroy();
+    internal_data->commandSubmitter.destroy();
     internal_data->memoryAllocator.destroy();
     internal_data->device.destroy();
     internal_data->surface.destroy();

@@ -14,7 +14,7 @@
 #include "vk_object.hpp"
 #include "vk_shader.hpp"
 #include "vk_draw_call.hpp"
-//#include "vk_object_manager.hpp"
+#include "vk_cmd_submitter.hpp"
 
 class GameWindow;
 
@@ -193,6 +193,7 @@ namespace Vk
         SurfaceWrapper surface;
         LogicalDeviceWrapper device;
         MemoryAllocatorWrapper memoryAllocator;
+        CmdSubmitter commandSubmitter;
         SwapchainWrapper swapchain;
         SyncObjectsWrapper syncObjects;
         ShaderManager shaderManager;

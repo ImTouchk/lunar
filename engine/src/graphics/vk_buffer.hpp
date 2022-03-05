@@ -1,19 +1,17 @@
 #pragma once
+#include "vk_forward_decl.hpp"
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <vector>
 
 namespace Vk
 {
-	struct SurfaceWrapper;
-	struct LogicalDeviceWrapper;
-	struct MemoryAllocatorWrapper;
-
 	enum class BufferType
 	{
 		eUnknown = 0,
 		eVertex,
 		eIndex,
+		eTexture,
 	};
 
 	enum class BufferMemoryType
@@ -21,6 +19,7 @@ namespace Vk
 		eUnknown = 0,
 		eGpuStatic,
 		eGpuDynamic,
+		eCpuAny,
 	};
 
 	struct BufferCreateInfo
@@ -34,7 +33,7 @@ namespace Vk
 	struct BufferManagerCreateInfo
 	{
 		LogicalDeviceWrapper* pDevice;
-		SurfaceWrapper* pSurface;
+        CmdSubmitter* pCmdSubmitter;
 		MemoryAllocatorWrapper* pMemoryAllocator;
 	};
 
@@ -67,12 +66,10 @@ namespace Vk
 		void upload_to_gpu_buffer(const void* pData, unsigned dataSize, VkBuffer dst);
 
 	private:
-		LogicalDeviceWrapper* pDevice = nullptr;
+		LogicalDeviceWrapper* pDevice            = nullptr;
 		MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
+        CmdSubmitter* pCmdSubmitter              = nullptr;
 		bool active = false;
-
-		VkCommandPool command_pool = VK_NULL_HANDLE;
-		VkCommandBuffer staging_command = VK_NULL_HANDLE;
 
 		std::vector<BufferData> buffers = {};
 	};

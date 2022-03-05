@@ -12,8 +12,9 @@ namespace Vk
 	{
 		switch (type)
 		{
-		case BufferType::eIndex:  return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		case BufferType::eVertex: return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		case BufferType::eIndex:   return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		case BufferType::eVertex:  return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		case BufferType::eTexture: return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		default: return {};
 		}
 	}
@@ -24,6 +25,7 @@ namespace Vk
 		{
 		case BufferMemoryType::eGpuStatic:  return VMA_MEMORY_USAGE_GPU_ONLY;
 		case BufferMemoryType::eGpuDynamic: return VMA_MEMORY_USAGE_CPU_TO_GPU;
+		case BufferMemoryType::eCpuAny:     return VMA_MEMORY_USAGE_CPU_ONLY;
 		default: return {};
 		}
 	}
@@ -70,45 +72,13 @@ namespace Vk
 	void BufferManager::create(BufferManagerCreateInfo&& createInfo)
 	{
 		assert(createInfo.pDevice != nullptr);
-		assert(createInfo.pSurface != nullptr);
+        assert(createInfo.pCmdSubmitter != nullptr);
 		assert(createInfo.pMemoryAllocator != nullptr);
 		assert(not active);
 
 		pDevice = createInfo.pDevice;
+        pCmdSubmitter = createInfo.pCmdSubmitter;
 		pMemoryAllocator = createInfo.pMemoryAllocator;
-
-		auto& queue_indices = QueueFamilyIndices::query(GetRenderingDevice(), createInfo.pSurface->handle());
-		assert(queue_indices.is_complete());
-
-		VkCommandPoolCreateInfo pool_create_info =
-		{
-			.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-			.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			.queueFamilyIndex = queue_indices.graphics.value()
-		};
-
-		VkResult result;
-		result = vkCreateCommandPool(pDevice->handle(), &pool_create_info, nullptr, &command_pool);
-		if (result != VK_SUCCESS)
-		{
-			CDebug::Error("Vulkan Renderer | Buffer manager creation failed (vkCreateCommandPool didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-BufferManager-CreationFail");
-		}
-
-		VkCommandBufferAllocateInfo command_buffer_allocate_info =
-		{
-			.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			.commandPool        = command_pool,
-			.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			.commandBufferCount = 1,
-		};
-
-		result = vkAllocateCommandBuffers(pDevice->handle(), &command_buffer_allocate_info, &staging_command);
-		if (result != VK_SUCCESS)
-		{
-			CDebug::Error("Vulkan Renderer | Buffer manager creation failed (vkAllocateCommandBuffers didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-BufferManager-CreationFail");
-		}
 
 		active = true;
 
@@ -119,15 +89,11 @@ namespace Vk
 	{
 		assert(active == true);
 		
-		vkFreeCommandBuffers(pDevice->handle(), command_pool, 1, &staging_command);
-		vkDestroyCommandPool(pDevice->handle(), command_pool, nullptr);
-		
 		// TODO: Destroy all buffers
 		
 		pDevice = nullptr;
+        pCmdSubmitter = nullptr;
 		pMemoryAllocator = nullptr;
-		command_pool = VK_NULL_HANDLE;
-		staging_command = VK_NULL_HANDLE;
 		buffers.clear();
 
 		active = false;
@@ -165,6 +131,13 @@ namespace Vk
 		{
 			upload_to_gpu_buffer(createInfo.pData, createInfo.dataSize, new_buffer.handle);
 		}
+        else if (createInfo.memoryType == BufferMemoryType::eCpuAny)
+        {
+            void* mapped_buf = nullptr;
+            vmaMapMemory(pMemoryAllocator->handle(), new_buffer.memory, &mapped_buf);
+            memcpy(mapped_buf, createInfo.pData, createInfo.dataSize);
+            vmaUnmapMemory(pMemoryAllocator->handle(), new_buffer.memory);
+        }
 		else
 		{
 			throw std::runtime_error("Not-Implemented");
@@ -196,22 +169,6 @@ namespace Vk
 		memcpy(mapped_buf, pData, dataSize);
 		vmaUnmapMemory(pMemoryAllocator->handle(), staging_memory);
 
-		VkCommandBufferBeginInfo command_buffer_begin_info =
-		{
-			.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			.pNext            = nullptr, 
-			.flags            = 0,
-			.pInheritanceInfo = nullptr
-		};
-
-		VkResult result;
-		result = vkBeginCommandBuffer(staging_command, &command_buffer_begin_info);
-		if (result != VK_SUCCESS)
-		{
-			CDebug::Error("Vulkan Renderer | GPU upload of buffer failed (vkBeginCommandBuffer didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-BufferManager-UploadFail");
-		}
-
 		VkBufferCopy buffer_copy_region =
 		{
 			.srcOffset = 0,
@@ -219,26 +176,14 @@ namespace Vk
 			.size      = dataSize
 		};
 
-		vkCmdCopyBuffer(staging_command, staging_buffer, dst, 1, &buffer_copy_region);
-		
-		result = vkEndCommandBuffer(staging_command);
-		if (result != VK_SUCCESS)
-		{
-			CDebug::Error("Vulkan Renderer | GPU upload of buffer failed (vkEndCommandBuffer didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-BufferManager-UploadFail");
-		}
+        std::promise<bool> cmd_sent = {};
+        std::future<bool> cmd_exec = cmd_sent.get_future();
+        pCmdSubmitter->submit([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
+        {
+            vkCmdCopyBuffer(buffer, staging_buffer, dst, 1, &buffer_copy_region);
+        }, cmd_sent);
 
-		VkSubmitInfo submit_info =
-		{
-			.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			.commandBufferCount = 1,
-			.pCommandBuffers    = &staging_command
-		};
-
-		vkQueueSubmit(pDevice->graphics_queue(), 1, &submit_info, VK_NULL_HANDLE);
-		vkQueueWaitIdle(pDevice->graphics_queue());
-
-		vkResetCommandBuffer(staging_command, 0);
+        cmd_exec.wait();
 
 		vmaDestroyBuffer(pMemoryAllocator->handle(), staging_buffer, staging_memory);
 	}
