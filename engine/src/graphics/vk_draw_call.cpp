@@ -10,29 +10,25 @@ namespace Vk
 	void RenderCallManager::create(RenderCallManagerCreateInfo&& createInfo)
 	{
 		assert(not active);
-		assert(createInfo.pDevice != nullptr);
 		assert(createInfo.pSurface != nullptr);
 		assert(createInfo.pSwapchain != nullptr);
 		assert(createInfo.pSyncObjects != nullptr);
 		assert(createInfo.pObjectManager != nullptr);
 
-		pDevice = createInfo.pDevice;
 		pSurface = createInfo.pSurface;
 		pSwapchain = createInfo.pSwapchain;
 		pSyncObjects = createInfo.pSyncObjects;
 		pObjectManager = createInfo.pObjectManager;
 
-		auto& queue_indices = QueueFamilyIndices::query(GetRenderingDevice(), pSurface->handle());
-
 		VkCommandPoolCreateInfo pool_create_info =
 		{
 			.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 			.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			.queueFamilyIndex = queue_indices.graphics.value()
+			.queueFamilyIndex = GetQueueIndices().graphics
 		};
 
 		VkResult result;
-		result = vkCreateCommandPool(pDevice->handle(), &pool_create_info, nullptr, &cmd_pool);
+		result = vkCreateCommandPool(GetDevice().handle, &pool_create_info, nullptr, &cmd_pool);
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | Render call manager creation fail (vkCreateCommandPool didn't return VK_SUCCESS).");
@@ -49,7 +45,7 @@ namespace Vk
 			.commandBufferCount = static_cast<uint32_t>(cmd_buffers.size())
 		};
 
-		result = vkAllocateCommandBuffers(pDevice->handle(), &buffer_allocate_info, cmd_buffers.data());
+		result = vkAllocateCommandBuffers(GetDevice().handle, &buffer_allocate_info, cmd_buffers.data());
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | Render call manager creation fail (vkAllocateCommandBuffers didn't return VK_SUCCESS).");
@@ -65,10 +61,9 @@ namespace Vk
 	{
 		assert(active == true);
 
-		vkFreeCommandBuffers(pDevice->handle(), cmd_pool, static_cast<uint32_t>(cmd_buffers.size()), cmd_buffers.data());
-		vkDestroyCommandPool(pDevice->handle(), cmd_pool, nullptr);
+		vkFreeCommandBuffers(GetDevice().handle, cmd_pool, static_cast<uint32_t>(cmd_buffers.size()), cmd_buffers.data());
+		vkDestroyCommandPool(GetDevice().handle, cmd_pool, nullptr);
 
-		pDevice = nullptr;
 		pSurface = nullptr;
 		pSwapchain = nullptr;
 		pSyncObjects = nullptr;
@@ -188,10 +183,10 @@ namespace Vk
 			.pSignalSemaphores    = signal_semaphores
 		};
 
-		vkResetFences(pDevice->handle(), 1, &pSyncObjects->in_flight_fence(current_frame));
+		vkResetFences(GetDevice().handle, 1, &pSyncObjects->in_flight_fence(current_frame));
 
 		VkResult result;
-		result = vkQueueSubmit(pDevice->graphics_queue(), 1, &submit_info, pSyncObjects->in_flight_fence(current_frame));
+		result = vkQueueSubmit(GetDevice().graphics, 1, &submit_info, pSyncObjects->in_flight_fence(current_frame));
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | Failed to render a frame (vkQueueSubmit didn't return VK_SUCCESS).");
@@ -214,7 +209,7 @@ namespace Vk
 			.pResults           = nullptr
 		};
 
-		vkQueuePresentKHR(pDevice->present_queue(), &present_info);
+		vkQueuePresentKHR(GetDevice().present, &present_info);
 
 		current_frame = (current_frame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
 	}

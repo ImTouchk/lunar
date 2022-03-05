@@ -1,3 +1,5 @@
+#define VK_USE_PLATFORM_WIN32_KHR
+
 #include "utils/range.hpp"
 #include "utils/debug.hpp"
 #include "vk_renderer.hpp"
@@ -8,40 +10,41 @@
 
 namespace Vk
 {
-    const QueueFamilyIndices& QueueFamilyIndices::query(VkPhysicalDevice device, VkSurfaceKHR surface)
+    QueueIndices GetPhysicalDeviceQueues(VkPhysicalDevice device)
     {
         static VkPhysicalDevice cached_device = VK_NULL_HANDLE;
-        static QueueFamilyIndices cached_value = {};
+        static QueueIndices cached_value      = { 0, 0 };
 
         if(cached_device == device)
         {
             return cached_value;
         }
 
+        cached_value  = { UINT_MAX, UINT_MAX };
         cached_device = device;
-        cached_value = {};
 
-        unsigned family_count;
+        uint32_t family_count = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, nullptr);
 
         auto families = std::vector<VkQueueFamilyProperties>(family_count);
         vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, families.data());
 
-        for(auto i : range(0, family_count))
+        for(auto i : range(0, family_count - 1))
         {
             VkBool32 can_present = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &can_present);
-
+            can_present = vkGetPhysicalDeviceWin32PresentationSupportKHR(device, i);
             if(can_present)
             {
                 cached_value.present = i;
             }
-
             if(families.at(i).queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            {
                 cached_value.graphics = i;
-
-            if(cached_value.is_complete())
+            }
+            if(cached_value.complete())
+            {
                 break;
+            }
         }
 
         return cached_value;
@@ -129,6 +132,12 @@ namespace Vk
     unsigned GetDeviceScore(VkPhysicalDevice device)
     {
         if(!DeviceHasRequiredExtensions(device))
+        {
+            return 0;
+        }
+
+        auto device_queues = GetPhysicalDeviceQueues(device);
+        if(!device_queues.complete())
         {
             return 0;
         }

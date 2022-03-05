@@ -15,7 +15,7 @@ namespace Vk
 {
     std::mutex SHADERS_VECTOR_MUTEX = {};
 
-    VkShaderModule CreateModule(LogicalDeviceWrapper& device, const std::vector<char>& code)
+    VkShaderModule CreateModule(const std::vector<char>& code)
     {
         VkShaderModuleCreateInfo module_create_info =
         {
@@ -26,7 +26,7 @@ namespace Vk
 
         VkResult result;
         VkShaderModule module = VK_NULL_HANDLE;
-        result = vkCreateShaderModule(device.handle(), &module_create_info, nullptr, &module);
+        result = vkCreateShaderModule(GetDevice().handle, &module_create_info, nullptr, &module);
         if (result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Failed to create a shader module (vkCreateShaderModule didn't return VK_SUCCESS).");
@@ -37,9 +37,8 @@ namespace Vk
         return module;
     }
 
-    void ShaderManager::create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain)
+    void ShaderManager::create(SwapchainWrapper& swapchain)
     {
-        pDevice = &device;
         pSwapchain = &swapchain;
 
         VkPushConstantRange push_constant =
@@ -59,7 +58,7 @@ namespace Vk
         };
 
         VkResult result;
-        result = vkCreatePipelineLayout(pDevice->handle(), &pipeline_layout_create_info, nullptr, &graphicsLayout);
+        result = vkCreatePipelineLayout(GetDevice().handle, &pipeline_layout_create_info, nullptr, &graphicsLayout);
 
         if (result != VK_SUCCESS)
         {
@@ -74,10 +73,10 @@ namespace Vk
     {
         for(auto& shader : shaders)
         {
-            vkDestroyPipeline(pDevice->handle(), shader.handle, nullptr);
+            vkDestroyPipeline(GetDevice().handle, shader.handle, nullptr);
         }
 
-        vkDestroyPipelineLayout(pDevice->handle(), graphicsLayout, nullptr);
+        vkDestroyPipelineLayout(GetDevice().handle, graphicsLayout, nullptr);
 
         CDebug::Log("Vulkan Renderer | Shader manager destroyed.");
     }
@@ -253,8 +252,8 @@ namespace Vk
         {
             auto& create_info = pCreateInfos[i];
 
-            auto vertex_module = Vk::CreateModule(*pDevice, create_info.vertexCode);
-            auto fragment_module = Vk::CreateModule(*pDevice, create_info.fragmentCode);
+            auto vertex_module = Vk::CreateModule(create_info.vertexCode);
+            auto fragment_module = Vk::CreateModule(create_info.fragmentCode);
 
             if (vertex_module == VK_NULL_HANDLE || fragment_module == VK_NULL_HANDLE)
             {
@@ -307,7 +306,7 @@ namespace Vk
             shaders_to_compile++;
         }
 
-        vkCreateGraphicsPipelines(pDevice->handle(), nullptr, shaders_to_compile, pipeline_create_infos.get(), nullptr, result_pipelines.get());
+        vkCreateGraphicsPipelines(GetDevice().handle, nullptr, shaders_to_compile, pipeline_create_infos.get(), nullptr, result_pipelines.get());
 
         auto start_index = shaders.size();
         auto final_handles = std::vector<unsigned>();
@@ -334,8 +333,8 @@ namespace Vk
 
         for (auto i : range(0, shaders_to_compile - 1))
         {
-            vkDestroyShaderModule(pDevice->handle(), pipeline_stage_create_infos[i].modules[0], nullptr);
-            vkDestroyShaderModule(pDevice->handle(), pipeline_stage_create_infos[i].modules[1], nullptr);
+            vkDestroyShaderModule(GetDevice().handle, pipeline_stage_create_infos[i].modules[0], nullptr);
+            vkDestroyShaderModule(GetDevice().handle, pipeline_stage_create_infos[i].modules[1], nullptr);
         }
 
         return final_handles;

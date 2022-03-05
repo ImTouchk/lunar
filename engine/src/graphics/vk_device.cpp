@@ -10,28 +10,29 @@
 
 namespace Vk
 {
-    void LogicalDeviceWrapper::create(SurfaceWrapper& surface)
+    LogicalDeviceWrapperV2 LOGICAL_DEVICE = {};
+    bool LOGICAL_DEVICE_CREATED = false;
+
+    void CreateLogicalDevice()
     {
-        assert(device == VK_NULL_HANDLE);
+        const auto physical_device      = GetRenderingDevice();
+        const auto queue_indices        = GetPhysicalDeviceQueues(physical_device);
+        const auto device_layers        = GetDebugLayers();
+        const auto optional_device_exts = GetAvailableOptionalExtensions(physical_device);
 
-        const auto physical_device = GetRenderingDevice();
-        const auto queue_families = QueueFamilyIndices::query(physical_device, surface.handle());
-        const auto device_layers = GetDebugLayers();
         auto device_extensions = GetRequiredDeviceExtensions();
-
-        const auto optional_extensions = GetAvailableOptionalExtensions(physical_device);
         device_extensions.insert
         (
             std::end(device_extensions),
-            std::begin(optional_extensions),
-            std::end(optional_extensions)
+            std::begin(optional_device_exts),
+            std::end  (optional_device_exts)
         );
 
         std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
         std::set<unsigned> unique_families =
         {
-            static_cast<unsigned>(queue_families.graphics.value()),
-            static_cast<unsigned>(queue_families.present.value())
+            static_cast<unsigned>(queue_indices.present),
+            static_cast<unsigned>(queue_indices.graphics)
         };
 
         const float queue_priority = 1.f;
@@ -63,44 +64,32 @@ namespace Vk
         };
 
         VkResult result;
-        result = vkCreateDevice(physical_device, &device_create_info, nullptr, &device);
+        result = vkCreateDevice(physical_device, &device_create_info, nullptr, &LOGICAL_DEVICE.handle);
         if(result != VK_SUCCESS)
         {
-            CDebug::Error("Vulkan Renderer | Failed to create a logical device (vkCreateDevice did not return VK_SUCCESS).");
+            CDebug::Error("Vulkan Renderer | Logical device creation fail.");
             throw std::runtime_error("Renderer-Vulkan-LogicalDevice-CreationFail");
         }
 
-        vkGetDeviceQueue(device, queue_families.present.value(), 0, &presentQueue);
-        vkGetDeviceQueue(device, queue_families.graphics.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(LOGICAL_DEVICE.handle, queue_indices.present, 0, &LOGICAL_DEVICE.present);
+        vkGetDeviceQueue(LOGICAL_DEVICE.handle, queue_indices.graphics, 0, &LOGICAL_DEVICE.graphics);
         CDebug::Log("Vulkan Renderer | Logical device created.");
+
+        LOGICAL_DEVICE_CREATED = true;
     }
 
-    void LogicalDeviceWrapper::destroy()
+    const LogicalDeviceWrapperV2& GetDevice()
     {
-        assert(device != VK_NULL_HANDLE);
-        vkDestroyDevice(device, nullptr);
-        graphicsQueue = VK_NULL_HANDLE;
-        presentQueue = VK_NULL_HANDLE;
-        device = VK_NULL_HANDLE;
+        if(!LOGICAL_DEVICE_CREATED)
+        {
+            CreateLogicalDevice();
+        }
 
-        CDebug::Log("Vulkan Renderer | Logical device destroyed.");
+        return LOGICAL_DEVICE;
     }
 
-    VkDevice LogicalDeviceWrapper::handle() const
+    QueueIndices GetQueueIndices()
     {
-        assert(device != VK_NULL_HANDLE);
-        return device;
-    }
-
-    VkQueue LogicalDeviceWrapper::graphics_queue() const
-    {
-        assert(graphicsQueue != VK_NULL_HANDLE);
-        return graphicsQueue;
-    }
-
-    VkQueue LogicalDeviceWrapper::present_queue() const
-    {
-        assert(presentQueue != VK_NULL_HANDLE);
-        return presentQueue;
+        return GetPhysicalDeviceQueues(GetRenderingDevice());
     }
 }

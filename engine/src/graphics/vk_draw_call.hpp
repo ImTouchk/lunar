@@ -1,18 +1,12 @@
 #pragma once
+#include "vk_forward_decl.hpp"
 #include <vulkan/vulkan.h>
 #include <vector>
 
 namespace Vk
 {
-	class ObjectManager;
-	struct LogicalDeviceWrapper;
-	struct SwapchainWrapper;
-	struct SurfaceWrapper;
-	class SyncObjectsWrapper;
-
 	struct RenderCallManagerCreateInfo
 	{
-		LogicalDeviceWrapper* pDevice;
 		SurfaceWrapper* pSurface;
 		SwapchainWrapper* pSwapchain;
 		ObjectManager* pObjectManager;
@@ -34,7 +28,6 @@ namespace Vk
 		size_t current_image() const;
 
 	private:
-		LogicalDeviceWrapper* pDevice    = nullptr;
 		SwapchainWrapper* pSwapchain     = nullptr;
 		SurfaceWrapper* pSurface         = nullptr;
 		ObjectManager* pObjectManager    = nullptr;

@@ -3,13 +3,14 @@
 namespace Vk
 {
     struct SurfaceWrapper;
-    struct LogicalDeviceWrapper;
     struct MemoryAllocatorWrapper;
     struct SwapchainWrapper;
     struct CommandQueueWrapper;
     struct SyncObjectsWrapper;
 
     struct ShaderManager;
+    class ObjectManager;
     class BufferManager;
     class CmdSubmitter;
+    class RenderCallManager;
 }

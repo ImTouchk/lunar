@@ -1,5 +1,6 @@
 #pragma once
 #include "render/mesh.hpp"
+#include "vk_forward_decl.hpp"
 #include "vk_buffer.hpp"
 
 #include <vulkan/vulkan.h>
@@ -9,16 +10,8 @@
 
 namespace Vk
 {
-	struct LogicalDeviceWrapper;
-	struct MemoryAllocatorWrapper;
-	struct SwapchainWrapper;
-	struct SurfaceWrapper;
-	struct ShaderManager;
-	class BufferManager;
-
 	struct ObjectManagerCreateInfo
 	{
-		LogicalDeviceWrapper* pDevice;
 		MemoryAllocatorWrapper* pMemoryAllocator;
 		SwapchainWrapper* pSwapchain;
 		SurfaceWrapper* pSurface;
@@ -66,7 +59,6 @@ namespace Vk
 		void rebuild_cmd_buffers();
 
 	private:
-		LogicalDeviceWrapper* pDevice            = nullptr;
 		MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
 		SwapchainWrapper* pSwapchain             = nullptr;
 		SurfaceWrapper* pSurface                 = nullptr;

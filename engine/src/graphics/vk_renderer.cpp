@@ -12,12 +12,12 @@
 
 namespace Vk
 {
-    void MemoryAllocatorWrapper::create(LogicalDeviceWrapper& device)
+    void MemoryAllocatorWrapper::create()
     {
         VmaAllocatorCreateInfo allocator_create_info =
         {
             .physicalDevice   = GetRenderingDevice(),
-            .device           = device.handle(),
+            .device           = GetDevice().handle,
             .instance         = GetInstance(),
             .vulkanApiVersion = VK_API_VERSION_1_2
         };
@@ -52,7 +52,6 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
 
     auto& surface      = internal_data->surface;
-    auto& device       = internal_data->device;
     auto& swapchain    = internal_data->swapchain;
     auto& sync_objects = internal_data->syncObjects;
 
@@ -63,26 +62,19 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     auto& command_submitter   = internal_data->commandSubmitter;
     auto& render_call_manager = internal_data->renderCallManager;
 
-    surface.create(*window_handle);
-    device.create(surface);
-    memory_allocator.create(device);
-    command_submitter.create
-    (Vk::CmdSubmitterCreateInfo
-    {
-        .device        = device.handle(),
-        .graphicsQueue = device.graphics_queue(),
-        .queueIndex    = Vk::QueueFamilyIndices::query(Vk::GetRenderingDevice(), surface.handle())
-                                .graphics.value()
-    });
+    Vk::GetDevice();
 
-    swapchain.create(*window_handle, surface, device, memory_allocator);
-    sync_objects.create(device, swapchain);
-    shader_manager.create(device, swapchain);
+    surface.create(*window_handle);
+    memory_allocator.create();
+    command_submitter.create();
+
+    swapchain.create(*window_handle, surface, memory_allocator);
+    sync_objects.create(swapchain);
+    shader_manager.create(swapchain);
 
     buffer_manager.create
     (Vk::BufferManagerCreateInfo
     {
-        .pDevice          = &device,
         .pCmdSubmitter    = &command_submitter,
         .pMemoryAllocator = &memory_allocator
     });
@@ -90,7 +82,6 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     object_manager.create
     (Vk::ObjectManagerCreateInfo
     {
-        .pDevice          = &device,
         .pMemoryAllocator = &memory_allocator,
         .pSwapchain       = &swapchain,
         .pSurface         = &surface,
@@ -101,7 +92,6 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     render_call_manager.create
     (Vk::RenderCallManagerCreateInfo
     {
-        .pDevice        = &device,
         .pSurface       = &surface,
         .pSwapchain     = &swapchain,
         .pObjectManager = &object_manager,
@@ -131,7 +121,7 @@ void GameRenderer::destroy()
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
 
-    vkDeviceWaitIdle(internal_data->device.handle());
+    vkDeviceWaitIdle(Vk::GetDevice().handle);
 
     internal_data->renderCallManager.destroy();
     internal_data->objectManager.destroy();
@@ -142,7 +132,6 @@ void GameRenderer::destroy()
     internal_data->swapchain.destroy();
     internal_data->commandSubmitter.destroy();
     internal_data->memoryAllocator.destroy();
-    internal_data->device.destroy();
     internal_data->surface.destroy();
 }
 
@@ -154,24 +143,24 @@ void GameRenderer::draw()
     }
     
     auto* internal_data       = std::any_cast<Vk::RendererInternalData>(&backend_data);
-    auto& device              = internal_data->device;
     auto& render_call_manager = internal_data->renderCallManager;
     auto& object_manager      = internal_data->objectManager;
     auto& sync_objects        = internal_data->syncObjects;
     auto& swapchain           = internal_data->swapchain;
     auto current_frame        = render_call_manager.current_image();
+    const auto& device        = Vk::GetDevice();
 
-    vkWaitForFences(device.handle(), 1, &sync_objects.in_flight_fence(render_call_manager.current_image()), VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device.handle, 1, &sync_objects.in_flight_fence(render_call_manager.current_image()), VK_TRUE, UINT64_MAX);
 
     object_manager.update();
     render_call_manager.update();
 
     uint32_t image_index;
-    vkAcquireNextImageKHR(device.handle(), swapchain.handle(), UINT64_MAX, sync_objects.image_available(current_frame), VK_NULL_HANDLE, &image_index);
+    vkAcquireNextImageKHR(device.handle, swapchain.handle(), UINT64_MAX, sync_objects.image_available(current_frame), VK_NULL_HANDLE, &image_index);
 
     if (sync_objects.image_in_flight(image_index) != VK_NULL_HANDLE)
     {
-        vkWaitForFences(device.handle(), 1, &sync_objects.image_in_flight(image_index), VK_TRUE, UINT64_MAX);
+        vkWaitForFences(device.handle, 1, &sync_objects.image_in_flight(image_index), VK_TRUE, UINT64_MAX);
     }
 
     render_call_manager.draw(image_index);

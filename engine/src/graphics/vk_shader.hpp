@@ -27,7 +27,7 @@ namespace Vk
         ShaderManager() = default;
         ~ShaderManager() = default;
 
-        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain);
+        void create(SwapchainWrapper& swapchain);
         void destroy();
 
         std::vector<Shader> create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
@@ -40,8 +40,8 @@ namespace Vk
         static std::vector<VkVertexInputAttributeDescription> get_vertex_attribute_desc();
     private:
         SwapchainWrapper* pSwapchain = nullptr;
-        LogicalDeviceWrapper* pDevice = nullptr;
-        std::vector<ShaderData> shaders;
+
+        std::vector<ShaderData> shaders = {};
         VkPipelineLayout graphicsLayout = VK_NULL_HANDLE;
     };
 }

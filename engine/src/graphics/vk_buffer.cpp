@@ -71,12 +71,10 @@ namespace Vk
 
 	void BufferManager::create(BufferManagerCreateInfo&& createInfo)
 	{
-		assert(createInfo.pDevice != nullptr);
         assert(createInfo.pCmdSubmitter != nullptr);
 		assert(createInfo.pMemoryAllocator != nullptr);
 		assert(not active);
 
-		pDevice = createInfo.pDevice;
         pCmdSubmitter = createInfo.pCmdSubmitter;
 		pMemoryAllocator = createInfo.pMemoryAllocator;
 
@@ -90,8 +88,7 @@ namespace Vk
 		assert(active == true);
 		
 		// TODO: Destroy all buffers
-		
-		pDevice = nullptr;
+
         pCmdSubmitter = nullptr;
 		pMemoryAllocator = nullptr;
 		buffers.clear();

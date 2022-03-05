@@ -12,31 +12,29 @@ namespace Vk
 	void ObjectManager::create(ObjectManagerCreateInfo&& createInfo)
 	{
 		assert(not active);
-		assert(createInfo.pDevice != nullptr);
 		assert(createInfo.pSurface != nullptr);
 		assert(createInfo.pSwapchain != nullptr);
 		assert(createInfo.pShaderManager != nullptr);
 		assert(createInfo.pBufferManager != nullptr);
 		assert(createInfo.pMemoryAllocator != nullptr);
 
-		pDevice = createInfo.pDevice;
 		pSurface = createInfo.pSurface;
 		pSwapchain = createInfo.pSwapchain;
 		pShaderManager = createInfo.pShaderManager;
 		pBufferManager = createInfo.pBufferManager;
 		pMemoryAllocator = createInfo.pMemoryAllocator;
 
-		auto& queue_indices = QueueFamilyIndices::query(GetRenderingDevice(), pSurface->handle());
+		auto queue_indices = GetQueueIndices();
 
 		VkCommandPoolCreateInfo pool_create_info =
 		{
 			.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 			.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			.queueFamilyIndex = queue_indices.graphics.value()
+			.queueFamilyIndex = queue_indices.graphics
 		};
 
 		VkResult result;
-		result = vkCreateCommandPool(pDevice->handle(), &pool_create_info, nullptr, &command_pool);
+		result = vkCreateCommandPool(GetDevice().handle, &pool_create_info, nullptr, &command_pool);
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | Object manager creation failed (vkCreateCommandPool didn't return VK_SUCCESS).");
@@ -58,7 +56,7 @@ namespace Vk
 			mesh.vertexBuffer.destroy();
 		}
 
-		vkDestroyCommandPool(pDevice->handle(), command_pool, nullptr);
+		vkDestroyCommandPool(GetDevice().handle, command_pool, nullptr);
 
 		meshes.clear();
 
@@ -66,7 +64,6 @@ namespace Vk
 		viewport = {};
 		active   = false;
 
-		pDevice          = nullptr;
 		pSurface         = nullptr;
 		pSwapchain       = nullptr;
 		pShaderManager   = nullptr;
@@ -179,7 +176,7 @@ namespace Vk
 		};
 
 		VkResult result;
-		result = vkAllocateCommandBuffers(pDevice->handle(), &buffer_allocate_info, pBuffer);
+		result = vkAllocateCommandBuffers(GetDevice().handle, &buffer_allocate_info, pBuffer);
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | Failed to update object manager (vkAllocateCommandBuffers didn't return VK_SUCCESS).");

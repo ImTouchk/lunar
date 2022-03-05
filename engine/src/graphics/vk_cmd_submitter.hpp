@@ -5,13 +5,6 @@
 
 namespace Vk
 {
-    struct CmdSubmitterCreateInfo
-    {
-        VkDevice device;
-        VkQueue graphicsQueue;
-        unsigned queueIndex;
-    };
-
     // Function that registers commands to provided buffer
     using CmdFn = std::function<void(VkCommandBuffer)>;
 
@@ -22,7 +15,7 @@ namespace Vk
         CmdSubmitter() = default;
         ~CmdSubmitter() = default;
 
-        void create(CmdSubmitterCreateInfo&& createInfo);
+        void create();
         void destroy();
 
         void submit(CmdFn&& commands, std::promise<bool>& finished);

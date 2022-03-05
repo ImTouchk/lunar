@@ -1,6 +1,7 @@
 #include "utils/debug.hpp"
 #include "utils/thread_pool.hpp"
 #include "vk_cmd_submitter.hpp"
+#include "vk_renderer.hpp"
 
 #include <vulkan/vulkan.h>
 #include <condition_variable>
@@ -16,16 +17,14 @@ namespace Vk
     bool SUBMITTER_STOP = false;
     bool SUBMITTER_FINISHED = false;
 
-    void CmdSubmitter::create(CmdSubmitterCreateInfo&& createInfo)
+    void CmdSubmitter::create()
     {
-        CThreadPool::DoTask([createInfo]
+        CThreadPool::DoTask([]
         {
             std::function<void(VkCommandPool)> task = nullptr;
 
-            VkDevice device = createInfo.device;
-            VkQueue graphics_queue = createInfo.graphicsQueue;
-            unsigned queue_index = createInfo.queueIndex;
-
+            auto device = GetDevice();
+            auto queue_index = GetQueueIndices().graphics;
 
             VkCommandPool thread_pool = VK_NULL_HANDLE;
             VkCommandBuffer thread_buffer = VK_NULL_HANDLE;
@@ -38,7 +37,7 @@ namespace Vk
             };
 
             VkResult result;
-            result = vkCreateCommandPool(device, &pool_create_info, nullptr, &thread_pool);
+            result = vkCreateCommandPool(device.handle, &pool_create_info, nullptr, &thread_pool);
             if(result != VK_SUCCESS)
             {
                 throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-CreationFail");
@@ -52,7 +51,7 @@ namespace Vk
                 .commandBufferCount = 1,
             };
 
-            result = vkAllocateCommandBuffers(device, &command_buffer_allocate_info, &thread_buffer);
+            result = vkAllocateCommandBuffers(device.handle, &command_buffer_allocate_info, &thread_buffer);
             if (result != VK_SUCCESS)
             {
                 throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-CreationFail");
@@ -101,8 +100,8 @@ namespace Vk
                     .pCommandBuffers    = &thread_buffer
                 };
 
-                vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
-                vkQueueWaitIdle(graphics_queue);
+                vkQueueSubmit(device.graphics, 1, &submit_info, VK_NULL_HANDLE);
+                vkQueueWaitIdle(device.graphics);
 
                 vkResetCommandBuffer(thread_buffer, 0);
 
@@ -114,8 +113,8 @@ namespace Vk
                 SUBMITTER_COMMANDS.clear();
             }
 
-            vkFreeCommandBuffers(device, thread_pool, 1, &thread_buffer);
-            vkDestroyCommandPool(device, thread_pool, nullptr);
+            vkFreeCommandBuffers(device.handle, thread_pool, 1, &thread_buffer);
+            vkDestroyCommandPool(device.handle, thread_pool, nullptr);
             SUBMITTER_FINISHED = true;
         });
     }
@@ -130,7 +129,7 @@ namespace Vk
 
     void CmdSubmitter::submit(CmdFn&& commands, std::promise<bool>& finished)
     {
-        SUBMITTER_COMMANDS.push_back({ commands, std::move(finished) });
+        SUBMITTER_COMMANDS.emplace_back( commands, std::move(finished) );
         SUBMITTER_CONDITION.notify_all();
     }
 }

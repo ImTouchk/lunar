@@ -164,11 +164,10 @@ namespace Vk
         return surfaceFormat;
     }
 
-    void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device, MemoryAllocatorWrapper& memoryAllocator)
+    void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface, MemoryAllocatorWrapper& memoryAllocator)
     {
         assert(swapchain == VK_NULL_HANDLE);
 
-        pDevice = &device;
         pMemoryAllocator = &memoryAllocator;
 
         width = window.get_width();
@@ -190,7 +189,7 @@ namespace Vk
     {
         assert(swapchain != VK_NULL_HANDLE);
 
-        auto device = pDevice->handle();
+        auto device = GetDevice().handle;
         vkDeviceWaitIdle(device);
 
         vkDestroyImageView(device, depthBuffer.view, nullptr);
@@ -221,7 +220,7 @@ namespace Vk
     void SwapchainWrapper::resize(GameWindow& window, SurfaceWrapper& surface)
     {
         // resize optimization: render pass does not need to get recreated
-        auto device = pDevice->handle();
+        auto device = GetDevice().handle;
         vkDeviceWaitIdle(device);
 
         vkDestroyImageView(device, depthBuffer.view, nullptr);
@@ -246,7 +245,7 @@ namespace Vk
         surfaceFormat = {};
         surfaceExtent = {};
         
-        create(window, surface, *pDevice, *pMemoryAllocator);
+        create(window, surface, *pMemoryAllocator);
     }
 
     void SwapchainWrapper::create_swapchain(GameWindow& window, SurfaceWrapper& surface)
@@ -283,28 +282,23 @@ namespace Vk
             .oldSwapchain     = VK_NULL_HANDLE
         };
 
-        const auto& queue_families = QueueFamilyIndices::query(render_device, surface.handle());
-        const unsigned queue_indices[] =
-        {
-            queue_families.graphics.value(),
-            queue_families.present.value()
-        };
+        const auto queue_indices = GetQueueIndices();
 
-        if(queue_families.graphics.value() != queue_families.present.value())
+        if(queue_indices.graphics != queue_indices.present)
         {
-            swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            swapchain_create_info.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
             swapchain_create_info.queueFamilyIndexCount = 2;
-            swapchain_create_info.pQueueFamilyIndices = queue_indices;
+            swapchain_create_info.pQueueFamilyIndices   = reinterpret_cast<const uint32_t*>(&queue_indices);
         }
         else
         {
-            swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            swapchain_create_info.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
             swapchain_create_info.queueFamilyIndexCount = 1;
-            swapchain_create_info.pQueueFamilyIndices = nullptr;
+            swapchain_create_info.pQueueFamilyIndices   = nullptr;
         }
 
         VkResult result;
-        result = vkCreateSwapchainKHR(pDevice->handle(), &swapchain_create_info, nullptr, &swapchain);
+        result = vkCreateSwapchainKHR(GetDevice().handle, &swapchain_create_info, nullptr, &swapchain);
         if(result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkCreateSwapchainKHR did not return VK_SUCCESS).");
@@ -339,14 +333,14 @@ namespace Vk
         unsigned image_count = images.size();
 
         VkResult result;
-        result = vkGetSwapchainImagesKHR(pDevice->handle(), swapchain, &image_count, nullptr);
+        result = vkGetSwapchainImagesKHR(GetDevice().handle, swapchain, &image_count, nullptr);
         if(result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkGetSwapchainImagesKHR did not return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-Swapchain-CreationFailed");
         }
 
-        vkGetSwapchainImagesKHR(pDevice->handle(), swapchain, &image_count, images.data());
+        vkGetSwapchainImagesKHR(GetDevice().handle, swapchain, &image_count, images.data());
 
         for(auto i : range(0, image_count - 1))
         {
@@ -372,7 +366,7 @@ namespace Vk
                 }
             };
 
-            result = vkCreateImageView(pDevice->handle(), &view_create_info, nullptr, &views[i]);
+            result = vkCreateImageView(GetDevice().handle, &view_create_info, nullptr, &views[i]);
             if(result != VK_SUCCESS)
             {
                 CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkCreateImageView did not return VK_SUCCESS).");
@@ -455,7 +449,7 @@ namespace Vk
         };
 
         VkResult result;
-        result = vkCreateRenderPass(pDevice->handle(), &render_pass_create_info, nullptr, &renderPass);
+        result = vkCreateRenderPass(GetDevice().handle, &render_pass_create_info, nullptr, &renderPass);
         if(result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkCreateRenderPass did not return VK_SUCCESS).");
@@ -485,7 +479,7 @@ namespace Vk
             };
 
             VkResult result;
-            result = vkCreateFramebuffer(pDevice->handle(), &framebuffer_create_info, nullptr, &frameBuffers[i]);
+            result = vkCreateFramebuffer(GetDevice().handle, &framebuffer_create_info, nullptr, &frameBuffers[i]);
             if (result != VK_SUCCESS)
             {
                 CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkCreateFramebuffer did not return VK_SUCCESS).");
@@ -553,7 +547,7 @@ namespace Vk
             }
         };
 
-        result = vkCreateImageView(pDevice->handle(), &view_create_info, nullptr, &depthBuffer.view);
+        result = vkCreateImageView(GetDevice().handle, &view_create_info, nullptr, &depthBuffer.view);
         if(result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Swapchain creation fail (vkCreateImageView didn't return VK_SUCCESS for the depth buffer image).");

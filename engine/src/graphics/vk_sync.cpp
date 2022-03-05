@@ -6,9 +6,8 @@
 
 namespace Vk
 {
-    void SyncObjectsWrapper::create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain)
+    void SyncObjectsWrapper::create(SwapchainWrapper& swapchain)
     {
-        pDevice = &device;
         imagesInFlight = std::vector<VkFence>(swapchain.image_views().size());
 
         VkSemaphoreCreateInfo semaphore_create_info =
@@ -28,9 +27,9 @@ namespace Vk
             VkResult result_b;
             VkResult result_c;
 
-            result_a = vkCreateSemaphore(pDevice->handle(), &semaphore_create_info, nullptr, &imageAvailableSemaphores[i]);
-            result_b = vkCreateSemaphore(pDevice->handle(), &semaphore_create_info, nullptr, &renderingFinishedSemaphore[i]);
-            result_c = vkCreateFence(pDevice->handle(), &fence_create_info, nullptr, &inFlightFences[i]);
+            result_a = vkCreateSemaphore(GetDevice().handle, &semaphore_create_info, nullptr, &imageAvailableSemaphores[i]);
+            result_b = vkCreateSemaphore(GetDevice().handle, &semaphore_create_info, nullptr, &renderingFinishedSemaphore[i]);
+            result_c = vkCreateFence(GetDevice().handle, &fence_create_info, nullptr, &inFlightFences[i]);
             imagesInFlight[i] = VK_NULL_HANDLE;
 
             if(result_a != VK_SUCCESS || result_b != VK_SUCCESS || result_c != VK_SUCCESS)
@@ -47,9 +46,9 @@ namespace Vk
     {
         for(auto i : range(0, MAX_FRAMES_IN_FLIGHT - 1))
         {
-            vkDestroySemaphore(pDevice->handle(), imageAvailableSemaphores[i], nullptr);
-            vkDestroySemaphore(pDevice->handle(), renderingFinishedSemaphore[i], nullptr);
-            vkDestroyFence(pDevice->handle(), inFlightFences[i], nullptr);
+            vkDestroySemaphore(GetDevice().handle, imageAvailableSemaphores[i], nullptr);
+            vkDestroySemaphore(GetDevice().handle, renderingFinishedSemaphore[i], nullptr);
+            vkDestroyFence(GetDevice().handle, inFlightFences[i], nullptr);
         }
     }
 

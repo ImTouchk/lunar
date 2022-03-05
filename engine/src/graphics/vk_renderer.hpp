@@ -9,10 +9,9 @@
 #include <any>
 
 #include "render/renderer.hpp"
-
 #include "vk_buffer.hpp"
-#include "vk_object.hpp"
 #include "vk_shader.hpp"
+#include "vk_object.hpp"
 #include "vk_draw_call.hpp"
 #include "vk_cmd_submitter.hpp"
 
@@ -31,19 +30,6 @@ namespace Vk
         static const SwapchainSupportDetails query(VkPhysicalDevice device, VkSurfaceKHR surface);
     };
 
-    struct QueueFamilyIndices
-    {
-        std::optional<unsigned> graphics;
-        std::optional<unsigned> present;
-
-        [[nodiscard]] bool is_complete() const
-        {
-            return graphics.has_value() && present.has_value();
-        }
-
-        static const QueueFamilyIndices& query(VkPhysicalDevice device, VkSurfaceKHR surface);
-    };
-
     struct SurfaceWrapper
     {
     public:
@@ -59,32 +45,13 @@ namespace Vk
         VkSurfaceKHR surface = VK_NULL_HANDLE;
     };
 
-    struct LogicalDeviceWrapper
-    {
-    public:
-        LogicalDeviceWrapper() = default;
-        ~LogicalDeviceWrapper() = default;
-
-        void create(SurfaceWrapper& surface);
-        void destroy();
-
-        [[nodiscard]] VkDevice handle() const;
-        [[nodiscard]] VkQueue present_queue() const;
-        [[nodiscard]] VkQueue graphics_queue() const;
-
-    private:
-        VkDevice device = VK_NULL_HANDLE;
-        VkQueue graphicsQueue = VK_NULL_HANDLE;
-        VkQueue presentQueue = VK_NULL_HANDLE;
-    };
-
     struct MemoryAllocatorWrapper
     {
     public:
         MemoryAllocatorWrapper() = default;
         ~MemoryAllocatorWrapper() = default;
 
-        void create(LogicalDeviceWrapper& device);
+        void create();
         void destroy();
 
         [[nodiscard]] VmaAllocator handle() const;
@@ -98,7 +65,7 @@ namespace Vk
         SwapchainWrapper() = default;
         ~SwapchainWrapper() = default;
 
-        void create(GameWindow& window, SurfaceWrapper& surface, LogicalDeviceWrapper& device, MemoryAllocatorWrapper& memoryAllocator);
+        void create(GameWindow& window, SurfaceWrapper& surface, MemoryAllocatorWrapper& memoryAllocator);
         void destroy();
 
         void resize(GameWindow& window, SurfaceWrapper& surface);
@@ -121,27 +88,26 @@ namespace Vk
         void create_framebuffers();
         void create_depth_buffer();
 
-        LogicalDeviceWrapper* pDevice = nullptr;
         MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
 
         struct
         {
             VmaAllocation allocation = VK_NULL_HANDLE;
-            VkImage image = VK_NULL_HANDLE;
-            VkImageView view = VK_NULL_HANDLE;
-            VkFormat format = {};
+            VkImage image            = VK_NULL_HANDLE;
+            VkImageView view         = VK_NULL_HANDLE;
+            VkFormat format          = {};
         } depthBuffer = {};
 
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        VkFormat surfaceFormat = {};
+        VkRenderPass renderPass  = VK_NULL_HANDLE;
+        VkFormat surfaceFormat   = {};
         VkExtent2D surfaceExtent = {};
-        VkViewport viewport = {};
-        VkRect2D scissor = {};
-        std::vector<VkImage> images = {};
-        std::vector<VkImageView> views = {};
+        VkViewport viewport      = {};
+        VkRect2D scissor         = {};
+        std::vector<VkImage> images             = {};
+        std::vector<VkImageView> views          = {};
         std::vector<VkFramebuffer> frameBuffers = {};
-        int width = 0;
+        int width  = 0;
         int height = 0;
     };
 
@@ -151,7 +117,7 @@ namespace Vk
         CommandQueueWrapper() = default;
         ~CommandQueueWrapper() = default;
 
-        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain, SurfaceWrapper& surface, VkPipeline pipeline);
+        void create(SwapchainWrapper& swapchain, SurfaceWrapper& surface, VkPipeline pipeline);
         void destroy();
 
         [[nodiscard]] std::vector<VkCommandBuffer>& buffers();
@@ -159,7 +125,6 @@ namespace Vk
     private:
         SurfaceWrapper* pSurface = nullptr;
         SwapchainWrapper* pSwapchain = nullptr;
-        LogicalDeviceWrapper* pDevice = nullptr;
 
         VkCommandPool commandPool = VK_NULL_HANDLE;
         std::vector<VkCommandBuffer> commandBuffers = {};
@@ -171,7 +136,7 @@ namespace Vk
         SyncObjectsWrapper() = default;
         ~SyncObjectsWrapper() = default;
 
-        void create(LogicalDeviceWrapper& device, SwapchainWrapper& swapchain);
+        void create(SwapchainWrapper& swapchain);
         void destroy();
 
         [[nodiscard]] VkFence& image_in_flight(size_t i);
@@ -180,8 +145,6 @@ namespace Vk
         [[nodiscard]] VkSemaphore& rendering_finished(size_t i);
 
     private:
-        LogicalDeviceWrapper* pDevice = nullptr;
-
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores = {};
         std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderingFinishedSemaphore = {};
         std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences = {};
@@ -191,7 +154,6 @@ namespace Vk
     struct RendererInternalData
     {
         SurfaceWrapper surface;
-        LogicalDeviceWrapper device;
         MemoryAllocatorWrapper memoryAllocator;
         CmdSubmitter commandSubmitter;
         SwapchainWrapper swapchain;
@@ -204,7 +166,34 @@ namespace Vk
 
     VkInstance GetInstance();
     VkPhysicalDevice GetRenderingDevice();
+
+    using PresentIndex = unsigned;
+    using GraphicsIndex = unsigned;
+
+    struct LogicalDeviceWrapperV2
+    {
+        VkDevice handle  = VK_NULL_HANDLE;
+        VkQueue graphics = VK_NULL_HANDLE;
+        VkQueue present  = VK_NULL_HANDLE;
+    };
+
+    struct QueueIndices
+    {
+        unsigned present  = UINT_MAX;
+        unsigned graphics = UINT_MAX;
+
+        [[nodiscard]] inline bool complete() const
+        {
+            return present != UINT_MAX && graphics != UINT_MAX;
+        }
+    };
+
+    QueueIndices GetQueueIndices();
+    const LogicalDeviceWrapperV2& GetDevice();
+
     std::vector<const char*> GetRequiredDeviceExtensions();
     std::vector<const char*> GetAvailableOptionalExtensions(VkPhysicalDevice device);
+    QueueIndices GetPhysicalDeviceQueues(VkPhysicalDevice device);
+
     std::vector<const char*> GetDebugLayers();
 }
