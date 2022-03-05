@@ -65,7 +65,6 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
     target_compile_definitions("lunar" PRIVATE VULKAN_USE_DEBUG_LAYERS=1 VULKAN_RENDERER=1)
 
     target_sources("lunar" PRIVATE
-        "src/graphics/vk_gpu.cpp"
         "src/graphics/vk_sync.cpp"
         "src/graphics/vk_device.cpp"
         "src/graphics/vk_surface.cpp"
