@@ -45,7 +45,7 @@ namespace Vk
 	class ObjectManager
 	{
 	public:
-		friend class MeshWrapper;
+		friend class ::MeshWrapper;
 
 		ObjectManager() = default;
 		~ObjectManager() = default;
