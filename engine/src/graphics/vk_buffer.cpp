@@ -61,7 +61,7 @@ namespace Vk
 		};
 
 		VkResult result;
-		result = vmaCreateBuffer(pMemoryAllocator->handle(), &buffer_create_info, &allocation_create_info, &buffer, &allocation, nullptr);
+		result = vmaCreateBuffer(GetMemoryAllocator(), &buffer_create_info, &allocation_create_info, &buffer, &allocation, nullptr);
 		if (result != VK_SUCCESS)
 		{
 			CDebug::Error("Vulkan Renderer | Buffer creation fail (vmaCreateBuffer didn't return VK_SUCCESS).");
@@ -71,12 +71,10 @@ namespace Vk
 
 	void BufferManager::create(BufferManagerCreateInfo&& createInfo)
 	{
+        assert(not active);
         assert(createInfo.pCmdSubmitter != nullptr);
-		assert(createInfo.pMemoryAllocator != nullptr);
-		assert(not active);
 
         pCmdSubmitter = createInfo.pCmdSubmitter;
-		pMemoryAllocator = createInfo.pMemoryAllocator;
 
 		active = true;
 
@@ -87,10 +85,15 @@ namespace Vk
 	{
 		assert(active == true);
 		
-		// TODO: Destroy all buffers
+		// TODO: Improve this code
+
+		while (!buffers.empty())
+		{
+			vmaDestroyBuffer(GetMemoryAllocator(), buffers[0].handle, buffers[0].memory);
+			delete_element_with_identifier(buffers, buffers[0].identifier);
+		}
 
         pCmdSubmitter = nullptr;
-		pMemoryAllocator = nullptr;
 		buffers.clear();
 
 		active = false;
@@ -131,9 +134,9 @@ namespace Vk
         else if (createInfo.memoryType == BufferMemoryType::eCpuAny)
         {
             void* mapped_buf = nullptr;
-            vmaMapMemory(pMemoryAllocator->handle(), new_buffer.memory, &mapped_buf);
+            vmaMapMemory(GetMemoryAllocator(), new_buffer.memory, &mapped_buf);
             memcpy(mapped_buf, createInfo.pData, createInfo.dataSize);
-            vmaUnmapMemory(pMemoryAllocator->handle(), new_buffer.memory);
+            vmaUnmapMemory(GetMemoryAllocator(), new_buffer.memory);
         }
 		else
 		{
@@ -162,9 +165,9 @@ namespace Vk
 		);
 
 		void* mapped_buf = nullptr;
-		vmaMapMemory(pMemoryAllocator->handle(), staging_memory, &mapped_buf);
+		vmaMapMemory(GetMemoryAllocator(), staging_memory, &mapped_buf);
 		memcpy(mapped_buf, pData, dataSize);
-		vmaUnmapMemory(pMemoryAllocator->handle(), staging_memory);
+		vmaUnmapMemory(GetMemoryAllocator(), staging_memory);
 
 		VkBufferCopy buffer_copy_region =
 		{
@@ -182,7 +185,7 @@ namespace Vk
 
         cmd_exec.wait();
 
-		vmaDestroyBuffer(pMemoryAllocator->handle(), staging_buffer, staging_memory);
+		vmaDestroyBuffer(GetMemoryAllocator(), staging_buffer, staging_memory);
 	}
 
 	BufferWrapper::BufferWrapper(BufferManager& bufferManager, unsigned handle)
@@ -198,7 +201,7 @@ namespace Vk
 		
 		if (size > data.dataSize)
 		{
-			vmaDestroyBuffer(bufferManager.pMemoryAllocator->handle(), data.handle, data.memory);
+			vmaDestroyBuffer(GetMemoryAllocator(), data.handle, data.memory);
 			
 			create_real_buffer
 			(
@@ -226,7 +229,7 @@ namespace Vk
 	void BufferWrapper::destroy()
 	{
 		auto& data = find_by_identifier_safe(bufferManager.buffers, identifier);
-		vmaDestroyBuffer(bufferManager.pMemoryAllocator->handle(), data.handle, data.memory);
+		vmaDestroyBuffer(GetMemoryAllocator(), data.handle, data.memory);
 		delete_element_with_identifier(bufferManager.buffers, identifier);
 
 		identifier = 0;
