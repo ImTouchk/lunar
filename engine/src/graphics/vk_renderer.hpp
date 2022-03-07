@@ -45,27 +45,13 @@ namespace Vk
         VkSurfaceKHR surface = VK_NULL_HANDLE;
     };
 
-    struct MemoryAllocatorWrapper
-    {
-    public:
-        MemoryAllocatorWrapper() = default;
-        ~MemoryAllocatorWrapper() = default;
-
-        void create();
-        void destroy();
-
-        [[nodiscard]] VmaAllocator handle() const;
-    private:
-        VmaAllocator memoryAllocator = VK_NULL_HANDLE;
-    };
-
     struct SwapchainWrapper
     {
     public:
         SwapchainWrapper() = default;
         ~SwapchainWrapper() = default;
 
-        void create(GameWindow& window, SurfaceWrapper& surface, MemoryAllocatorWrapper& memoryAllocator);
+        void create(GameWindow& window, SurfaceWrapper& surface);
         void destroy();
 
         void resize(GameWindow& window, SurfaceWrapper& surface);
@@ -87,8 +73,6 @@ namespace Vk
         void create_image_views();
         void create_framebuffers();
         void create_depth_buffer();
-
-        MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
 
         struct
         {
@@ -154,7 +138,6 @@ namespace Vk
     struct RendererInternalData
     {
         SurfaceWrapper surface;
-        MemoryAllocatorWrapper memoryAllocator;
         CmdSubmitter commandSubmitter;
         SwapchainWrapper swapchain;
         SyncObjectsWrapper syncObjects;
@@ -188,6 +171,7 @@ namespace Vk
 
     QueueIndices GetQueueIndices();
     const LogicalDeviceWrapperV2& GetDevice();
+    const VmaAllocator& GetMemoryAllocator();
 
     std::vector<const char*> GetRequiredDeviceExtensions();
     std::vector<const char*> GetAvailableOptionalExtensions(VkPhysicalDevice device);

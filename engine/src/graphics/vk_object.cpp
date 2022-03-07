@@ -16,13 +16,11 @@ namespace Vk
 		assert(createInfo.pSwapchain != nullptr);
 		assert(createInfo.pShaderManager != nullptr);
 		assert(createInfo.pBufferManager != nullptr);
-		assert(createInfo.pMemoryAllocator != nullptr);
 
 		pSurface = createInfo.pSurface;
 		pSwapchain = createInfo.pSwapchain;
 		pShaderManager = createInfo.pShaderManager;
 		pBufferManager = createInfo.pBufferManager;
-		pMemoryAllocator = createInfo.pMemoryAllocator;
 
 		auto queue_indices = GetQueueIndices();
 
@@ -67,7 +65,6 @@ namespace Vk
 		pSurface         = nullptr;
 		pSwapchain       = nullptr;
 		pShaderManager   = nullptr;
-		pMemoryAllocator = nullptr;
 		pBufferManager   = nullptr;
 	}
 

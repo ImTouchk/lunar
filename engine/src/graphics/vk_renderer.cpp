@@ -7,43 +7,6 @@
 #include <vulkan/vulkan.h>
 #include <any>
 
-#define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
-
-namespace Vk
-{
-    void MemoryAllocatorWrapper::create()
-    {
-        VmaAllocatorCreateInfo allocator_create_info =
-        {
-            .physicalDevice   = GetRenderingDevice(),
-            .device           = GetDevice().handle,
-            .instance         = GetInstance(),
-            .vulkanApiVersion = VK_API_VERSION_1_2
-        };
-
-        VkResult result;
-        result = vmaCreateAllocator(&allocator_create_info, &memoryAllocator);
-        if(result != VK_SUCCESS)
-        {
-            CDebug::Error("Vulkan Renderer | Memory allocator creation fail.");
-            throw std::runtime_error("Renderer-Vulkan-MemoryAllocator-CreationFail");
-        }
-
-        CDebug::Log("Vulkan Renderer | Memory allocator created.");
-    }
-
-    void MemoryAllocatorWrapper::destroy()
-    {
-        vmaDestroyAllocator(memoryAllocator);
-    }
-
-    VmaAllocator MemoryAllocatorWrapper::handle() const
-    {
-        return memoryAllocator;
-    }
-}
-
 void GameRenderer::create(RendererCreateInfo&& createInfo)
 {
     window_handle = createInfo.pWindow;
@@ -58,31 +21,27 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     auto& shader_manager      = internal_data->shaderManager;
     auto& buffer_manager      = internal_data->bufferManager;
     auto& object_manager      = internal_data->objectManager;
-    auto& memory_allocator    = internal_data->memoryAllocator;
     auto& command_submitter   = internal_data->commandSubmitter;
     auto& render_call_manager = internal_data->renderCallManager;
 
     Vk::SignalRendererCreation();
 
     surface.create(*window_handle);
-    memory_allocator.create();
     command_submitter.create();
 
-    swapchain.create(*window_handle, surface, memory_allocator);
+    swapchain.create(*window_handle, surface);
     sync_objects.create(swapchain);
     shader_manager.create(swapchain);
 
     buffer_manager.create
     (Vk::BufferManagerCreateInfo
     {
-        .pCmdSubmitter    = &command_submitter,
-        .pMemoryAllocator = &memory_allocator
+        .pCmdSubmitter    = &command_submitter
     });
 
     object_manager.create
     (Vk::ObjectManagerCreateInfo
     {
-        .pMemoryAllocator = &memory_allocator,
         .pSwapchain       = &swapchain,
         .pSurface         = &surface,
         .pShaderManager   = &shader_manager,
@@ -131,7 +90,6 @@ void GameRenderer::destroy()
 
     internal_data->swapchain.destroy();
     internal_data->commandSubmitter.destroy();
-    internal_data->memoryAllocator.destroy();
     internal_data->surface.destroy();
 
     Vk::SignalRendererDestroy();

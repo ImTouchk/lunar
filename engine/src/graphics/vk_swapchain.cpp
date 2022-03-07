@@ -164,11 +164,9 @@ namespace Vk
         return surfaceFormat;
     }
 
-    void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface, MemoryAllocatorWrapper& memoryAllocator)
+    void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface)
     {
         assert(swapchain == VK_NULL_HANDLE);
-
-        pMemoryAllocator = &memoryAllocator;
 
         width = window.get_width();
         height = window.get_height();
@@ -193,7 +191,7 @@ namespace Vk
         vkDeviceWaitIdle(device);
 
         vkDestroyImageView(device, depthBuffer.view, nullptr);
-        vmaDestroyImage(pMemoryAllocator->handle(), depthBuffer.image, depthBuffer.allocation);
+        vmaDestroyImage(GetMemoryAllocator(), depthBuffer.image, depthBuffer.allocation);
 
         for (auto& frame_buffer : frameBuffers)
         {
@@ -224,7 +222,7 @@ namespace Vk
         vkDeviceWaitIdle(device);
 
         vkDestroyImageView(device, depthBuffer.view, nullptr);
-        vmaDestroyImage(pMemoryAllocator->handle(), depthBuffer.image, depthBuffer.allocation);
+        vmaDestroyImage(GetMemoryAllocator(), depthBuffer.image, depthBuffer.allocation);
 
         for (auto& frame_buffer : frameBuffers)
         {
@@ -245,7 +243,7 @@ namespace Vk
         surfaceFormat = {};
         surfaceExtent = {};
         
-        create(window, surface, *pMemoryAllocator);
+        create(window, surface);
     }
 
     void SwapchainWrapper::create_swapchain(GameWindow& window, SurfaceWrapper& surface)
@@ -523,7 +521,7 @@ namespace Vk
         };
 
         VkResult result;
-        result = vmaCreateImage(pMemoryAllocator->handle(), &image_create_info, &image_allocation, &depthBuffer.image, &depthBuffer.allocation, nullptr);
+        result = vmaCreateImage(GetMemoryAllocator(), &image_create_info, &image_allocation, &depthBuffer.image, &depthBuffer.allocation, nullptr);
         if(result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Swapchain creation fail (vmaCreateImage didn't return VK_SUCCESS for the depth buffer image).");

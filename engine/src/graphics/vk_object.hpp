@@ -12,7 +12,6 @@ namespace Vk
 {
 	struct ObjectManagerCreateInfo
 	{
-		MemoryAllocatorWrapper* pMemoryAllocator;
 		SwapchainWrapper* pSwapchain;
 		SurfaceWrapper* pSurface;
 		ShaderManager* pShaderManager;
@@ -59,7 +58,6 @@ namespace Vk
 		void rebuild_cmd_buffers();
 
 	private:
-		MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
 		SwapchainWrapper* pSwapchain             = nullptr;
 		SurfaceWrapper* pSurface                 = nullptr;
 		ShaderManager* pShaderManager            = nullptr;
