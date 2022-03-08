@@ -28,19 +28,19 @@ public:
         queue.push(std::move(object));
     }
 
-    [[nodiscard]] const T& front() const
+    [[nodiscard]] const T& front()
     {
         std::unique_lock lock(mutex);
         return queue.front();
     }
 
-    [[nodiscard]] unsigned size() const
+    [[nodiscard]] unsigned size()
     {
         std::unique_lock lock(mutex);
         return static_cast<unsigned>(queue.size());
     }
 
-    [[nodiscard]] bool empty() const
+    [[nodiscard]] bool empty()
     {
         std::unique_lock lock(mutex);
         return queue.empty();
