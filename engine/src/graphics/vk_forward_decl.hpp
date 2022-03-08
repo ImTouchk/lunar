@@ -3,7 +3,6 @@
 namespace Vk
 {
     struct SurfaceWrapper;
-    struct MemoryAllocatorWrapper;
     struct SwapchainWrapper;
     struct CommandQueueWrapper;
     struct SyncObjectsWrapper;

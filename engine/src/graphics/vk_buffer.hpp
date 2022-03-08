@@ -33,7 +33,6 @@ namespace Vk
 	struct BufferManagerCreateInfo
 	{
         CmdSubmitter* pCmdSubmitter;
-		MemoryAllocatorWrapper* pMemoryAllocator;
 	};
 
 	struct BufferData
@@ -65,7 +64,6 @@ namespace Vk
 		void upload_to_gpu_buffer(const void* pData, unsigned dataSize, VkBuffer dst);
 
 	private:
-		MemoryAllocatorWrapper* pMemoryAllocator = nullptr;
         CmdSubmitter* pCmdSubmitter              = nullptr;
 		bool active = false;
 

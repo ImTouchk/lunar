@@ -36,8 +36,7 @@ namespace Vk
 		VmaMemoryUsage memoryUsage, 
 		unsigned int size, 
 		VkBuffer& buffer, 
-		VmaAllocation& allocation,
-		MemoryAllocatorWrapper* pMemoryAllocator
+		VmaAllocation& allocation
 	)
 	{
 		VkBufferCreateInfo buffer_create_info =
@@ -123,8 +122,7 @@ namespace Vk
 			get_memory_flags(createInfo.memoryType),
 			createInfo.dataSize,
 			new_buffer.handle,
-			new_buffer.memory,
-			pMemoryAllocator
+			new_buffer.memory
 		);
 
 		if (createInfo.memoryType == BufferMemoryType::eGpuStatic)
@@ -160,8 +158,7 @@ namespace Vk
 			VMA_MEMORY_USAGE_CPU_ONLY,
 			dataSize,
 			staging_buffer,
-			staging_memory,
-			pMemoryAllocator
+			staging_memory
 		);
 
 		void* mapped_buf = nullptr;
@@ -209,8 +206,7 @@ namespace Vk
 				get_memory_flags(data.memoryType),
 				size,
 				data.handle,
-				data.memory,
-				bufferManager.pMemoryAllocator
+				data.memory
 			);
 
 			data.dataSize = size;
