@@ -1,53 +1,46 @@
 #include "utils/debug.hpp"
 #include "utils/range.hpp"
 #include "utils/thread_pool.hpp"
+#include "utils/thread_safe_queue.hpp"
 
-#include <mutex>
-#include <queue>
 #include <vector>
+#include <future>
 #include <thread>
 #include <functional>
 #include <condition_variable>
 
 namespace CThreadPool
 {
-    std::vector<std::thread> WORKERS;
-    std::queue<std::function<void()>> WORK_QUEUE = {};
-    std::condition_variable CONDITION = {};
-    std::mutex WORK_MUTEX = {};
-    bool TERMINATE_POOL = false;
-
-    void WorkerThread()
-    {
-        while(true)
-        {
-            std::function<void()> task = nullptr;
-
-            {
-                std::unique_lock<std::mutex> lock(WORK_MUTEX);
-                CONDITION.wait(lock, []()
-                {
-                    return !WORK_QUEUE.empty() || TERMINATE_POOL;
-                });
-
-                if(TERMINATE_POOL)
-                    return;
-
-                task = WORK_QUEUE.front();
-                WORK_QUEUE.pop();
-            }
-
-            task();
-        }
-    }
+    std::atomic<int> THREADS_IN_FLIGHT            = {0};
+    std::mutex CONDITION_MUTEX                    = {};
+    std::vector<std::jthread> THREADS             = {};
+    std::condition_variable_any THREAD_CONDITION  = {};
+    CThreadSafeQueue<std::function<void()>> QUEUE = {};
 
     void Initialize()
     {
-        unsigned thread_count = 0;
-        thread_count = std::thread::hardware_concurrency();
-        for(auto i : range(0, thread_count - 1))
+        unsigned thread_count = std::thread::hardware_concurrency();
+        for(auto i : range(1, thread_count))
         {
-            WORKERS.emplace_back(WorkerThread);
+            THREADS.emplace_back([](const std::stop_token& stopToken)
+            {
+                while(true)
+                {
+                    std::unique_lock lock(CONDITION_MUTEX);
+                    THREAD_CONDITION.wait(lock, stopToken, [&stopToken](){ return !QUEUE.empty(); });
+
+                    if(stopToken.stop_requested())
+                    {
+                        return;
+                    }
+
+                    auto function = QUEUE.front();
+                    std::invoke(std::move(function));
+                    QUEUE.pop();
+
+                    THREADS_IN_FLIGHT--;
+                }
+            });
         }
 
         CDebug::Log("Thread Pool | Initialized {} threads.", thread_count);
@@ -55,31 +48,30 @@ namespace CThreadPool
 
     void Stop()
     {
-        TERMINATE_POOL = true;
-        CONDITION.notify_all();
-
-        for(auto& thread : WORKERS)
+        while(THREADS_IN_FLIGHT != 0)
         {
-            thread.join();
+            std::this_thread::yield();
         }
 
-        WORKERS.clear();
+        for(auto& thread : THREADS)
+        {
+            thread.request_stop();
+        }
+
+        THREAD_CONDITION.notify_all();
 
         CDebug::Log("Thread Pool | Threads stopped.");
     }
 
     void DoTask(const std::function<void()>& task)
     {
-        {
-            std::unique_lock<std::mutex> lock(WORK_MUTEX);
-            WORK_QUEUE.push(task);
-        }
-
-        CONDITION.notify_one();
+        QUEUE.emplace(task);
+        THREADS_IN_FLIGHT++;
+        THREAD_CONDITION.notify_one();
     }
 
     unsigned GetThreadCount()
     {
-        return WORKERS.size();
+        return static_cast<unsigned>(THREADS.size());
     }
 }
