@@ -33,6 +33,11 @@ int main()
         CThreadPool::Initialize();
         CFilesystem::LoadPackage("default.vpak");
 
+        auto res = CThreadPool::DoTaskAsync([](int a, int b) -> int { return a + b; }, 5, 7);
+        res.wait();
+
+        CDebug::Log("Res: {}", res.get());
+
         GameWindow game_window;
         game_window.create(WindowCreateInfo
         {
