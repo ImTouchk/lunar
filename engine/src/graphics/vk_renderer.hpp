@@ -2,7 +2,9 @@
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <shared_mutex>
+#include <functional>
 #include <optional>
+#include <future>
 #include <vector>
 #include <memory>
 #include <array>
@@ -13,7 +15,6 @@
 #include "vk_shader.hpp"
 #include "vk_object.hpp"
 #include "vk_draw_call.hpp"
-#include "vk_cmd_submitter.hpp"
 
 class GameWindow;
 
@@ -95,25 +96,6 @@ namespace Vk
         int height = 0;
     };
 
-    struct CommandQueueWrapper
-    {
-    public:
-        CommandQueueWrapper() = default;
-        ~CommandQueueWrapper() = default;
-
-        void create(SwapchainWrapper& swapchain, SurfaceWrapper& surface, VkPipeline pipeline);
-        void destroy();
-
-        [[nodiscard]] std::vector<VkCommandBuffer>& buffers();
-
-    private:
-        SurfaceWrapper* pSurface = nullptr;
-        SwapchainWrapper* pSwapchain = nullptr;
-
-        VkCommandPool commandPool = VK_NULL_HANDLE;
-        std::vector<VkCommandBuffer> commandBuffers = {};
-    };
-
     class SyncObjectsWrapper
     {
     public:
@@ -138,7 +120,6 @@ namespace Vk
     struct RendererInternalData
     {
         SurfaceWrapper surface;
-        CmdSubmitter commandSubmitter;
         SwapchainWrapper swapchain;
         SyncObjectsWrapper syncObjects;
         ShaderManager shaderManager;
@@ -169,9 +150,16 @@ namespace Vk
         }
     };
 
+    using CmdFn = std::function<void(VkCommandBuffer)>;
+
     QueueIndices GetQueueIndices();
     const LogicalDeviceWrapperV2& GetDevice();
     const VmaAllocator& GetMemoryAllocator();
+
+    std::future<bool> SubmitCommand(CmdFn&& commands);
+
+    void CreateCommandSubmitter();
+    void DestroyCommandSubmitter();
 
     std::vector<const char*> GetRequiredDeviceExtensions();
     std::vector<const char*> GetAvailableOptionalExtensions(VkPhysicalDevice device);

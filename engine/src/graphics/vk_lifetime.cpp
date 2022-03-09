@@ -19,6 +19,7 @@ namespace Vk
 		{
 			GetDevice();
             GetMemoryAllocator();
+            CreateCommandSubmitter();
 		}
 	}
 
@@ -27,6 +28,7 @@ namespace Vk
 		std::unique_lock lock(COUNTER_MUTEX);
 		if (--RENDERER_COUNT == 0)
 		{
+            DestroyCommandSubmitter();
             vmaDestroyAllocator(GetMemoryAllocator());
 			vkDestroyDevice(GetDevice().handle, nullptr);
 		}

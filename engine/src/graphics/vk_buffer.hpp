@@ -30,11 +30,6 @@ namespace Vk
 		unsigned dataSize;
 	};
 
-	struct BufferManagerCreateInfo
-	{
-        CmdSubmitter* pCmdSubmitter;
-	};
-
 	struct BufferData
 	{
 		unsigned identifier;
@@ -55,7 +50,7 @@ namespace Vk
 		BufferManager() = default;
 		~BufferManager() = default;
 
-		void create(BufferManagerCreateInfo&& createInfo);
+		void create();
 		void destroy();
 
 		BufferWrapper create_buffer(BufferCreateInfo&& createInfo);
@@ -64,7 +59,6 @@ namespace Vk
 		void upload_to_gpu_buffer(const void* pData, unsigned dataSize, VkBuffer dst);
 
 	private:
-        CmdSubmitter* pCmdSubmitter              = nullptr;
 		bool active = false;
 
 		std::vector<BufferData> buffers = {};

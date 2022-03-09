@@ -68,13 +68,9 @@ namespace Vk
 		}
 	}
 
-	void BufferManager::create(BufferManagerCreateInfo&& createInfo)
+	void BufferManager::create()
 	{
         assert(not active);
-        assert(createInfo.pCmdSubmitter != nullptr);
-
-        pCmdSubmitter = createInfo.pCmdSubmitter;
-
 		active = true;
 
 		CDebug::Log("Vulkan Renderer | Buffer manager created.");
@@ -92,7 +88,6 @@ namespace Vk
 			delete_element_with_identifier(buffers, buffers[0].identifier);
 		}
 
-        pCmdSubmitter = nullptr;
 		buffers.clear();
 
 		active = false;
@@ -173,7 +168,7 @@ namespace Vk
 			.size      = dataSize
 		};
 
-        auto cmd_executed = pCmdSubmitter->submit([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
+        auto cmd_executed = SubmitCommand([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
         {
             vkCmdCopyBuffer(buffer, staging_buffer, dst, 1, &buffer_copy_region);
         });

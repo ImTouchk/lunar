@@ -37,6 +37,7 @@ if(LUNAR_COUNT_HEADERS_AS_SOURCE)
         "inc/utils/thread_pool.hpp"
         "inc/utils/identifier.hpp"
         "inc/utils/stb_image.h"
+        "inc/utils/thread_safe_queue.hpp"
         "inc/io/filesystem.hpp"
         #"inc/math/vec.hpp"
     )
@@ -65,6 +66,7 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
     target_compile_definitions("lunar" PRIVATE VULKAN_USE_DEBUG_LAYERS=1 VULKAN_RENDERER=1)
 
     target_sources("lunar" PRIVATE
+        "src/graphics/vk_mesh.cpp"
         "src/graphics/vk_sync.cpp"
         "src/graphics/vk_device.cpp"
         "src/graphics/vk_surface.cpp"
@@ -78,14 +80,12 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         "src/graphics/vk_buffer.hpp"
         "src/graphics/vk_object.hpp"
         "src/graphics/vk_object.cpp"
+        "src/graphics/vk_lifetime.cpp"
         "src/graphics/vk_draw_call.hpp"
         "src/graphics/vk_draw_call.cpp"
-        "src/graphics/vk_mesh.cpp"
+        "src/graphics/vk_cmd_submitter.cpp"
         #"src/graphics/vk_texture.hpp"
         #"src/graphics/vk_texture.cpp"
-        "src/graphics/vk_cmd_submitter.hpp"
-        "src/graphics/vk_cmd_submitter.cpp"
-        "src/graphics/vk_lifetime.cpp"
     )
 endif()
 

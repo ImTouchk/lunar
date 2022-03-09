@@ -1,7 +1,6 @@
 #include "utils/debug.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/thread_safe_queue.hpp"
-#include "vk_cmd_submitter.hpp"
 #include "vk_renderer.hpp"
 
 #include <vulkan/vulkan.h>
@@ -16,7 +15,7 @@ namespace Vk
     bool STOP_WORKER                                                     = false;
     bool WORKER_STOPPED                                                  = false;
 
-    void CmdSubmitter::create()
+    void CreateCommandSubmitter()
     {
         CThreadPool::DoTask([]
         {
@@ -120,7 +119,7 @@ namespace Vk
         });
     }
 
-    void CmdSubmitter::destroy()
+    void DestroyCommandSubmitter()
     {
         STOP_WORKER = true;
         WORKER_CONDITION.notify_all();
@@ -128,7 +127,7 @@ namespace Vk
         while(!WORKER_STOPPED) {}
     }
 
-    std::future<bool> CmdSubmitter::submit(CmdFn&& commands)
+    std::future<bool> SubmitCommand(CmdFn&& commands)
     {
         auto promise = std::promise<bool>();
         COMMAND_QUEUE.emplace({ std::move(commands), std::move(promise) });

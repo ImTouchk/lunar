@@ -10,6 +10,5 @@ namespace Vk
     struct ShaderManager;
     class ObjectManager;
     class BufferManager;
-    class CmdSubmitter;
     class RenderCallManager;
 }

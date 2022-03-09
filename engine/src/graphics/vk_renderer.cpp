@@ -21,23 +21,16 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     auto& shader_manager      = internal_data->shaderManager;
     auto& buffer_manager      = internal_data->bufferManager;
     auto& object_manager      = internal_data->objectManager;
-    auto& command_submitter   = internal_data->commandSubmitter;
     auto& render_call_manager = internal_data->renderCallManager;
 
     Vk::SignalRendererCreation();
 
     surface.create(*window_handle);
-    command_submitter.create();
 
     swapchain.create(*window_handle, surface);
     sync_objects.create(swapchain);
     shader_manager.create(swapchain);
-
-    buffer_manager.create
-    (Vk::BufferManagerCreateInfo
-    {
-        .pCmdSubmitter    = &command_submitter
-    });
+    buffer_manager.create();
 
     object_manager.create
     (Vk::ObjectManagerCreateInfo
@@ -87,9 +80,7 @@ void GameRenderer::destroy()
     internal_data->bufferManager.destroy();
     internal_data->shaderManager.destroy();
     internal_data->syncObjects.destroy();
-
     internal_data->swapchain.destroy();
-    internal_data->commandSubmitter.destroy();
     internal_data->surface.destroy();
 
     Vk::SignalRendererDestroy();
