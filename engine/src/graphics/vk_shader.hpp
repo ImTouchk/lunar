@@ -41,7 +41,10 @@ namespace Vk
     private:
         SwapchainWrapper* pSwapchain = nullptr;
 
-        std::vector<ShaderData> shaders = {};
-        VkPipelineLayout graphicsLayout = VK_NULL_HANDLE;
+        std::vector<ShaderData> shaders             = {};
+        std::vector<VkDescriptorSet> descriptorSets = {};
+        VkPipelineLayout graphicsLayout             = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptorLayout      = VK_NULL_HANDLE;
+        VkDescriptorPool descriptorPool             = VK_NULL_HANDLE;
     };
 }
