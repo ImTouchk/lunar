@@ -1,4 +1,5 @@
 #pragma once
+#include <deque>
 #include <queue>
 #include <mutex>
 
@@ -10,25 +11,33 @@ public:
     CThreadSafeQueue(const CThreadSafeQueue&) = delete;
     CThreadSafeQueue& operator=(const CThreadSafeQueue&) = delete;
 
+    using iterator = std::deque<T>::iterator;
+
+    void clear()
+    {
+        std::unique_lock lock(mutex);
+        queue.clear();
+    }
+
     void pop()
     {
         std::unique_lock lock(mutex);
-        queue.pop();
+        queue.pop_front();
     }
 
     void emplace(const T& object)
     {
         std::unique_lock lock(mutex);
-        queue.push(std::move(object));
+        queue.push_front(std::move(object));
     }
 
     void emplace(T&& object)
     {
         std::unique_lock lock(mutex);
-        queue.push(std::move(object));
+        queue.push_front(std::move(object));
     }
 
-    [[nodiscard]] const T& front()
+    [[nodiscard]] T& front()
     {
         std::unique_lock lock(mutex);
         return queue.front();
@@ -46,7 +55,19 @@ public:
         return queue.empty();
     }
 
+    [[nodiscard]] iterator begin()
+    {
+        std::unique_lock lock(mutex);
+        return queue.begin();
+    }
+
+    [[nodiscard]] iterator end()
+    {
+        std::unique_lock lock(mutex);
+        return queue.end();
+    }
+
 private:
-    std::queue<T> queue = {};
+    std::deque<T> queue = {};
     std::mutex mutex    = {};
 };
