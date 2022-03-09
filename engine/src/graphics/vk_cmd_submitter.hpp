@@ -18,6 +18,6 @@ namespace Vk
         void create();
         void destroy();
 
-        void submit(CmdFn&& commands, std::promise<bool>& finished);
+        std::future<bool> submit(CmdFn&& commands);
     };
 }

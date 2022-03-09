@@ -173,14 +173,12 @@ namespace Vk
 			.size      = dataSize
 		};
 
-        std::promise<bool> cmd_sent = {};
-        std::future<bool> cmd_exec = cmd_sent.get_future();
-        pCmdSubmitter->submit([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
+        auto cmd_executed = pCmdSubmitter->submit([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
         {
             vkCmdCopyBuffer(buffer, staging_buffer, dst, 1, &buffer_copy_region);
-        }, cmd_sent);
+        });
 
-        cmd_exec.wait();
+		cmd_executed.wait();
 
 		vmaDestroyBuffer(GetMemoryAllocator(), staging_buffer, staging_memory);
 	}

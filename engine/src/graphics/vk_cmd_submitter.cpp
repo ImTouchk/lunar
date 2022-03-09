@@ -1,21 +1,20 @@
 #include "utils/debug.hpp"
 #include "utils/thread_pool.hpp"
+#include "utils/thread_safe_queue.hpp"
 #include "vk_cmd_submitter.hpp"
 #include "vk_renderer.hpp"
 
 #include <vulkan/vulkan.h>
 #include <condition_variable>
 #include <mutex>
-#include <queue>
 
 namespace Vk
 {
-    std::mutex SUBMITTER_MUTEX = {};
-    std::condition_variable SUBMITTER_CONDITION = {};
-
-    std::deque<std::pair<CmdFn, std::promise<bool>&&>> SUBMITTER_COMMANDS = {};
-    bool SUBMITTER_STOP = false;
-    bool SUBMITTER_FINISHED = false;
+    CThreadSafeQueue<std::pair<CmdFn, std::promise<bool>>> COMMAND_QUEUE = {};
+    std::condition_variable WORKER_CONDITION                             = {};
+    std::mutex CONDITION_MUTEX                                           = {};
+    bool STOP_WORKER                                                     = false;
+    bool WORKER_STOPPED                                                  = false;
 
     void CmdSubmitter::create()
     {
@@ -59,13 +58,13 @@ namespace Vk
 
             while (true)
             {
-                std::unique_lock<std::mutex> lock(SUBMITTER_MUTEX);
-                SUBMITTER_CONDITION.wait(lock, []()
+                std::unique_lock lock(CONDITION_MUTEX);
+                WORKER_CONDITION.wait(lock, []()
                 {
-                    return !SUBMITTER_COMMANDS.empty() || SUBMITTER_STOP;
+                    return !COMMAND_QUEUE.empty() || STOP_WORKER;
                 });
 
-                if(SUBMITTER_STOP)
+                if(STOP_WORKER)
                     break;
 
                 VkCommandBufferBeginInfo buffer_begin_info =
@@ -82,9 +81,9 @@ namespace Vk
                     throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-UploadFail");
                 }
 
-                for(auto& pair : SUBMITTER_COMMANDS)
+                for (auto& command : COMMAND_QUEUE)
                 {
-                    pair.first(thread_buffer);
+                    command.first(thread_buffer);
                 }
 
                 result = vkEndCommandBuffer(thread_buffer);
@@ -103,33 +102,43 @@ namespace Vk
                 vkQueueSubmit(device.graphics, 1, &submit_info, VK_NULL_HANDLE);
                 vkQueueWaitIdle(device.graphics);
 
-                vkResetCommandBuffer(thread_buffer, 0);
-
-                for(auto& pair : SUBMITTER_COMMANDS)
+                while (!COMMAND_QUEUE.empty())
                 {
-                    pair.second.set_value(true);
+                    auto& command = COMMAND_QUEUE.front();
+                    command.second.set_value(true);
+                    COMMAND_QUEUE.pop();
                 }
 
-                SUBMITTER_COMMANDS.clear();
+                COMMAND_QUEUE.clear();
+
+                vkResetCommandBuffer(thread_buffer, 0);
             }
 
             vkFreeCommandBuffers(device.handle, thread_pool, 1, &thread_buffer);
             vkDestroyCommandPool(device.handle, thread_pool, nullptr);
-            SUBMITTER_FINISHED = true;
+            WORKER_STOPPED = true;
         });
     }
 
     void CmdSubmitter::destroy()
     {
-        SUBMITTER_STOP = true;
-        SUBMITTER_CONDITION.notify_all();
+        STOP_WORKER = true;
+        WORKER_CONDITION.notify_all();
 
-        while(!SUBMITTER_FINISHED) {}
+        while(!WORKER_STOPPED) {}
     }
 
-    void CmdSubmitter::submit(CmdFn&& commands, std::promise<bool>& finished)
+    std::future<bool> CmdSubmitter::submit(CmdFn&& commands)
     {
-        SUBMITTER_COMMANDS.emplace_back( commands, std::move(finished) );
-        SUBMITTER_CONDITION.notify_all();
+        auto promise = std::promise<bool>();
+        COMMAND_QUEUE.emplace({ std::move(commands), std::move(promise) });
+
+        auto future = COMMAND_QUEUE.front()
+                        .second
+                        .get_future();
+
+        WORKER_CONDITION.notify_all();
+
+        return future;
     }
 }
