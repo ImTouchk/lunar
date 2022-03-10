@@ -80,7 +80,7 @@ namespace Vk
                     throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-UploadFail");
                 }
 
-                for (auto& command : COMMAND_QUEUE)
+                for (auto& command : COMMAND_QUEUE.safe_iterator())
                 {
                     command.first(thread_buffer);
                 }

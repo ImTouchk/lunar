@@ -11,8 +11,6 @@ public:
     CThreadSafeQueue(const CThreadSafeQueue&) = delete;
     CThreadSafeQueue& operator=(const CThreadSafeQueue&) = delete;
 
-    using iterator = std::deque<T>::iterator;
-
     void clear()
     {
         std::unique_lock lock(mutex);
@@ -55,16 +53,24 @@ public:
         return queue.empty();
     }
 
-    [[nodiscard]] iterator begin()
+    class CThreadSafeIterable
     {
-        std::unique_lock lock(mutex);
-        return queue.begin();
-    }
+    public:
+        using iterator = std::deque<T>::iterator;
 
-    [[nodiscard]] iterator end()
+        CThreadSafeIterable(CThreadSafeQueue& queue) : queue_wrapper(queue) { queue_wrapper.mutex.lock(); }
+        ~CThreadSafeIterable() { queue_wrapper.mutex.unlock(); }
+
+        [[nodiscard]] iterator begin() { return queue_wrapper.queue.begin(); }
+        [[nodiscard]] iterator end() { return queue_wrapper.queue.end(); }
+
+    private:
+        CThreadSafeQueue<T>& queue_wrapper;
+    };
+
+    [[nodiscard]] CThreadSafeIterable safe_iterator()
     {
-        std::unique_lock lock(mutex);
-        return queue.end();
+        return CThreadSafeIterable(*this);
     }
 
 private:
