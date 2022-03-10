@@ -123,7 +123,6 @@ namespace Vk
         SwapchainWrapper swapchain;
         SyncObjectsWrapper syncObjects;
         ShaderManager shaderManager;
-        BufferManager bufferManager;
         ObjectManager objectManager;
         RenderCallManager renderCallManager;
     };

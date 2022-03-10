@@ -15,7 +15,6 @@ namespace Vk
 		SwapchainWrapper* pSwapchain;
 		SurfaceWrapper* pSurface;
 		ShaderManager* pShaderManager;
-		BufferManager* pBufferManager;
 	};
 
 	struct DrawableObjectData
@@ -58,10 +57,9 @@ namespace Vk
 		void rebuild_cmd_buffers();
 
 	private:
-		SwapchainWrapper* pSwapchain             = nullptr;
-		SurfaceWrapper* pSurface                 = nullptr;
-		ShaderManager* pShaderManager            = nullptr;
-		BufferManager* pBufferManager            = nullptr;
+		SwapchainWrapper* pSwapchain  = nullptr;
+		SurfaceWrapper* pSurface      = nullptr;
+		ShaderManager* pShaderManager = nullptr;
 
 		bool active = false;
 

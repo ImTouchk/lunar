@@ -15,12 +15,10 @@ namespace Vk
 		assert(createInfo.pSurface != nullptr);
 		assert(createInfo.pSwapchain != nullptr);
 		assert(createInfo.pShaderManager != nullptr);
-		assert(createInfo.pBufferManager != nullptr);
 
 		pSurface = createInfo.pSurface;
 		pSwapchain = createInfo.pSwapchain;
 		pShaderManager = createInfo.pShaderManager;
-		pBufferManager = createInfo.pBufferManager;
 
 		auto queue_indices = GetQueueIndices();
 
@@ -65,7 +63,6 @@ namespace Vk
 		pSurface         = nullptr;
 		pSwapchain       = nullptr;
 		pShaderManager   = nullptr;
-		pBufferManager   = nullptr;
 	}
 
 	void ObjectManager::update()
@@ -118,7 +115,7 @@ namespace Vk
 
 	MeshWrapper ObjectManager::create_mesh(MeshCreateInfo&& createInfo)
 	{
-		BufferWrapper vertex_buffer = pBufferManager->create_buffer(BufferCreateInfo
+		BufferWrapper vertex_buffer = BufferManager::CreateBuffer(BufferCreateInfo
 		{
 			.type       = BufferType::eVertex,
 			.memoryType = BufferMemoryType::eGpuStatic,
@@ -126,7 +123,7 @@ namespace Vk
 			.dataSize   = static_cast<unsigned>(createInfo.vertices.size() * sizeof(Vertex)),
 		});
 
-		BufferWrapper index_buffer = pBufferManager->create_buffer(BufferCreateInfo
+		BufferWrapper index_buffer = BufferManager::CreateBuffer(BufferCreateInfo
 		{
 			.type       = BufferType::eIndex,
 			.memoryType = BufferMemoryType::eGpuStatic,

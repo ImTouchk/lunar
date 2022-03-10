@@ -68,81 +68,12 @@ namespace Vk
 		}
 	}
 
-	void BufferManager::create()
-	{
-        assert(not active);
-		active = true;
-
-		CDebug::Log("Vulkan Renderer | Buffer manager created.");
-	}
-
-	void BufferManager::destroy()
-	{
-		assert(active == true);
-		
-		// TODO: Improve this code
-
-		while (!buffers.empty())
-		{
-			vmaDestroyBuffer(GetMemoryAllocator(), buffers[0].handle, buffers[0].memory);
-			delete_element_with_identifier(buffers, buffers[0].identifier);
-		}
-
-		buffers.clear();
-
-		active = false;
-	}
-
-	BufferWrapper BufferManager::create_buffer(BufferCreateInfo&& createInfo)
-	{
-		assert(active == true);
-		assert(createInfo.type != BufferType::eUnknown);
-		assert(createInfo.memoryType != BufferMemoryType::eUnknown);
-		assert(createInfo.pData != nullptr);
-		assert(createInfo.dataSize != 0);
-
-		BufferData new_buffer =
-		{
-			.identifier = get_unique_number(),
-			.handle     = VK_NULL_HANDLE,
-			.memory     = VK_NULL_HANDLE,
-			.type       = createInfo.type,
-			.memoryType = createInfo.memoryType,
-			.dataSize   = createInfo.dataSize
-		};
-
-		create_real_buffer
-		(
-			get_usage_flags(createInfo.type),
-			get_memory_flags(createInfo.memoryType),
-			createInfo.dataSize,
-			new_buffer.handle,
-			new_buffer.memory
-		);
-
-		if (createInfo.memoryType == BufferMemoryType::eGpuStatic)
-		{
-			upload_to_gpu_buffer(createInfo.pData, createInfo.dataSize, new_buffer.handle);
-		}
-        else if (createInfo.memoryType == BufferMemoryType::eCpuAny)
-        {
-            void* mapped_buf = nullptr;
-            vmaMapMemory(GetMemoryAllocator(), new_buffer.memory, &mapped_buf);
-            memcpy(mapped_buf, createInfo.pData, createInfo.dataSize);
-            vmaUnmapMemory(GetMemoryAllocator(), new_buffer.memory);
-        }
-		else
-		{
-			throw std::runtime_error("Not-Implemented");
-		}
-
-		unsigned identifier = new_buffer.identifier;
-
-		buffers.push_back(std::move(new_buffer));
-		return BufferWrapper(*this, identifier);
-	}
-
-	void BufferManager::upload_to_gpu_buffer(const void* pData, unsigned dataSize, VkBuffer dst)
+	void upload_to_gpu_buffer
+	(
+		const void* pData, 
+		unsigned dataSize, 
+		VkBuffer dst
+	)
 	{
 		VkBuffer staging_buffer;
 		VmaAllocation staging_memory;
@@ -165,29 +96,100 @@ namespace Vk
 		{
 			.srcOffset = 0,
 			.dstOffset = 0,
-			.size      = dataSize
+			.size = dataSize
 		};
 
-        auto cmd_executed = SubmitCommand([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
-        {
-            vkCmdCopyBuffer(buffer, staging_buffer, dst, 1, &buffer_copy_region);
-        });
-
-		cmd_executed.wait();
+		SubmitCommand([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
+		{
+			vkCmdCopyBuffer(buffer, staging_buffer, dst, 1, &buffer_copy_region);
+		}).wait();
 
 		vmaDestroyBuffer(GetMemoryAllocator(), staging_buffer, staging_memory);
 	}
 
-	BufferWrapper::BufferWrapper(BufferManager& bufferManager, unsigned handle)
-		: bufferManager(bufferManager),
-		identifier(handle)
+	namespace BufferManager
 	{
-		buffer = find_by_identifier_safe(bufferManager.buffers, identifier).handle;
+		std::vector<BufferData> BUFFER_OBJECTS = {};
+		bool IS_ACTIVE = false;
+
+		void Initialize()
+		{
+			assert(!IS_ACTIVE);
+			BUFFER_OBJECTS = {};
+			IS_ACTIVE = true;
+		}
+
+		void Destroy()
+		{
+			assert(IS_ACTIVE);
+			
+			for (auto& buffer : BUFFER_OBJECTS)
+			{
+				vmaDestroyBuffer(GetMemoryAllocator(), buffer.handle, buffer.memory);
+			}
+
+			BUFFER_OBJECTS.clear();
+			IS_ACTIVE = false;
+		}
+
+		BufferWrapper CreateBuffer(BufferCreateInfo&& createInfo)
+		{
+			assert(IS_ACTIVE);
+			assert(createInfo.type != BufferType::eUnknown);
+			assert(createInfo.memoryType != BufferMemoryType::eUnknown);
+			assert(createInfo.pData != nullptr);
+			assert(createInfo.dataSize != 0);
+
+			BufferData new_buffer =
+			{
+				.identifier = get_unique_number(),
+				.handle     = VK_NULL_HANDLE,
+				.memory     = VK_NULL_HANDLE,
+				.type       = createInfo.type,
+				.memoryType = createInfo.memoryType,
+				.dataSize   = createInfo.dataSize
+			};
+
+			create_real_buffer
+			(
+				get_usage_flags(createInfo.type),
+				get_memory_flags(createInfo.memoryType),
+				createInfo.dataSize,
+				new_buffer.handle,
+				new_buffer.memory
+			);
+
+			if (createInfo.memoryType == BufferMemoryType::eGpuStatic)
+			{
+				upload_to_gpu_buffer(createInfo.pData, createInfo.dataSize, new_buffer.handle);
+			}
+			else if (createInfo.memoryType == BufferMemoryType::eCpuAny)
+			{
+				void* mapped_buf = nullptr;
+				vmaMapMemory(GetMemoryAllocator(), new_buffer.memory, &mapped_buf);
+				memcpy(mapped_buf, createInfo.pData, createInfo.dataSize);
+				vmaUnmapMemory(GetMemoryAllocator(), new_buffer.memory);
+			}
+			else
+			{
+				throw std::runtime_error("Not-Implemented");
+			}
+
+			unsigned identifier = new_buffer.identifier;
+
+			BUFFER_OBJECTS.push_back(std::move(new_buffer));
+			return BufferWrapper(identifier);
+		}
+	}
+
+	BufferWrapper::BufferWrapper(unsigned identifier)
+		: identifier(identifier)
+	{
 	}
 
 	void BufferWrapper::update(const void* pNewData, unsigned size)
 	{	
-		auto& data = find_by_identifier_safe(bufferManager.buffers, identifier);
+		auto& data = find_by_identifier_safe(BufferManager::BUFFER_OBJECTS, identifier);
 		
 		if (size > data.dataSize)
 		{
@@ -207,7 +209,7 @@ namespace Vk
 
 		if (data.memoryType == BufferMemoryType::eGpuStatic)
 		{
-			bufferManager.upload_to_gpu_buffer(pNewData, size, data.handle);
+			upload_to_gpu_buffer(pNewData, size, data.handle);
 		}
 		else
 		{
@@ -217,22 +219,22 @@ namespace Vk
 
 	void BufferWrapper::destroy()
 	{
-		auto& data = find_by_identifier_safe(bufferManager.buffers, identifier);
+		auto& data = find_by_identifier_safe(BufferManager::BUFFER_OBJECTS, identifier);
 		vmaDestroyBuffer(GetMemoryAllocator(), data.handle, data.memory);
-		delete_element_with_identifier(bufferManager.buffers, identifier);
+		delete_element_with_identifier(BufferManager::BUFFER_OBJECTS, identifier);
 
 		identifier = 0;
 	}
 
 	VkBuffer BufferWrapper::handle() const
 	{
-		auto& data = find_by_identifier_safe(bufferManager.buffers, identifier);
+		auto& data = find_by_identifier_safe(BufferManager::BUFFER_OBJECTS, identifier);
 		return data.handle;
 	}
 
 	VmaAllocation BufferWrapper::memory_handle() const
 	{
-		auto& data = find_by_identifier_safe(bufferManager.buffers, identifier);
+		auto& data = find_by_identifier_safe(BufferManager::BUFFER_OBJECTS, identifier);
 		return data.memory;
 	}
 }

@@ -19,7 +19,6 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     auto& sync_objects = internal_data->syncObjects;
 
     auto& shader_manager      = internal_data->shaderManager;
-    auto& buffer_manager      = internal_data->bufferManager;
     auto& object_manager      = internal_data->objectManager;
     auto& render_call_manager = internal_data->renderCallManager;
 
@@ -30,7 +29,6 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
     swapchain.create(*window_handle, surface);
     sync_objects.create(swapchain);
     shader_manager.create(swapchain);
-    buffer_manager.create();
 
     object_manager.create
     (Vk::ObjectManagerCreateInfo
@@ -38,7 +36,6 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
         .pSwapchain       = &swapchain,
         .pSurface         = &surface,
         .pShaderManager   = &shader_manager,
-        .pBufferManager   = &buffer_manager,
     });
 
     render_call_manager.create
@@ -77,7 +74,6 @@ void GameRenderer::destroy()
 
     internal_data->renderCallManager.destroy();
     internal_data->objectManager.destroy();
-    internal_data->bufferManager.destroy();
     internal_data->shaderManager.destroy();
     internal_data->syncObjects.destroy();
     internal_data->swapchain.destroy();

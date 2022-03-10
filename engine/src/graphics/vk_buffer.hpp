@@ -40,34 +40,10 @@ namespace Vk
 		unsigned dataSize;
 	};
 
-    class BufferWrapper;
-
-	class BufferManager
-	{
-	public:
-		friend class BufferWrapper;
-		
-		BufferManager() = default;
-		~BufferManager() = default;
-
-		void create();
-		void destroy();
-
-		BufferWrapper create_buffer(BufferCreateInfo&& createInfo);
-
-	private:
-		void upload_to_gpu_buffer(const void* pData, unsigned dataSize, VkBuffer dst);
-
-	private:
-		bool active = false;
-
-		std::vector<BufferData> buffers = {};
-	};
-
 	class BufferWrapper
 	{
 	public:
-		BufferWrapper(BufferManager& bufferManager, unsigned handle);
+		BufferWrapper(unsigned identifier);
 		~BufferWrapper() = default;
 
 		void destroy();
@@ -75,9 +51,16 @@ namespace Vk
 
 		[[nodiscard]] VkBuffer handle() const;
 		[[nodiscard]] VmaAllocation memory_handle() const;
+
 	private:
 		unsigned identifier;
-		BufferManager& bufferManager;
-		VkBuffer buffer;
 	};
+
+	namespace BufferManager
+	{
+		void Initialize();
+		void Destroy();
+
+		BufferWrapper CreateBuffer(BufferCreateInfo&& createInfo);
+	}
 }
