@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.21)
 project(lunar)
 
+set(LUNAR_BUNDLE_SAMPLE_ASSETS ON)
+
 add_subdirectory(engine)
 add_subdirectory(asset-packer)
 #add_subdirectory(lunarsl)
@@ -31,6 +33,10 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E remove -f "${CMAKE_CURRENT_SOURCE_DIR}/assets/default.vpak"
 	DEPENDS "default.vpak" "${LUNAR_BINARY_DIR}"
 )
+
+if(LUNAR_BUNDLE_SAMPLE_ASSETS)
+	file(DOWNLOAD "https://cdn.pixabay.com/photo/2016/03/23/19/37/statue-1275469_960_720.jpg" "assets/statue.jpg")
+endif()
 
 add_dependencies("lunar" "lunar-assets")
 

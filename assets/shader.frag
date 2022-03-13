@@ -1,9 +1,12 @@
 #version 450
 
+layout (location = 0) in vec2 tex_uv;
 layout (location = 0) out vec4 pixel;
+
+layout (binding = 1) uniform sampler2D tex_sampler;
 
 void main()
 {
-	pixel = vec4(1, 0, 0, 1);
+	pixel = texture(tex_sampler, tex_uv);
 }
 
