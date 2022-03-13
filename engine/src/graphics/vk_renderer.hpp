@@ -146,16 +146,19 @@ namespace Vk
         }
     };
 
-    using CmdFn = std::function<void(VkCommandBuffer)>;
+    namespace CommandSubmitter
+    {
+        using CmdFn = std::function<void(VkCommandBuffer)>;
+
+        void Initialize();
+        void Destroy();
+
+        std::future<bool> SendAsync(CmdFn&& commands);
+    }
 
     QueueIndices GetQueueIndices();
     const LogicalDeviceWrapperV2& GetDevice();
     const VmaAllocator& GetMemoryAllocator();
-
-    std::future<bool> SubmitCommand(CmdFn&& commands);
-
-    void CreateCommandSubmitter();
-    void DestroyCommandSubmitter();
 
     std::vector<const char*> GetRequiredDeviceExtensions();
     std::vector<const char*> GetAvailableOptionalExtensions(VkPhysicalDevice device);

@@ -1,143 +1,197 @@
 #include "utils/debug.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/thread_safe_queue.hpp"
+#include "utils/range.hpp"
 #include "vk_renderer.hpp"
 
 #include <vulkan/vulkan.h>
 #include <condition_variable>
+#include <atomic>
 #include <mutex>
 
 namespace Vk
 {
-    CThreadSafeQueue<std::pair<CmdFn, std::promise<bool>>> COMMAND_QUEUE = {};
+    CThreadSafeQueue<std::pair<CommandSubmitter::CmdFn, std::promise<bool>>> COMMAND_QUEUE = {};
     std::condition_variable WORKER_CONDITION                             = {};
     std::mutex CONDITION_MUTEX                                           = {};
     bool STOP_WORKER                                                     = false;
-    bool WORKER_STOPPED                                                  = false;
+    std::atomic<int> WORKERS_STOPPED                                     = 0;
 
-    void CreateCommandSubmitter()
+    VkCommandPool CreateThreadPool();
+    VkCommandBuffer AllocateThreadBuffer(VkCommandPool& pool);
+    VkFence CreateThreadFence();
+
+    void BeginRecording(const VkCommandBuffer& buffer);
+    void EndRecording(const VkCommandBuffer& buffer);
+
+    namespace CommandSubmitter
     {
-        CThreadPool::DoTask([]
+        void Initialize()
         {
-            std::function<void(VkCommandPool)> task = nullptr;
+            const auto total_threads = CThreadPool::GetThreadCount();
 
-            auto device = GetDevice();
-            auto queue_index = GetQueueIndices().graphics;
-
-            VkCommandPool thread_pool = VK_NULL_HANDLE;
-            VkCommandBuffer thread_buffer = VK_NULL_HANDLE;
-
-            VkCommandPoolCreateInfo pool_create_info =
+            for (auto i : range(1, total_threads / 2))
             {
-                .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                .queueFamilyIndex = queue_index
-            };
+                CThreadPool::DoTask([]{
+                    const auto device = GetDevice().handle;
+                    const auto graphics_queue = GetDevice().graphics;
+                    const auto queue_index = GetQueueIndices().graphics;
 
-            VkResult result;
-            result = vkCreateCommandPool(device.handle, &pool_create_info, nullptr, &thread_pool);
-            if(result != VK_SUCCESS)
-            {
-                throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-CreationFail");
-            }
+                    VkCommandPool   thread_pool = CreateThreadPool();
+                    VkCommandBuffer thread_buffer = AllocateThreadBuffer(thread_pool);
+                    VkFence         executed_fence = CreateThreadFence();
 
-            VkCommandBufferAllocateInfo command_buffer_allocate_info =
-            {
-                .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                .commandPool        = thread_pool,
-                .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                .commandBufferCount = 1,
-            };
+                    while (true)
+                    {
+                        std::unique_lock lock(CONDITION_MUTEX);
+                        WORKER_CONDITION.wait(lock, []()
+                        {
+                            return !COMMAND_QUEUE.empty() || STOP_WORKER;
+                        });
 
-            result = vkAllocateCommandBuffers(device.handle, &command_buffer_allocate_info, &thread_buffer);
-            if (result != VK_SUCCESS)
-            {
-                throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-CreationFail");
-            }
+                        if (STOP_WORKER)
+                        {
+                            break;
+                        }
 
-            while (true)
-            {
-                std::unique_lock lock(CONDITION_MUTEX);
-                WORKER_CONDITION.wait(lock, []()
-                {
-                    return !COMMAND_QUEUE.empty() || STOP_WORKER;
+                        auto command_data = COMMAND_QUEUE.get_and_pop_front();
+
+                        BeginRecording(thread_buffer);
+                        command_data.first(thread_buffer);
+                        EndRecording(thread_buffer);
+
+                        VkSubmitInfo submit_info =
+                        {
+                            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                            .commandBufferCount = 1,
+                            .pCommandBuffers    = &thread_buffer
+                        };
+
+                        vkQueueWaitIdle(graphics_queue);
+                        vkQueueSubmit(graphics_queue, 1, &submit_info, executed_fence);
+
+                        vkWaitForFences(device, 1, &executed_fence, VK_TRUE, -1);
+                        vkResetFences(device, 1, &executed_fence);
+                        vkResetCommandBuffer(thread_buffer, 0);
+                        command_data.second.set_value(true);
+                    }
+
+                    ++WORKERS_STOPPED;
+                    vkDestroyFence(device, executed_fence, nullptr);
+                    vkDestroyCommandPool(device, thread_pool, nullptr);
                 });
-
-                if(STOP_WORKER)
-                    break;
-
-                VkCommandBufferBeginInfo buffer_begin_info =
-                {
-                    .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                    .pNext            = nullptr,
-                    .flags            = 0,
-                    .pInheritanceInfo = nullptr
-                };
-
-                result = vkBeginCommandBuffer(thread_buffer, &buffer_begin_info);
-                if (result != VK_SUCCESS)
-                {
-                    throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-UploadFail");
-                }
-
-                for (auto& command : COMMAND_QUEUE.safe_iterator())
-                {
-                    command.first(thread_buffer);
-                }
-
-                result = vkEndCommandBuffer(thread_buffer);
-                if(result != VK_SUCCESS)
-                {
-                    throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-UploadFail");
-                }
-
-                VkSubmitInfo submit_info =
-                {
-                    .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                    .commandBufferCount = 1,
-                    .pCommandBuffers    = &thread_buffer
-                };
-
-                vkQueueSubmit(device.graphics, 1, &submit_info, VK_NULL_HANDLE);
-                vkQueueWaitIdle(device.graphics);
-
-                while (!COMMAND_QUEUE.empty())
-                {
-                    auto& command = COMMAND_QUEUE.front();
-                    command.second.set_value(true);
-                    COMMAND_QUEUE.pop();
-                }
-
-                COMMAND_QUEUE.clear();
-
-                vkResetCommandBuffer(thread_buffer, 0);
             }
+        }
 
-            vkFreeCommandBuffers(device.handle, thread_pool, 1, &thread_buffer);
-            vkDestroyCommandPool(device.handle, thread_pool, nullptr);
-            WORKER_STOPPED = true;
-        });
+        void Destroy()
+        {
+            STOP_WORKER = true;
+            WORKER_CONDITION.notify_all();
+
+            while (WORKERS_STOPPED != CThreadPool::GetThreadCount() / 2) {}
+        }
+
+        std::future<bool> SendAsync(CmdFn&& commands)
+        {
+            auto promise = std::promise<bool>();
+
+            COMMAND_QUEUE.emplace({ std::move(commands), std::move(promise) });
+            auto future = COMMAND_QUEUE.front()
+                            .second
+                            .get_future();
+
+            WORKER_CONDITION.notify_one();
+            return future;
+        }
     }
 
-    void DestroyCommandSubmitter()
+    VkCommandPool CreateThreadPool()
     {
-        STOP_WORKER = true;
-        WORKER_CONDITION.notify_all();
+        const VkCommandPoolCreateInfo pool_create_info =
+        {
+            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = GetQueueIndices().graphics
+        };
 
-        while(!WORKER_STOPPED) {}
+        VkResult result;
+        VkCommandPool pool;
+        result = vkCreateCommandPool(GetDevice().handle, &pool_create_info, nullptr, &pool);
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-PoolCreationFail");
+        }
+
+        return pool;
     }
 
-    std::future<bool> SubmitCommand(CmdFn&& commands)
+    VkCommandBuffer AllocateThreadBuffer(VkCommandPool& pool)
     {
-        auto promise = std::promise<bool>();
-        COMMAND_QUEUE.emplace({ std::move(commands), std::move(promise) });
+        const VkCommandBufferAllocateInfo command_buffer_allocate_info =
+        {
+            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool        = pool,
+            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+        };
 
-        auto future = COMMAND_QUEUE.front()
-                        .second
-                        .get_future();
+        VkResult result;
+        VkCommandBuffer new_buffer;
+        result = vkAllocateCommandBuffers(GetDevice().handle, &command_buffer_allocate_info, &new_buffer);
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-BufferAllocationFail");
+        }
 
-        WORKER_CONDITION.notify_all();
-
-        return future;
+        return new_buffer;
     }
+
+    VkFence CreateThreadFence()
+    {
+        const VkFenceCreateInfo fence_create_info =
+        {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+        };
+
+        VkResult result;
+        VkFence new_fence;
+        result = vkCreateFence(GetDevice().handle, &fence_create_info, nullptr, &new_fence);
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Renderrer-Vulkan-CmdSubmitter-FenceCreationFail");
+        }
+
+        return new_fence;
+    }
+
+    void BeginRecording(const VkCommandBuffer& buffer)
+    {
+        const VkCommandBufferBeginInfo buffer_begin_info =
+        {
+            .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext            = nullptr,
+            .flags            = 0,
+            .pInheritanceInfo = nullptr
+        };
+
+        VkResult result;
+        result = vkBeginCommandBuffer(buffer, &buffer_begin_info);
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-BufferBeginFail");
+        }
+    }
+
+    void EndRecording(const VkCommandBuffer& buffer)
+    {
+        VkResult result;
+        result = vkEndCommandBuffer(buffer);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Renderer-Vulkan-CmdSubmitter-BufferEndFail");
+        }
+    }
+
 }

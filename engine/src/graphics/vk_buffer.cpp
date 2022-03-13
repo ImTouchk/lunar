@@ -99,7 +99,7 @@ namespace Vk
 			.size = dataSize
 		};
 
-		SubmitCommand([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
+		CommandSubmitter::SendAsync([staging_buffer, dst, buffer_copy_region](VkCommandBuffer buffer)
 		{
 			vkCmdCopyBuffer(buffer, staging_buffer, dst, 1, &buffer_copy_region);
 		}).wait();

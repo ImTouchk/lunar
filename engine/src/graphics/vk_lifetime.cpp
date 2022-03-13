@@ -19,8 +19,8 @@ namespace Vk
 		{
 			GetDevice();
             GetMemoryAllocator();
-            CreateCommandSubmitter();
-
+            
+            CommandSubmitter::Initialize();
             BufferManager::Initialize();
 		}
 	}
@@ -31,8 +31,7 @@ namespace Vk
 		if (--RENDERER_COUNT == 0)
 		{
             BufferManager::Destroy();
-
-            DestroyCommandSubmitter();
+            CommandSubmitter::Destroy();
             vmaDestroyAllocator(GetMemoryAllocator());
 			vkDestroyDevice(GetDevice().handle, nullptr);
 		}

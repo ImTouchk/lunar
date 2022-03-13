@@ -131,6 +131,7 @@ namespace Vk
 			};
 
 			vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+			
 
 			if (mesh_commands.size() != 0)
 			{

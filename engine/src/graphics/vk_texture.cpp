@@ -163,7 +163,7 @@ namespace Vk
 
     void TextureManager::convert_tex_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
     {
-        SubmitCommand([&](VkCommandBuffer buffer)
+        CommandSubmitter::SendAsync([&](VkCommandBuffer buffer)
         {
             VkPipelineStageFlags source_stage;
             VkPipelineStageFlags dest_stage;
@@ -215,7 +215,7 @@ namespace Vk
 
     void TextureManager::upload_texture_to_gpu(BufferWrapper& src, VkImage dst, unsigned width, unsigned height, unsigned channels)
     {
-        SubmitCommand([&](VkCommandBuffer buffer)
+        CommandSubmitter::SendAsync([&](VkCommandBuffer buffer)
         {
             VkBufferImageCopy copy_region =
             {
