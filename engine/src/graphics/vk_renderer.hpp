@@ -156,6 +156,7 @@ namespace Vk
         void Destroy();
 
         std::future<bool> SendAsync(CmdFn&& commands);
+        std::future<VkCommandBuffer> Prerecord(CmdFn&& commands, VkCommandBufferUsageFlags flags);
     }
 
     QueueIndices GetQueueIndices();

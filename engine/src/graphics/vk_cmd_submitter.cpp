@@ -11,7 +11,15 @@
 
 namespace Vk
 {
+    struct RecordData
+    {
+        VkBufferUsageFlags usageFlags;
+        CommandSubmitter::CmdFn commands;
+    };
+
+    CThreadSafeQueue<std::pair<RecordData, std::promise<VkCommandBuffer>>>   RECORD_QUEUE  = {};
     CThreadSafeQueue<std::pair<CommandSubmitter::CmdFn, std::promise<bool>>> COMMAND_QUEUE = {};
+
     std::condition_variable WORKER_CONDITION                             = {};
     std::mutex CONDITION_MUTEX                                           = {};
     bool STOP_WORKER                                                     = false;
@@ -21,7 +29,7 @@ namespace Vk
     VkCommandBuffer AllocateThreadBuffer(VkCommandPool& pool);
     VkFence CreateThreadFence();
 
-    void BeginRecording(const VkCommandBuffer& buffer);
+    void BeginRecording(const VkCommandBuffer& buffer, VkCommandBufferUsageFlags flags);
     void EndRecording(const VkCommandBuffer& buffer);
 
     namespace CommandSubmitter
@@ -46,7 +54,7 @@ namespace Vk
                         std::unique_lock lock(CONDITION_MUTEX);
                         WORKER_CONDITION.wait(lock, []()
                         {
-                            return !COMMAND_QUEUE.empty() || STOP_WORKER;
+                            return !COMMAND_QUEUE.empty() || !RECORD_QUEUE.empty() || STOP_WORKER;
                         });
 
                         if (STOP_WORKER)
@@ -54,9 +62,26 @@ namespace Vk
                             break;
                         }
 
+                        if(!RECORD_QUEUE.empty())
+                        {
+                            auto record_data = RECORD_QUEUE.get_and_pop_front();
+
+                            VkCommandBuffer new_buffer = AllocateThreadBuffer(thread_pool);
+                            BeginRecording(new_buffer, record_data.first.usageFlags);
+                            record_data.first.commands(new_buffer);
+                            EndRecording(new_buffer);
+
+                            record_data.second.set_value(new_buffer);
+                        }
+
+                        if(COMMAND_QUEUE.empty())
+                        {
+                            continue;
+                        }
+
                         auto command_data = COMMAND_QUEUE.get_and_pop_front();
 
-                        BeginRecording(thread_buffer);
+                        BeginRecording(thread_buffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
                         command_data.first(thread_buffer);
                         EndRecording(thread_buffer);
 
@@ -89,6 +114,20 @@ namespace Vk
             WORKER_CONDITION.notify_all();
 
             while (WORKERS_STOPPED != CThreadPool::GetThreadCount() / 2) {}
+        }
+
+        std::future<VkCommandBuffer> Prerecord(CmdFn&& commands, VkCommandBufferUsageFlags flags)
+        {
+            auto promise = std::promise<VkCommandBuffer>();
+
+            RECORD_QUEUE.emplace({ RecordData { flags, std::move(commands) }, std::move(promise) });
+
+            auto future = RECORD_QUEUE.front()
+                            .second
+                            .get_future();
+
+            WORKER_CONDITION.notify_one();
+            return future;
         }
 
         std::future<bool> SendAsync(CmdFn&& commands)
@@ -166,13 +205,13 @@ namespace Vk
         return new_fence;
     }
 
-    void BeginRecording(const VkCommandBuffer& buffer)
+    void BeginRecording(const VkCommandBuffer& buffer, VkCommandBufferUsageFlags flags)
     {
         const VkCommandBufferBeginInfo buffer_begin_info =
         {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .pNext            = nullptr,
-            .flags            = 0,
+            .flags            = flags,
             .pInheritanceInfo = nullptr
         };
 
