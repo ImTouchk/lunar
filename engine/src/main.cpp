@@ -6,7 +6,8 @@
 #include "io/filesystem.hpp"
 #include "utils/thread_pool.hpp"
 
-#include "math/vec.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include "utils/stb_image.h"
 
 #ifdef WIN32
 #   define WIN32_LEAN_AND_MEAN
@@ -61,12 +62,30 @@ int main()
         auto shaders = game_renderer.create_shaders(&shader_create_info, 1);
         std::vector<Vertex> vertices =
         {
-            { { 0.0, 0.5, 0.0 }, { 0.0, 0.0 } },
-            { { 0.5,  -0.5, 0.0 }, { 0.0, 0.0 } },
-            { {-0.5,  -0.5, 0.0 }, { 0.0, 0.0 } }
+            { {-0.5f,   0.5f, 0.0f},   {1.0f, 0.0f}},
+            { { 0.5f,   0.5f, 0.0f},   {0.0f, 0.0f}},
+            { { 0.5f,  -0.5f, 0.0f},   {0.0f, 1.0f}},
+            { {-0.5f,  -0.5f, 0.0f},   {1.0f, 1.0f}}
         };
 
-        std::vector<Index> indices = { 0, 1, 2 };
+        std::vector<Index> indices = { 0, 1, 2, 2, 3, 0 };
+
+        int width, height, channels;
+        void* pixels;
+
+        auto tex_bytes = CVirtualPath("Default/statue.jpg").get_bytes();
+
+        pixels = stbi_load_from_memory((stbi_uc*)tex_bytes.data(), tex_bytes.size(), &width, &height, &channels, 4);
+        channels = 4;
+
+        TextureCreateInfo texture_create_info =
+        {
+            .flags    = {},
+            .width    = (unsigned)width,
+            .height   = (unsigned)height,
+            .channels = (unsigned)channels,
+            .pData    = pixels
+        };
 
         auto mesh = game_renderer.create_object(MeshCreateInfo
         {
@@ -75,6 +94,9 @@ int main()
             .indices  = indices,
             .shader   = shaders[0],
         });
+
+        auto texture = game_renderer.create_texture(std::move(texture_create_info));
+        shaders[0].use_texture(texture);
 
         while(game_window.is_active())
         {

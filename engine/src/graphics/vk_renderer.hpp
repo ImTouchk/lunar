@@ -14,6 +14,7 @@
 #include "vk_buffer.hpp"
 #include "vk_shader.hpp"
 #include "vk_object.hpp"
+#include "vk_texture.hpp"
 #include "vk_draw_call.hpp"
 
 class GameWindow;
@@ -122,6 +123,7 @@ namespace Vk
         SyncObjectsWrapper syncObjects;
         ShaderManager shaderManager;
         ObjectManager objectManager;
+        TextureManager textureManager;
         RenderCallManager renderCallManager;
     };
 

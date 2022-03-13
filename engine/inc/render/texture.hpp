@@ -1,5 +1,8 @@
 #pragma once
 #include <cstdint>
+#ifdef VULKAN_RENDERER
+#   include <vulkan/vulkan.h>
+#endif
 
 enum class TextureFlags : uint8_t
 {
@@ -33,6 +36,8 @@ class TextureWrapper
 public:
 #ifdef VULKAN_RENDERER
     TextureWrapper(Vk::TextureManager& textureManager, unsigned handle);
+    [[nodiscard]] VkImageView view() const;
+    [[nodiscard]] VkSampler sampler() const;
 #endif
     ~TextureWrapper() = default;
 

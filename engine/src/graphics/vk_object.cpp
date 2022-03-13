@@ -217,6 +217,7 @@ namespace Vk
 
 			auto graphics_layout = pShaderManager->get_graphics_layout();
 			auto pipeline = mesh.shader.pipeline();
+			auto descriptor = mesh.shader.descriptor();
 			if (pipeline != VK_NULL_HANDLE)
 			{
 				VkDeviceSize offsets[] = { 0 };
@@ -225,6 +226,7 @@ namespace Vk
 				auto vertex_buffer = mesh.vertexBuffer.handle();
 
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_layout, 0, 1, &descriptor, 0, nullptr);
 				vkCmdPushConstants(command_buffer, graphics_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mesh.transform);
 				vkCmdSetViewport(command_buffer, 0, 1, &pSwapchain->get_viewport());
 				vkCmdSetScissor(command_buffer, 0, 1, &pSwapchain->get_scissor());

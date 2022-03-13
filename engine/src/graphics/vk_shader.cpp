@@ -14,6 +14,40 @@ ShaderWrapper::ShaderWrapper(Vk::ShaderManager& manager, Identifier handle)
 {
 }
 
+void ShaderWrapper::use_texture(TextureWrapper& texture)
+{
+    auto desc_set = descriptor();
+
+    const VkDescriptorImageInfo image_info =
+    {
+        .sampler     = texture.sampler(),
+        .imageView   = texture.view(),
+        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    };
+
+    const VkWriteDescriptorSet descriptor_write =
+    {
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext           = nullptr,
+        .dstSet          = desc_set,
+        .dstBinding      = 1,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .pImageInfo      = &image_info
+    };
+
+    vkUpdateDescriptorSets(Vk::GetDevice().handle, 1, &descriptor_write, 0, nullptr);
+}
+
+
+VkDescriptorSet ShaderWrapper::descriptor() const
+{
+    const auto& data = find_by_identifier_safe(manager.shaders, identifier);
+    return data.descriptor;
+}
+
+
 VkPipeline ShaderWrapper::pipeline() const
 {
     const auto& data = find_by_identifier_safe(manager.shaders, identifier);
@@ -46,16 +80,16 @@ namespace Vk
 
     void ShaderManager::create_descriptor_pool()
     {
-        std::array<VkDescriptorSetLayoutBinding, 2> layout_bindings =
+        std::array<VkDescriptorSetLayoutBinding, 1> layout_bindings =
         {
-            VkDescriptorSetLayoutBinding
-            {
-                .binding            = 0,
-                .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-                .descriptorCount    = 1,
-                .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-                .pImmutableSamplers = nullptr,
-            },
+            //VkDescriptorSetLayoutBinding
+            //{
+            //    .binding            = 0,
+            //    .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+            //    .descriptorCount    = 1,
+            //    .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+            //    .pImmutableSamplers = nullptr,
+            //},
             VkDescriptorSetLayoutBinding
             {
                 .binding            = 1,
@@ -82,17 +116,17 @@ namespace Vk
             throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
         }
 
-        const std::array<VkDescriptorPoolSize, 2> pool_sizes =
+        const std::array<VkDescriptorPoolSize, 1> pool_sizes =
         {
-            VkDescriptorPoolSize
-            {
-                .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
-            },
+            //VkDescriptorPoolSize
+            //{
+            //    .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+            //    .descriptorCount = 1
+            //},
             VkDescriptorPoolSize
             {
                 .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+                .descriptorCount = 1
             }
         };
 
@@ -101,7 +135,7 @@ namespace Vk
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext         = nullptr,
             .flags         = 0,
-            .maxSets       = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+            .maxSets       = 100,
             .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
             .pPoolSizes    = pool_sizes.data()
         };
@@ -110,27 +144,6 @@ namespace Vk
         if(result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Shader manager creation failed (vkCreateDescriptorPool didn't return VK_SUCCESS).");
-            throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
-        }
-
-        descriptorSets.fill(VK_NULL_HANDLE);
-
-        std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts;
-        layouts.fill(descriptorLayout);
-
-        VkDescriptorSetAllocateInfo set_allocate_info =
-        {
-            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext              = nullptr,
-            .descriptorPool     = descriptorPool,
-            .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-            .pSetLayouts        = layouts.data()
-        };
-
-        result = vkAllocateDescriptorSets(GetDevice().handle, &set_allocate_info, descriptorSets.data());
-        if(result != VK_SUCCESS)
-        {
-            CDebug::Error("Vulkan Renderer | Shader manager creation failed (vkAllocateDescriptorSets didn't return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
         }
     }
@@ -187,8 +200,6 @@ namespace Vk
         vkDestroyDescriptorPool(GetDevice().handle, descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(GetDevice().handle, descriptorLayout, nullptr);
 
-        descriptorSets.fill(VK_NULL_HANDLE);
-
         active = false;
 
         CDebug::Log("Vulkan Renderer | Shader manager destroyed.");
@@ -198,12 +209,6 @@ namespace Vk
     {
         assert(active == true);
         return graphicsLayout;
-    }
-
-    VkDescriptorSet& ShaderManager::get_descriptor_set(size_t frame)
-    {
-        assert(active == true);
-        return descriptorSets.at(frame);
     }
 
     VkVertexInputBindingDescription ShaderManager::get_vertex_binding_desc()
@@ -225,7 +230,14 @@ namespace Vk
                 .location = 0,
                 .binding  = 0,
                 .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset   = 0,
+                .offset   = offsetof(Vertex, position),
+            },
+            VkVertexInputAttributeDescription
+            {
+                .location = 1,
+                .binding  = 0,
+                .format   = VK_FORMAT_R32G32_SFLOAT,
+                .offset   = offsetof(Vertex, tex_uv)
             }
         };
     }
@@ -432,11 +444,30 @@ namespace Vk
                 continue;
             }
 
+            VkDescriptorSetAllocateInfo set_allocate_info =
+            {
+                .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                .pNext              = nullptr,
+                .descriptorPool     = descriptorPool,
+                .descriptorSetCount = 1,
+                .pSetLayouts        = &descriptorLayout
+            };
+
+            VkResult result;
+            VkDescriptorSet descriptor_set;
+            result = vkAllocateDescriptorSets(GetDevice().handle, &set_allocate_info, &descriptor_set);
+            if (result != VK_SUCCESS)
+            {
+                CDebug::Error("Vulkan Renderer | Shader creation failed (vkAllocateDescriptorSets didn't return VK_SUCCESS).");
+                throw std::runtime_error("Renderer-Vulkan-ShaderManager-DescriptorCreationFail");
+            }
+
             auto final_data = ShaderData
             {
                 .identifier = get_unique_number(),
                 .type       = ShaderType::eGraphics,
-                .handle     = result_pipelines[i]
+                .handle     = result_pipelines[i],
+                .descriptor = descriptor_set
             };
 
             final_handles.emplace_back(ShaderWrapper(*this, final_data.identifier));

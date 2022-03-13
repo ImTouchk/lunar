@@ -1,5 +1,6 @@
 #pragma once
 #include "utils/identifier.hpp"
+#include "render/texture.hpp"
 #include <vector>
 
 #ifdef VULKAN_RENDERER
@@ -24,8 +25,11 @@ public:
 #ifdef VULKAN_RENDERER
 	explicit ShaderWrapper(Vk::ShaderManager& manager, Identifier handle);
 	[[nodiscard]] VkPipeline pipeline() const;
+	[[nodiscard]] VkDescriptorSet descriptor() const;
 #endif
 	~ShaderWrapper() = default;
+
+	void use_texture(TextureWrapper& texture);
 
 private:
 #ifdef VULKAN_RENDERER

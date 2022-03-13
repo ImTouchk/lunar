@@ -20,6 +20,7 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
 
     auto& shader_manager      = internal_data->shaderManager;
     auto& object_manager      = internal_data->objectManager;
+    auto& texture_manager     = internal_data->textureManager;
     auto& render_call_manager = internal_data->renderCallManager;
 
     Vk::SignalRendererCreation();
@@ -37,6 +38,8 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
         .pSurface         = &surface,
         .pShaderManager   = &shader_manager,
     });
+
+    texture_manager.create();
 
     render_call_manager.create
     (Vk::RenderCallManagerCreateInfo
@@ -75,6 +78,7 @@ void GameRenderer::destroy()
     internal_data->renderCallManager.destroy();
     internal_data->objectManager.destroy();
     internal_data->shaderManager.destroy();
+    internal_data->textureManager.destroy();
     internal_data->syncObjects.destroy();
     internal_data->swapchain.destroy();
     internal_data->surface.destroy();
@@ -123,4 +127,10 @@ MeshWrapper GameRenderer::create_object(MeshCreateInfo&& meshCreateInfo)
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     return internal_data->objectManager.create_mesh(std::move(meshCreateInfo));
+}
+
+TextureWrapper GameRenderer::create_texture(TextureCreateInfo&& textureCreateInfo)
+{
+    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    return internal_data->textureManager.create_texture(std::move(textureCreateInfo));
 }

@@ -32,5 +32,5 @@ void MeshWrapper::set_indices(std::vector<Index>&& indices)
 void MeshWrapper::use_texture(TextureWrapper&& texture)
 {
 	auto& data = find_by_identifier_safe(objectManager.meshes, identifier);
-	
+	data.shader.use_texture(texture);
 }

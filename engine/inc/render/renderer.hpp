@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "render/mesh.hpp"
+#include "render/texture.hpp"
 #include "math/vec.hpp"
 
 class GameWindow;
@@ -24,6 +25,7 @@ public:
 
     [[nodiscard]] std::vector<ShaderWrapper> create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
     [[nodiscard]] MeshWrapper create_object(MeshCreateInfo&& meshCreateInfo);
+    [[nodiscard]] TextureWrapper create_texture(TextureCreateInfo&& textureCreateInfo);
 
     void draw();
 

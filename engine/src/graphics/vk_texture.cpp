@@ -12,6 +12,16 @@ TextureWrapper::TextureWrapper(Vk::TextureManager& textureManager, unsigned hand
 {
 }
 
+VkImageView TextureWrapper::view() const
+{
+    const auto& data = find_by_identifier_safe(texture_manager.textures, identifier);
+    return data.view;
+}
+
+VkSampler TextureWrapper::sampler() const
+{
+    return texture_manager.texture_sampler;
+}
 
 namespace Vk
 {
@@ -166,7 +176,11 @@ namespace Vk
 
         buffer.destroy();
 
-        return { *this, new_texture.identifier };
+        auto identifier = new_texture.identifier;
+
+        textures.push_back(std::move(new_texture));
+
+        return { *this, identifier };
     }
 
     void TextureManager::convert_tex_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
