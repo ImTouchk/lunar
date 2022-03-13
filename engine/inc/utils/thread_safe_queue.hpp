@@ -41,6 +41,14 @@ public:
         return queue.front();
     }
 
+    [[nodiscard]] T get_and_pop_front()
+    {
+        std::unique_lock lock(mutex);
+        T value = std::move(queue.front());
+        queue.pop_front();
+        return value;
+    }
+
     [[nodiscard]] unsigned size()
     {
         std::unique_lock lock(mutex);
@@ -51,6 +59,22 @@ public:
     {
         std::unique_lock lock(mutex);
         return queue.empty();
+    }
+
+    // Should be used only when you need to do multiple operations in sync
+    void unsafe_lock()
+    {
+        mutex.lock();
+    }
+
+    void unsafe_unlock()
+    {
+        mutex.unlock();
+    }
+
+    std::deque<T>& unsafe_handle()
+    {
+        return queue;
     }
 
     class CThreadSafeIterable
