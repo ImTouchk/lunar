@@ -113,7 +113,7 @@ void GameRenderer::draw()
     render_call_manager.draw(image_index);
 }
 
-std::vector<Shader> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned int count)
+std::vector<ShaderWrapper> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned int count)
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     return internal_data->shaderManager.create_graphics(pCreateInfos, count);

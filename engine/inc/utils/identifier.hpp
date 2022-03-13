@@ -7,15 +7,18 @@
 #include <vector>
 #include <mutex>
 
+// Just a type alias, however it allows for explicit constructors
+using Identifier = unsigned;
+
 // Returns a simple identifier generated from a thread-safe counter
 // The function guarantees that numbers are obviously given in an ascending order
 // which might prove useful
-inline unsigned get_unique_number()
+inline Identifier get_unique_number()
 {
-	static unsigned counter = 0;
+	static Identifier counter = 0;
 	static std::mutex counter_mutex = {};
 
-	std::lock_guard lock(counter_mutex);
+	std::unique_lock lock(counter_mutex);
 	return ++counter;
 }
 
@@ -32,7 +35,7 @@ T* find_by_identifier(std::vector<T>& elements, unsigned identifier)
 	for (int i = 0; i < elements.size(); i++)
 	{
 		T* pElement = pElements + i;
-		unsigned* pElementId = reinterpret_cast<unsigned*>(pElement);
+		Identifier* pElementId = reinterpret_cast<Identifier*>(pElement);
 		if (*pElementId == identifier)
 		{
 			return pElement;
@@ -62,7 +65,7 @@ void delete_element_with_identifier(std::vector<T>& elements, unsigned identifie
 	for (int i = 0; i < elements.size(); i++)
 	{
 		T* pElement = pElements + i;
-		unsigned* pElementId = reinterpret_cast<unsigned*>(pElement);
+		Identifier* pElementId = reinterpret_cast<Identifier*>(pElement);
 		if (*pElementId == identifier)
 		{
 			elements.erase(elements.begin() + i);

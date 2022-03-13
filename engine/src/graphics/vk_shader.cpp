@@ -5,16 +5,23 @@
 #include "render/renderer.hpp"
 
 #include <vulkan/vulkan.h>
-#include <stdexcept>
-#include <cassert>
 #include <vector>
 #include <mutex>
 #include <any>
 
+ShaderWrapper::ShaderWrapper(Vk::ShaderManager& manager, Identifier handle)
+    : manager(manager), identifier(handle)
+{
+}
+
+VkPipeline ShaderWrapper::pipeline() const
+{
+    const auto& data = find_by_identifier_safe(manager.shaders, identifier);
+    return data.handle;
+}
+
 namespace Vk
 {
-    std::mutex SHADERS_VECTOR_MUTEX = {};
-
     VkShaderModule CreateModule(const std::vector<char>& code)
     {
         VkShaderModuleCreateInfo module_create_info =
@@ -37,34 +44,99 @@ namespace Vk
         return module;
     }
 
-    void ShaderManager::create(SwapchainWrapper& swapchain)
+    void ShaderManager::create_descriptor_pool()
     {
-        pSwapchain = &swapchain;
-
-        VkDescriptorSetLayoutBinding sampler_layout_binding =
+        std::array<VkDescriptorSetLayoutBinding, 2> layout_bindings =
         {
-            .binding            = 1,
-            .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount    = 1,
-            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .pImmutableSamplers = nullptr,
+            VkDescriptorSetLayoutBinding
+            {
+                .binding            = 0,
+                .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                .descriptorCount    = 1,
+                .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+                .pImmutableSamplers = nullptr,
+            },
+            VkDescriptorSetLayoutBinding
+            {
+                .binding            = 1,
+                .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount    = 1,
+                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = nullptr,
+            }
         };
 
-        VkDescriptorSetLayoutCreateInfo layout_create_info =
+        const VkDescriptorSetLayoutCreateInfo layout_create_info =
         {
             .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 1,
-            .pBindings    = &sampler_layout_binding,
+            .pNext        = nullptr,
+            .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
+            .pBindings    = layout_bindings.data()
         };
 
         VkResult result;
         result = vkCreateDescriptorSetLayout(GetDevice().handle, &layout_create_info, nullptr, &descriptorLayout);
-        if(result != VK_SUCCESS)
+        if (result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Shader manager creation fail (vkCreateDescriptorSetLayout didn't return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
         }
 
+        const std::array<VkDescriptorPoolSize, 2> pool_sizes =
+        {
+            VkDescriptorPoolSize
+            {
+                .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+            },
+            VkDescriptorPoolSize
+            {
+                .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+            }
+        };
+
+        const VkDescriptorPoolCreateInfo pool_create_info =
+        {
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .pNext         = nullptr,
+            .flags         = 0,
+            .maxSets       = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+            .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
+            .pPoolSizes    = pool_sizes.data()
+        };
+
+        result = vkCreateDescriptorPool(GetDevice().handle, &pool_create_info, nullptr, &descriptorPool);
+        if(result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Shader manager creation failed (vkCreateDescriptorPool didn't return VK_SUCCESS).");
+            throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
+        }
+
+        descriptorSets.fill(VK_NULL_HANDLE);
+
+        std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts;
+        layouts.fill(descriptorLayout);
+
+        VkDescriptorSetAllocateInfo set_allocate_info =
+        {
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext              = nullptr,
+            .descriptorPool     = descriptorPool,
+            .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+            .pSetLayouts        = layouts.data()
+        };
+
+        result = vkAllocateDescriptorSets(GetDevice().handle, &set_allocate_info, descriptorSets.data());
+        if(result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Shader manager creation failed (vkAllocateDescriptorSets didn't return VK_SUCCESS).");
+            throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
+        }
+    }
+
+    void ShaderManager::create_graphics_layout()
+    {
         VkPushConstantRange push_constant =
         {
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
@@ -72,7 +144,7 @@ namespace Vk
             .size       = sizeof(glm::mat4),
         };
 
-        VkPipelineLayoutCreateInfo pipeline_layout_create_info =
+        const VkPipelineLayoutCreateInfo pipeline_layout_create_info =
         {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount         = 1,
@@ -81,60 +153,32 @@ namespace Vk
             .pPushConstantRanges    = &push_constant
         };
 
+        VkResult result;
         result = vkCreatePipelineLayout(GetDevice().handle, &pipeline_layout_create_info, nullptr, &graphicsLayout);
         if (result != VK_SUCCESS)
         {
             CDebug::Error("Vulkan Renderer | Shader manager creation fail (vkCreatePipelineLayout didn't return VK_SUCCESS).");
             throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
         }
+    }
 
-        VkDescriptorPoolSize pool_size =
-        {
-            .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
-        };
+    void ShaderManager::create(SwapchainWrapper& swapchain)
+    {
+        assert(not active);
 
-        VkDescriptorPoolCreateInfo pool_create_info =
-        {
-            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-            .poolSizeCount = static_cast<uint32_t>(1),
-            .pPoolSizes    = &pool_size,
-        };
+        pSwapchain = &swapchain;
 
-        result = vkCreateDescriptorPool(GetDevice().handle, &pool_create_info, nullptr, &descriptorPool);
-        if(result != VK_SUCCESS)
-        {
-            CDebug::Error("Vulkan Renderer | Shader manager creation fail (vkCreateDescriptorPool didn't return VK_SUCCESS).");
-            throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
-        }
+        create_descriptor_pool();
+        create_graphics_layout();
 
-        descriptorSets.resize(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
-
-        std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts;
-        layouts.fill(descriptorLayout);
-
-        VkDescriptorSetAllocateInfo set_allocate_info =
-        {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool = descriptorPool,
-            .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-            .pSetLayouts        = layouts.data(),
-        };
-
-        result = vkAllocateDescriptorSets(GetDevice().handle, &set_allocate_info, descriptorSets.data());
-        if(result != VK_SUCCESS)
-        {
-            CDebug::Error("Vulkan Renderer | Shader manager creation fail (vkAllocateDescriptorSets didn't return VK_SUCCESS).");
-            throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
-        }
-
-        CDebug::Log("Vulkan Renderer | Shader manager created.");
+        active = true;
     }
 
     void ShaderManager::destroy()
     {
-        for(auto& shader : shaders)
+        assert(active == true);
+
+        for(const auto& shader : shaders)
         {
             vkDestroyPipeline(GetDevice().handle, shader.handle, nullptr);
         }
@@ -143,20 +187,23 @@ namespace Vk
         vkDestroyDescriptorPool(GetDevice().handle, descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(GetDevice().handle, descriptorLayout, nullptr);
 
+        descriptorSets.fill(VK_NULL_HANDLE);
+
+        active = false;
+
         CDebug::Log("Vulkan Renderer | Shader manager destroyed.");
     }
 
-    VkPipeline ShaderManager::try_get(Shader handle) const
+    VkPipelineLayout& ShaderManager::get_graphics_layout()
     {
-        if(handle >= shaders.size())
-            return VK_NULL_HANDLE;
-
-        return shaders[handle].handle;
+        assert(active == true);
+        return graphicsLayout;
     }
 
-    VkPipelineLayout ShaderManager::get_graphics_layout() const
+    VkDescriptorSet& ShaderManager::get_descriptor_set(size_t frame)
     {
-        return graphicsLayout;
+        assert(active == true);
+        return descriptorSets.at(frame);
     }
 
     VkVertexInputBindingDescription ShaderManager::get_vertex_binding_desc()
@@ -183,8 +230,10 @@ namespace Vk
         };
     }
 
-    std::vector<Shader> ShaderManager::create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count)
+    std::vector<ShaderWrapper> ShaderManager::create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count)
     {
+        assert(active == true);
+
         auto vertex_binding_desc = get_vertex_binding_desc();
         auto vertex_attribute_desc = get_vertex_attribute_desc();
 
@@ -309,15 +358,15 @@ namespace Vk
         };
 
         auto pipeline_stage_create_infos = std::unique_ptr<CreateInfoData[]>(new CreateInfoData[count]);
-        auto pipeline_create_infos = std::unique_ptr<VkGraphicsPipelineCreateInfo[]>(new VkGraphicsPipelineCreateInfo[count]);
-        auto result_pipelines = std::unique_ptr<VkPipeline[]>(new VkPipeline[count]);
-        auto shaders_to_compile = 0;
+        auto pipeline_create_infos       = std::unique_ptr<VkGraphicsPipelineCreateInfo[]>(new VkGraphicsPipelineCreateInfo[count]);
+        auto result_pipelines            = std::unique_ptr<VkPipeline[]>(new VkPipeline[count]);
+        auto shaders_to_compile          = 0;
 
         for (auto i : range(0, count - 1))
         {
             auto& create_info = pCreateInfos[i];
 
-            auto vertex_module = Vk::CreateModule(create_info.vertexCode);
+            auto vertex_module   = Vk::CreateModule(create_info.vertexCode);
             auto fragment_module = Vk::CreateModule(create_info.fragmentCode);
 
             if (vertex_module == VK_NULL_HANDLE || fragment_module == VK_NULL_HANDLE)
@@ -374,9 +423,7 @@ namespace Vk
         vkCreateGraphicsPipelines(GetDevice().handle, nullptr, shaders_to_compile, pipeline_create_infos.get(), nullptr, result_pipelines.get());
 
         auto start_index = shaders.size();
-        auto final_handles = std::vector<unsigned>();
-
-        std::lock_guard<std::mutex> lock_guard(SHADERS_VECTOR_MUTEX);
+        auto final_handles = std::vector<ShaderWrapper>();
         auto compiled_pipelines = 0;
         for (auto i : range(0, shaders_to_compile - 1))
         {
@@ -385,13 +432,15 @@ namespace Vk
                 continue;
             }
 
-            shaders.push_back(Vk::ShaderData
+            auto final_data = ShaderData
             {
-                .type   = Vk::ShaderType::eGraphics,
-                .handle = result_pipelines[i]
-            });
+                .identifier = get_unique_number(),
+                .type       = ShaderType::eGraphics,
+                .handle     = result_pipelines[i]
+            };
 
-            final_handles.push_back(static_cast<Shader>(start_index + i));
+            final_handles.emplace_back(ShaderWrapper(*this, final_data.identifier));
+            shaders.push_back(std::move(final_data));
         }
 
         CDebug::Log("Vulkan Renderer | Compiled {} (graphics) pipelines.", final_handles.size());

@@ -19,9 +19,9 @@ namespace Vk
 
 	struct DrawableObjectData
 	{
-		unsigned identifier;
+		Identifier identifier;
 		MeshType type;
-		Shader shader;
+		ShaderWrapper shader;
 		BufferWrapper vertexBuffer;
 		BufferWrapper indexBuffer;
 		bool wasModified;

@@ -146,10 +146,10 @@ namespace Vk
 			.indices      = {},
 		};
 
-		unsigned identifier = object_data.identifier;
+		auto identifier = object_data.identifier;
 
 		meshes.push_back(std::move(object_data));
-		return { *this, identifier };
+		return MeshWrapper { *this, identifier };
 	}
 
 	bool ObjectManager::cmd_buffers_need_rebuilding()
@@ -216,7 +216,7 @@ namespace Vk
 			}
 
 			auto graphics_layout = pShaderManager->get_graphics_layout();
-			auto pipeline = pShaderManager->try_get(mesh.shader);
+			auto pipeline = mesh.shader.pipeline();
 			if (pipeline != VK_NULL_HANDLE)
 			{
 				VkDeviceSize offsets[] = { 0 };

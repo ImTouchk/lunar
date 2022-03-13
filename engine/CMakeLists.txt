@@ -29,16 +29,17 @@ target_compile_definitions("lunar" PRIVATE
 if(LUNAR_COUNT_HEADERS_AS_SOURCE)
     target_sources("lunar" PRIVATE
         "inc/render/window.hpp"
-        "inc/render/renderer.hpp"
         "inc/render/mesh.hpp"
+        "inc/render/shader.hpp"
+        "inc/render/renderer.hpp"
         "inc/render/texture.hpp"
         "inc/utils/debug.hpp"
         "inc/utils/range.hpp"
-        "inc/utils/thread_pool.hpp"
         "inc/utils/identifier.hpp"
-        "inc/utils/stb_image.h"
+        "inc/utils/thread_pool.hpp"
         "inc/utils/thread_safe_queue.hpp"
         "inc/io/filesystem.hpp"
+        "inc/utils/stb_image.h"
         #"inc/math/vec.hpp"
     )
 endif()
@@ -84,8 +85,8 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         "src/graphics/vk_draw_call.hpp"
         "src/graphics/vk_draw_call.cpp"
         "src/graphics/vk_cmd_submitter.cpp"
-        #"src/graphics/vk_texture.hpp"
-        #"src/graphics/vk_texture.cpp"
+        "src/graphics/vk_texture.hpp"
+        "src/graphics/vk_texture.cpp"
     )
 endif()
 

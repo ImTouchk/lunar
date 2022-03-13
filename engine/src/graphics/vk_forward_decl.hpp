@@ -10,4 +10,6 @@ namespace Vk
     struct ShaderManager;
     class ObjectManager;
     class RenderCallManager;
+
+    constexpr unsigned MAX_FRAMES_IN_FLIGHT = 2;
 }
