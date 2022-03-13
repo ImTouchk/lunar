@@ -20,7 +20,12 @@ enum class MeshType
     eDynamic
 };
 
-using Vertex = glm::vec3;
+struct Vertex
+{
+    glm::vec3 position;
+    glm::vec2 tex_uv;
+};
+
 using Index = uint16_t;
 
 struct MeshCreateInfo

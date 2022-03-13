@@ -33,11 +33,6 @@ int main()
         CThreadPool::Initialize();
         CFilesystem::LoadPackage("default.vpak");
 
-        auto res = CThreadPool::DoTaskAsync([](int a, int b) -> int { return a + b; }, 5, 7);
-        res.wait();
-
-        CDebug::Log("Res: {}", res.get());
-
         GameWindow game_window;
         game_window.create(WindowCreateInfo
         {
@@ -66,9 +61,9 @@ int main()
         auto shaders = game_renderer.create_shaders(&shader_create_info, 1);
         std::vector<Vertex> vertices =
         {
-            { 0.0, -0.5, 0.0 },
-            { 0.5,  0.5, 0.0 },
-            {-0.5,  0.5, 0.0 }
+            { { 0.0, 0.5, 0.0 }, { 0.0, 0.0 } },
+            { { 0.5,  -0.5, 0.0 }, { 0.0, 0.0 } },
+            { {-0.5,  -0.5, 0.0 }, { 0.0, 0.0 } }
         };
 
         std::vector<Index> indices = { 0, 1, 2 };
@@ -85,23 +80,6 @@ int main()
         {
             if(!game_window.is_minimized())
             {
-                mesh.set_vertices
-                ({
-                    {-0.5, -0.5, 0.0 },
-                    {-0.5,  0.5, 0.0 },
-                    { 0.5,  0.5, 0.0 },
-
-                    { 0.5,  0.5, 0.0 },
-                    { 0.5, -0.5, 0.0 },
-                    {-0.5, -0.5, 0.0 },
-                });
-
-                mesh.set_indices
-                ({
-                    0, 1, 2,
-                    3, 4, 5
-                });
-
                 game_renderer.draw();
             }
 

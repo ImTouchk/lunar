@@ -7,6 +7,12 @@
 #include <vulkan/vulkan.h>
 #include <future>
 
+TextureWrapper::TextureWrapper(Vk::TextureManager& textureManager, unsigned handle)
+    : texture_manager(textureManager), identifier(handle)
+{
+}
+
+
 namespace Vk
 {
     void TextureManager::create()
@@ -159,6 +165,8 @@ namespace Vk
         }
 
         buffer.destroy();
+
+        return { *this, new_texture.identifier };
     }
 
     void TextureManager::convert_tex_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
