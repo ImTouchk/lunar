@@ -22,7 +22,7 @@ namespace Vk
     class TextureManager
     {
     public:
-        friend class TextureWrapper;
+        friend class ::TextureWrapper;
 
         TextureManager() = default;
         ~TextureManager() = default;
