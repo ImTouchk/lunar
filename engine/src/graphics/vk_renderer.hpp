@@ -150,13 +150,18 @@ namespace Vk
 
     namespace CommandSubmitter
     {
-        using CmdFn = std::function<void(VkCommandBuffer)>;
-
         void Initialize();
         void Destroy();
 
-        std::future<bool> SendAsync(CmdFn&& commands);
-        std::future<VkCommandBuffer> Prerecord(CmdFn&& commands, VkCommandBufferUsageFlags flags);
+        struct AdditionalRecordData
+        {
+            VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            std::optional<VkCommandBufferInheritanceInfo> inheritanceInfo;
+            std::optional<VkCommandBufferBeginInfo> beginInfo;
+        };
+
+        std::future<std::any> SubmitAsync(CommandRecordFn&& commands, VkSubmitInfo submitInfo = {});
+        std::future<std::any> RecordAsync(CommandRecordFn&& commands, AdditionalRecordData&& recordData = {});
     }
 
     QueueIndices GetQueueIndices();

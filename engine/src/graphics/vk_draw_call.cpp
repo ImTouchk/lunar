@@ -20,49 +20,12 @@ namespace Vk
 		pSyncObjects = createInfo.pSyncObjects;
 		pObjectManager = createInfo.pObjectManager;
 
-		VkCommandPoolCreateInfo pool_create_info =
-		{
-			.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-			.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			.queueFamilyIndex = GetQueueIndices().graphics
-		};
-
-		VkResult result;
-		result = vkCreateCommandPool(GetDevice().handle, &pool_create_info, nullptr, &cmd_pool);
-		if (result != VK_SUCCESS)
-		{
-			CDebug::Error("Vulkan Renderer | Render call manager creation fail (vkCreateCommandPool didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-RenderCallManager-CreationFail");
-		}
-
-		cmd_buffers.resize(pSwapchain->frame_buffers().size(), VK_NULL_HANDLE);
-
-		VkCommandBufferAllocateInfo buffer_allocate_info =
-		{
-			.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			.commandPool        = cmd_pool,
-			.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			.commandBufferCount = static_cast<uint32_t>(cmd_buffers.size())
-		};
-
-		result = vkAllocateCommandBuffers(GetDevice().handle, &buffer_allocate_info, cmd_buffers.data());
-		if (result != VK_SUCCESS)
-		{
-			CDebug::Error("Vulkan Renderer | Render call manager creation fail (vkAllocateCommandBuffers didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-RenderCallManager-CreationFail");
-		}
-
 		active = true;
-		
-		CDebug::Log("Vulkan Renderer | Render call manager created.");
 	}
 
 	void RenderCallManager::destroy()
 	{
 		assert(active == true);
-
-		vkFreeCommandBuffers(GetDevice().handle, cmd_pool, static_cast<uint32_t>(cmd_buffers.size()), cmd_buffers.data());
-		vkDestroyCommandPool(GetDevice().handle, cmd_pool, nullptr);
 
 		pSurface = nullptr;
 		pSwapchain = nullptr;
@@ -81,72 +44,6 @@ namespace Vk
 
 	void RenderCallManager::update()
 	{
-		assert(active == true);
-
-		if (!pObjectManager->cmd_buffers_need_rebuilding())
-		{
-			return;
-		}
-
-		auto& mesh_commands = pObjectManager->mesh_commands();
-
-		for (int i = 0; i < cmd_buffers.size(); i++)
-		{
-			auto& command_buffer = cmd_buffers[i];
-			vkResetCommandBuffer(command_buffer, 0);
-			
-			VkCommandBufferBeginInfo buffer_begin_info =
-			{
-				.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-				.flags            = 0,
-				.pInheritanceInfo = nullptr
-			};
-
-			VkResult result;
-			result = vkBeginCommandBuffer(command_buffer, &buffer_begin_info);
-			if (result != VK_SUCCESS)
-			{
-				CDebug::Error("Vulkan Renderer | Failed to prepare command buffers for frame {} (vkBeginCommandBuffer didn't return VK_SUCCESS).", i);
-				continue;
-			}
-
-			VkClearValue clear_values[2] =
-			{
-				{.color        = { 0.f, 0.f, 0.f, 1.f } },
-				{.depthStencil = { 1.f, 0 } }
-			};
-
-			VkRenderPassBeginInfo render_pass_begin_info =
-			{
-				.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-				.renderPass  = pSwapchain->render_pass(),
-				.framebuffer = pSwapchain->frame_buffers()[i],
-				.renderArea  =
-				{
-					.offset = { 0, 0 },
-					.extent = pSwapchain->surface_extent()
-				},
-				.clearValueCount = 2,
-				.pClearValues    = clear_values,
-			};
-
-			vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-			
-
-			if (mesh_commands.size() != 0)
-			{
-				vkCmdExecuteCommands(command_buffer, static_cast<uint32_t>(mesh_commands.size()), mesh_commands.data());
-			}
-
-			vkCmdEndRenderPass(command_buffer);
-
-			result = vkEndCommandBuffer(command_buffer);
-			if (result != VK_SUCCESS)
-			{
-				CDebug::Error("Vulkan Renderer | Failed to prepare command buffers for frame {} (vkEndCommandBuffer didn't return VK_SUCCESS).", i);
-				continue;
-			}
-		}
 	}
 
 	void RenderCallManager::draw(uint32_t image)
@@ -170,29 +67,50 @@ namespace Vk
 			pSyncObjects->rendering_finished(current_frame)
 		};
 
-		VkCommandBuffer& buffer = cmd_buffers[image];
-
 		VkSubmitInfo submit_info =
 		{
-			.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 			.waitSemaphoreCount   = 1,
 			.pWaitSemaphores      = wait_semaphores,
 			.pWaitDstStageMask    = wait_stages,
-			.commandBufferCount   = 1,
-			.pCommandBuffers      = &buffer,
 			.signalSemaphoreCount = 1,
 			.pSignalSemaphores    = signal_semaphores
 		};
 
 		vkResetFences(GetDevice().handle, 1, &pSyncObjects->in_flight_fence(current_frame));
 
-		VkResult result;
-		result = vkQueueSubmit(GetDevice().graphics, 1, &submit_info, pSyncObjects->in_flight_fence(current_frame));
-		if (result != VK_SUCCESS)
+		auto frame = current_frame;
+		auto swapchain = pSwapchain;
+		auto mesh_buffers = pObjectManager->mesh_commands();
+
+		CommandSubmitter::SubmitAsync([mesh_buffers, swapchain, frame](VkCommandBuffer& buffer)
 		{
-			CDebug::Error("Vulkan Renderer | Failed to render a frame (vkQueueSubmit didn't return VK_SUCCESS).");
-			return;
-		}
+			VkClearValue clear_values[2] =
+			{
+				{.color = { 0.f, 0.f, 0.f, 1.f } },
+				{.depthStencil = { 1.f, 0 } }
+			};
+
+			VkRenderPassBeginInfo render_pass_begin_info =
+			{
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.renderPass  = swapchain->render_pass(),
+				.framebuffer = swapchain->frame_buffers()[frame],
+				.renderArea  =
+				{
+					.offset = { 0, 0 },
+					.extent = swapchain->surface_extent()
+				},
+				.clearValueCount = 2,
+				.pClearValues    = clear_values,
+			};
+
+			vkCmdBeginRenderPass(buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+			if (mesh_buffers.size() != 0)
+			{
+				vkCmdExecuteCommands(buffer, static_cast<uint32_t>(mesh_buffers.size()), mesh_buffers.data());
+			}
+			vkCmdEndRenderPass(buffer);
+		}, submit_info).wait();
 
 		VkSwapchainKHR swapchains[] =
 		{

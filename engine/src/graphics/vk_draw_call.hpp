@@ -35,8 +35,6 @@ namespace Vk
 
 		bool active = false;
 
-		VkCommandPool cmd_pool = VK_NULL_HANDLE;
-		std::vector<VkCommandBuffer> cmd_buffers = {};
 		size_t current_frame = 0;
 	};
 

@@ -20,23 +20,6 @@ namespace Vk
 		pSwapchain = createInfo.pSwapchain;
 		pShaderManager = createInfo.pShaderManager;
 
-		auto queue_indices = GetQueueIndices();
-
-		VkCommandPoolCreateInfo pool_create_info =
-		{
-			.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-			.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			.queueFamilyIndex = queue_indices.graphics
-		};
-
-		VkResult result;
-		result = vkCreateCommandPool(GetDevice().handle, &pool_create_info, nullptr, &command_pool);
-		if (result != VK_SUCCESS)
-		{
-			CDebug::Error("Vulkan Renderer | Object manager creation failed (vkCreateCommandPool didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-ObjectManager-CreationFail");
-		}
-
 		active = true;
 		
 		CDebug::Log("Vulkan Renderer | Object manager created.");
@@ -52,8 +35,6 @@ namespace Vk
 			mesh.vertexBuffer.destroy();
 		}
 
-		vkDestroyCommandPool(GetDevice().handle, command_pool, nullptr);
-
 		meshes.clear();
 
 		scissor  = {};
@@ -67,49 +48,30 @@ namespace Vk
 
 	void ObjectManager::update()
 	{
-		bool do_rebuild = false;
-		
-		if (mesh_command_buffers.size() != meshes.size())
+		for(auto& mesh : meshes)
 		{
-			if (mesh_command_buffers.empty())
+			if(mesh.wasModified)
 			{
-				mesh_command_buffers.resize(meshes.size(), VK_NULL_HANDLE);
-				create_cmd_buffers(command_pool, mesh_command_buffers.data(), static_cast<unsigned>(meshes.size()));
-				CDebug::Log("Vulkan Renderer | Created {} initial secondary command buffers.", meshes.size());
+				rebuild_mesh_command(mesh);
+			}
+		}
+
+		for (int i = 0; i < pending_buffers.size();)
+		{
+			const auto& identifier = pending_buffers[i].first;
+			auto& future_value = pending_buffers[i].second;
+
+			if(future_value.valid())
+			{
+				auto& mesh = find_by_identifier_safe(meshes, identifier);
+				mesh.command = std::any_cast<GpuCommand>(future_value.get());
+
+				pending_buffers.erase(pending_buffers.begin() + i);
 			}
 			else
 			{
-				auto old_size = mesh_command_buffers.size();
-				mesh_command_buffers.insert
-				(
-					mesh_command_buffers.end(),
-					meshes.size() - old_size,
-					VK_NULL_HANDLE
-				);
-
-				auto* pBuffer = mesh_command_buffers.data() + old_size;
-				create_cmd_buffers(command_pool, mesh_command_buffers.data(), static_cast<unsigned>(meshes.size()));
-				CDebug::Log("Vulkan Renderer | Created {} new secondary command buffers.", meshes.size() - old_size);
+				i++;
 			}
-
-			do_rebuild = true;
-		}
-
-		if (not do_rebuild)
-		{
-			for (const auto& mesh : meshes)
-			{
-				if (mesh.wasModified)
-				{
-					do_rebuild = true;
-				}
-			}
-		}
-
-		if (do_rebuild)
-		{
-			rebuild_cmd_buffers();
-			command_buffers_modified = true;
 		}
 	}
 
@@ -152,102 +114,73 @@ namespace Vk
 		return MeshWrapper { *this, identifier };
 	}
 
-	bool ObjectManager::cmd_buffers_need_rebuilding()
+	void ObjectManager::rebuild_mesh_command(DrawableObjectData& object)
 	{
-		bool last_value = command_buffers_modified;
-		command_buffers_modified = false;
-		return last_value;
-	}
-
-	void ObjectManager::create_cmd_buffers(VkCommandPool pool, VkCommandBuffer* pBuffer, unsigned count)
-	{
-		VkCommandBufferAllocateInfo buffer_allocate_info =
+		VkCommandBufferInheritanceInfo buffer_inheritance_info =
 		{
-			.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			.commandPool        = pool,
-			.level              = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
-			.commandBufferCount = static_cast<uint32_t>(count)
+			.sType                = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+			.pNext                = nullptr,
+			.renderPass           = pSwapchain->render_pass(),
+			.subpass              = 0,
+			.framebuffer          = VK_NULL_HANDLE,
+			.occlusionQueryEnable = VK_FALSE,
+			.queryFlags           = 0,
+			.pipelineStatistics   = 0
 		};
 
-		VkResult result;
-		result = vkAllocateCommandBuffers(GetDevice().handle, &buffer_allocate_info, pBuffer);
-		if (result != VK_SUCCESS)
+		VkCommandBufferBeginInfo buffer_begin_info =
 		{
-			CDebug::Error("Vulkan Renderer | Failed to update object manager (vkAllocateCommandBuffers didn't return VK_SUCCESS).");
-			throw std::runtime_error("Renderer-Vulkan-ObjectManager-UpdateFail");
-		}
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+		};
+
+		SwapchainWrapper* swapchain = pSwapchain;
+
+		const auto graphics_layout = pShaderManager->get_graphics_layout();
+
+		auto res = CommandSubmitter::RecordAsync([&object, graphics_layout, swapchain](VkCommandBuffer buffer)
+		{
+			const auto shader = object.shader.pipeline();
+			const auto shader_desc = object.shader.descriptor();
+			const auto index_buffer = object.indexBuffer.handle();
+			const auto vertex_buffer = object.vertexBuffer.handle();
+
+			if(shader == VK_NULL_HANDLE || vertex_buffer == VK_NULL_HANDLE)
+			{
+				return;
+			}
+
+			VkDeviceSize offsets[] = { 0 };
+
+			vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader);
+			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_layout, 0, 1, &shader_desc, 0, nullptr);
+			vkCmdPushConstants(buffer, graphics_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &object.transform);
+			vkCmdSetViewport(buffer, 0, 1, &swapchain->get_viewport());
+			vkCmdSetScissor(buffer, 0, 1, &swapchain->get_scissor());
+			vkCmdBindVertexBuffers(buffer, 0, 1, &vertex_buffer, offsets);
+			vkCmdBindIndexBuffer(buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
+			vkCmdDrawIndexed(buffer, object.indexCount, 1, 0, 0, 0);
+		}, 
+		CommandSubmitter::AdditionalRecordData 
+		{
+			.level           = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
+			.inheritanceInfo = buffer_inheritance_info,
+			.beginInfo       = buffer_begin_info,
+		});
+
+		pending_buffers.push_back({ object.identifier, res.share() });
 	}
 
-	void ObjectManager::rebuild_cmd_buffers()
+	std::vector<VkCommandBuffer> ObjectManager::mesh_commands() const
 	{
-		for (int i = 0; i < meshes.size(); i++)
+		auto final_handles = std::vector<VkCommandBuffer>();
+		for(int i = 0; i < meshes.size(); i++)
 		{
-			auto& mesh = meshes[i];
-			auto& command_buffer = mesh_command_buffers[i];
-
-			if (!mesh.wasModified)
-				continue;
-
-			VkCommandBufferInheritanceInfo buffer_inheritance_info =
+			if(meshes[i].command.handle() != VK_NULL_HANDLE)
 			{
-				.sType                = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-				.pNext                = nullptr,
-				.renderPass           = pSwapchain->render_pass(),
-				.subpass              = 0,
-				.framebuffer          = VK_NULL_HANDLE,
-				.occlusionQueryEnable = VK_FALSE,
-				.queryFlags           = 0,
-				.pipelineStatistics   = 0
-			};
-
-			VkCommandBufferBeginInfo buffer_begin_info =
-			{
-				.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-				.flags            = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-				.pInheritanceInfo = &buffer_inheritance_info
-			};
-
-			VkResult result;
-			result = vkBeginCommandBuffer(command_buffer, &buffer_begin_info);
-			if (result != VK_SUCCESS)
-			{
-				CDebug::Error("Vulkan Renderer | Failed to update object manager (vkBeginCommandBuffer didn't return VK_SUCCESS).");
-				throw std::runtime_error("Renderer-Vulkan-ObjectManager-UpdateFail");
+				final_handles.push_back(meshes[i].command.handle());
 			}
-
-			auto graphics_layout = pShaderManager->get_graphics_layout();
-			auto pipeline = mesh.shader.pipeline();
-			auto descriptor = mesh.shader.descriptor();
-			if (pipeline != VK_NULL_HANDLE)
-			{
-				VkDeviceSize offsets[] = { 0 };
-
-				auto index_buffer = mesh.indexBuffer.handle();
-				auto vertex_buffer = mesh.vertexBuffer.handle();
-
-				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_layout, 0, 1, &descriptor, 0, nullptr);
-				vkCmdPushConstants(command_buffer, graphics_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mesh.transform);
-				vkCmdSetViewport(command_buffer, 0, 1, &pSwapchain->get_viewport());
-				vkCmdSetScissor(command_buffer, 0, 1, &pSwapchain->get_scissor());
-				vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, offsets);
-				vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
-				vkCmdDrawIndexed(command_buffer, mesh.indexCount, 1, 0, 0, 0);
-			}
-
-			result = vkEndCommandBuffer(command_buffer);
-			if (result != VK_SUCCESS)
-			{
-				CDebug::Error("Vulkan Renderer | Failed to update object manager (vkEndCommandBuffer didn't return VK_SUCCESS).");
-				throw std::runtime_error("Renderer-Vulkan-ObjectManager-UpdateFail");
-			}
-
-			mesh.wasModified = false;
 		}
-	}
-
-	const std::vector<VkCommandBuffer>& ObjectManager::mesh_commands() const
-	{
-		return mesh_command_buffers;
+		return final_handles;
 	}
 }

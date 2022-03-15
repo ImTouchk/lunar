@@ -7,6 +7,7 @@
 #include <vk_mem_alloc.h>
 #include <optional>
 #include <vector>
+#include <future>
 
 namespace Vk
 {
@@ -28,6 +29,7 @@ namespace Vk
 		unsigned vertexCount;
 		unsigned indexCount;
 		glm::mat4 transform;
+		GpuCommand command;
 		
 		std::optional<std::vector<Vertex>> vertices;
 		std::optional<std::vector<unsigned>> indices;
@@ -45,16 +47,13 @@ namespace Vk
 		void destroy();
 
 		void update();
-		void handle_resize();
 
-		bool cmd_buffers_need_rebuilding();
-		const std::vector<VkCommandBuffer>& mesh_commands() const;
+		[[nodiscard]] std::vector<VkCommandBuffer> mesh_commands() const;
 
 		MeshWrapper create_mesh(MeshCreateInfo&& createInfo);
 
 	private:
-		void create_cmd_buffers(VkCommandPool pool, VkCommandBuffer* pBuffer, unsigned count);
-		void rebuild_cmd_buffers();
+		void rebuild_mesh_command(DrawableObjectData& object);
 
 	private:
 		SwapchainWrapper* pSwapchain  = nullptr;
@@ -64,12 +63,10 @@ namespace Vk
 		bool active = false;
 
 		std::vector<DrawableObjectData> meshes = {};
+		std::vector<GpuCommand> command_buffers = {};
+		std::vector<std::pair<Identifier, std::shared_future<std::any>>> pending_buffers = {};
 
 		VkRect2D scissor    = {};
 		VkViewport viewport = {};
-
-		VkCommandPool command_pool                        = VK_NULL_HANDLE;
-		std::vector<VkCommandBuffer> mesh_command_buffers = {};
-		bool command_buffers_modified                     = true; // needs to be true so the primary command buffers get built at least once
 	};
 }
