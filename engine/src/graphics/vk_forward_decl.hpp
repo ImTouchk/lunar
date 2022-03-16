@@ -25,6 +25,7 @@ namespace Vk
         void destroy();
         [[nodiscard]] VkCommandBuffer& handle();
         [[nodiscard]] const VkCommandBuffer& handle() const;
+        [[nodiscard]] bool exists() const;
 
     private:
         Identifier thread_id = 0;

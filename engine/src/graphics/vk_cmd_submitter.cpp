@@ -74,6 +74,11 @@ namespace Vk
         return buffer;
     }
 
+    bool GpuCommand::exists() const
+    {
+        return buffer != VK_NULL_HANDLE;
+    }
+
     void GpuCommand::destroy()
     {
         assert(buffer != VK_NULL_HANDLE);
