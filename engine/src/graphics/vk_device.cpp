@@ -93,11 +93,11 @@ namespace Vk
                 required_extensions.erase
                 (
                     std::remove
-                            (
-                                    required_extensions.begin(),
-                                    required_extensions.end(),
-                                    required
-                            ),
+                    (
+                        required_extensions.begin(),
+                        required_extensions.end(),
+                        required
+                    ),
                     required_extensions.end()
                 );
             }
@@ -271,6 +271,8 @@ namespace Vk
         }
 
         VkPhysicalDeviceFeatures device_features = {};
+        device_features.samplerAnisotropy = VK_TRUE;
+        
         VkDeviceCreateInfo device_create_info =
         {
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
