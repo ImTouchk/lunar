@@ -31,6 +31,7 @@ namespace Vk
 
 		for (auto& mesh : meshes)
 		{
+			mesh.command.destroy();
 			mesh.indexBuffer.destroy();
 			mesh.vertexBuffer.destroy();
 		}
@@ -53,6 +54,7 @@ namespace Vk
 			if(mesh.wasModified)
 			{
 				rebuild_mesh_command(mesh);
+				mesh.wasModified = false;
 			}
 		}
 
@@ -116,6 +118,11 @@ namespace Vk
 
 	void ObjectManager::rebuild_mesh_command(DrawableObjectData& object)
 	{
+		if(object.command.exists())
+		{
+			object.command.destroy();
+		}
+
 		VkCommandBufferInheritanceInfo buffer_inheritance_info =
 		{
 			.sType                = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
