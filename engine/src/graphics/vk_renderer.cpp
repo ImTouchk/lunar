@@ -14,21 +14,18 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
 
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
 
-    auto& surface      = internal_data->surface;
-    auto& swapchain    = internal_data->swapchain;
-    auto& sync_objects = internal_data->syncObjects;
+    auto& surface   = internal_data->surface;
+    auto& swapchain = internal_data->swapchain;
 
-    auto& shader_manager      = internal_data->shaderManager;
-    auto& object_manager      = internal_data->objectManager;
-    auto& texture_manager     = internal_data->textureManager;
-    auto& render_call_manager = internal_data->renderCallManager;
+    auto& shader_manager  = internal_data->shaderManager;
+    auto& object_manager  = internal_data->objectManager;
+    auto& texture_manager = internal_data->textureManager;
 
     Vk::SignalRendererCreation();
 
     surface.create(*window_handle);
-
     swapchain.create(*window_handle, surface);
-    sync_objects.create(swapchain);
+
     shader_manager.create(swapchain);
 
     object_manager.create
@@ -41,14 +38,16 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
 
     texture_manager.create();
 
-    render_call_manager.create
-    (Vk::RenderCallManagerCreateInfo
+    VkSemaphoreCreateInfo semaphore_create_info =
     {
-        .pSurface       = &surface,
-        .pSwapchain     = &swapchain,
-        .pObjectManager = &object_manager,
-        .pSyncObjects   = &sync_objects
-    });
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+    };
+
+    for(auto i : range(0, Vk::MAX_FRAMES_IN_FLIGHT - 1))
+    {
+        vkCreateSemaphore(Vk::GetDevice().handle, &semaphore_create_info, nullptr, &internal_data->isImageAvailable[i]);
+        vkCreateSemaphore(Vk::GetDevice().handle, &semaphore_create_info, nullptr, &internal_data->isRenderingFinished[i]);
+    }
 
     window_handle->subscribe(WindowEvent::eResized, [this](void* handle, const std::any& eventData)
     {
@@ -75,11 +74,15 @@ void GameRenderer::destroy()
 
     vkDeviceWaitIdle(Vk::GetDevice().handle);
 
-    internal_data->renderCallManager.destroy();
+    for(auto i : range(0, Vk::MAX_FRAMES_IN_FLIGHT - 1))
+    {
+        vkDestroySemaphore(Vk::GetDevice().handle, internal_data->isImageAvailable[i], nullptr);
+        vkDestroySemaphore(Vk::GetDevice().handle, internal_data->isRenderingFinished[i], nullptr);
+    }
+
     internal_data->objectManager.destroy();
     internal_data->shaderManager.destroy();
     internal_data->textureManager.destroy();
-    internal_data->syncObjects.destroy();
     internal_data->swapchain.destroy();
     internal_data->surface.destroy();
 
@@ -93,28 +96,76 @@ void GameRenderer::draw()
         return;
     }
     
-    auto* internal_data       = std::any_cast<Vk::RendererInternalData>(&backend_data);
-    auto& render_call_manager = internal_data->renderCallManager;
-    auto& object_manager      = internal_data->objectManager;
-    auto& sync_objects        = internal_data->syncObjects;
-    auto& swapchain           = internal_data->swapchain;
-    auto current_frame        = render_call_manager.current_image();
-    const auto& device        = Vk::GetDevice();
-
-    vkWaitForFences(device.handle, 1, &sync_objects.in_flight_fence(render_call_manager.current_image()), VK_TRUE, UINT64_MAX);
+    auto* internal_data  = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    auto& object_manager = internal_data->objectManager;
+    auto& current_frame  = internal_data->currentFrame;
+    auto& swapchain      = internal_data->swapchain;
+    const auto& device   = Vk::GetDevice();
 
     object_manager.update();
-    render_call_manager.update();
 
-    uint32_t image_index;
-    vkAcquireNextImageKHR(device.handle, swapchain.handle(), UINT64_MAX, sync_objects.image_available(current_frame), VK_NULL_HANDLE, &image_index);
-
-    if (sync_objects.image_in_flight(image_index) != VK_NULL_HANDLE)
+    const VkPipelineStageFlags wait_stages[] =
     {
-        vkWaitForFences(device.handle, 1, &sync_objects.image_in_flight(image_index), VK_TRUE, UINT64_MAX);
-    }
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
+     
+    uint32_t image_index;
+    vkAcquireNextImageKHR(device.handle, swapchain.handle(), UINT64_MAX, internal_data->isImageAvailable[current_frame], VK_NULL_HANDLE, &image_index);
 
-    render_call_manager.draw(image_index);
+    Vk::CommandSubmitter::SubmitAsync([&swapchain, &image_index, &object_manager](VkCommandBuffer& buffer)
+    {
+        const VkClearValue clear_values[2] =
+        {
+            {.color = { 0.f, 0.f, 0.f, 1.f } },
+            {.depthStencil = { 1.f, 0 } }
+        };
+
+        const VkRenderPassBeginInfo render_pass_begin_info =
+        {
+            .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .renderPass  = swapchain.render_pass(),
+            .framebuffer = swapchain.frame_buffers()[image_index],
+            .renderArea  =
+            {
+                .offset  = { 0, 0 },
+                .extent  = swapchain.surface_extent()
+            },
+            .clearValueCount = 2,
+            .pClearValues    = clear_values,
+        };
+
+        vkCmdBeginRenderPass(buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+        const auto meshes = object_manager.mesh_commands();
+        if (!meshes.empty())
+        {
+            vkCmdExecuteCommands(buffer, static_cast<uint32_t>(meshes.size()), meshes.data());
+        }
+        vkCmdEndRenderPass(buffer);
+    },
+    VkSubmitInfo
+    {
+        .waitSemaphoreCount   = 1,
+        .pWaitSemaphores      = &internal_data->isImageAvailable[current_frame],
+        .pWaitDstStageMask    = wait_stages,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores    = &internal_data->isRenderingFinished[current_frame]
+    }).wait();
+
+    VkSwapchainKHR swap = swapchain.handle();
+
+    VkPresentInfoKHR present_info =
+    {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores    = &internal_data->isRenderingFinished[current_frame],
+        .swapchainCount     = 1,
+        .pSwapchains        = &swap,
+        .pImageIndices      = &image_index,
+        .pResults           = nullptr
+    };
+
+    vkQueuePresentKHR(Vk::GetDevice().present, &present_info);
+    current_frame = (current_frame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
 }
 
 std::vector<ShaderWrapper> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned int count)

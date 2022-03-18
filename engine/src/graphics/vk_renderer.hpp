@@ -120,11 +120,13 @@ namespace Vk
     {
         SurfaceWrapper surface;
         SwapchainWrapper swapchain;
-        SyncObjectsWrapper syncObjects;
         ShaderManager shaderManager;
         ObjectManager objectManager;
         TextureManager textureManager;
-        RenderCallManager renderCallManager;
+
+        size_t currentFrame = 0;
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> isImageAvailable    = {};
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> isRenderingFinished = {};
     };
 
     VkInstance GetInstance();
