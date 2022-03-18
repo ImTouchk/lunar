@@ -41,7 +41,7 @@ namespace Vk
     {
         CommandRequestType requestType;
         std::promise<std::any> returnValue;
-        std::any requestValue;
+        std::any requestValue; 
     };
 
     CThreadSafeQueue<CommandRequestData> REQUESTS          = {};
@@ -83,10 +83,13 @@ namespace Vk
     {
         assert(buffer != VK_NULL_HANDLE);
 
+        auto promise = std::promise<std::any>();
+        auto future = promise.get_future();
+
         REQUESTS.emplace
         ({
             CommandRequestType::eDestroyRecorded,
-            { },
+            std::move(promise),
             CommandDestroyData { thread_id, buffer }
         });
 
@@ -138,27 +141,25 @@ namespace Vk
                             break;
                         }
 
-                        REQUESTS.unsafe_lock();
-                        auto& queue = REQUESTS.unsafe_handle();
-                        auto& last_request = queue.front();
-                        assert(last_request.requestValue.has_value());
-
-                        if(last_request.requestType == CommandRequestType::eDestroyRecorded)
-                        {
-                            const auto* destroy_data = std::any_cast<CommandDestroyData>(&last_request.requestValue);
-                            if(destroy_data->threadId == thread_id)
-                            {
-                                vkFreeCommandBuffers(device, thread_pool, 1, &destroy_data->commandBuffer);
-                                last_request.returnValue.set_value({ true });
-                            }
-
-                            continue;
-                        }
-                        REQUESTS.unsafe_unlock();
-
                         auto request = REQUESTS.get_and_pop_front();
                         switch(request.requestType)
                         {
+                        case CommandRequestType::eDestroyRecorded:
+                        {
+                            auto& destroy_data = std::any_cast<CommandDestroyData&>(request.requestValue);
+                            if(destroy_data.threadId == thread_id)
+                            {
+                                vkFreeCommandBuffers(device, thread_pool, 1, &destroy_data.commandBuffer);
+                                request.returnValue.set_value({ true });
+                            }
+                            else
+                            {
+                                REQUESTS.emplace(std::move(request));
+                            }
+
+                            break;
+                        }
+
                         case CommandRequestType::ePrerecord:
                         {
                             auto record_data = std::any_cast<CommandRecordData&>(request.requestValue);
@@ -229,29 +230,28 @@ namespace Vk
         std::future<std::any> RecordAsync(CommandRecordFn&& commands, AdditionalRecordData&& recordData)
         {
             auto promise = std::promise<std::any>();
+            auto future = promise.get_future();
 
-            REQUESTS.emplace
-            ({
+            REQUESTS.emplace(std::move(CommandRequestData
+            {
                 CommandRequestType::ePrerecord,
                 std::move(promise),
-                std::move(CommandRecordData
+                CommandRecordData
                 {
-                    .recordFn  = std::move(commands),
-                    .userData  = std::move(recordData)
-                })
-            });
-
-            auto future = REQUESTS.front()
-                            .returnValue
-                            .get_future();
+                    .recordFn = std::move(commands),
+                    .userData = std::move(recordData)
+                }
+            }));
 
             WORKER_CONDITION.notify_one();
+
             return future;
         }
 
         std::future<std::any> SubmitAsync(CommandRecordFn&& commands, VkSubmitInfo submitInfo)
         {
             auto promise = std::promise<std::any>();
+            auto future = promise.get_future();
 
             REQUESTS.emplace
             ({
@@ -263,10 +263,6 @@ namespace Vk
                     .submitInfo = std::move(submitInfo)
                 }
             });
-
-            auto future = REQUESTS.front()
-                            .returnValue
-                            .get_future();
 
             WORKER_CONDITION.notify_one();
             return future;
