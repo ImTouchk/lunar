@@ -19,6 +19,11 @@ add_executable("lunar"
     "src/filesystem.cpp" 
     "src/thread_pool.cpp"
 )
+
+if(WIN32)
+    target_sources("lunar" PRIVATE "src/w32_fast_mutex.cpp")
+endif()
+
 target_include_directories("lunar" PUBLIC inc)
 target_compile_definitions("lunar" PRIVATE
     PRINT_DEBUG_OUTPUT=1
@@ -39,6 +44,7 @@ if(LUNAR_COUNT_HEADERS_AS_SOURCE)
         "inc/utils/thread_pool.hpp"
         "inc/utils/thread_safe_queue.hpp"
         "inc/io/filesystem.hpp"
+        "inc/utils/fast_mutex.hpp"
         "inc/utils/stb_image.h"
         #"inc/math/vec.hpp"
     )
@@ -68,7 +74,6 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
 
     target_sources("lunar" PRIVATE
         "src/graphics/vk_mesh.cpp"
-        "src/graphics/vk_sync.cpp"
         "src/graphics/vk_device.cpp"
         "src/graphics/vk_surface.cpp"
         "src/graphics/vk_renderer.hpp"
@@ -82,11 +87,13 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         "src/graphics/vk_object.hpp"
         "src/graphics/vk_object.cpp"
         "src/graphics/vk_lifetime.cpp"
-        "src/graphics/vk_draw_call.hpp"
-        "src/graphics/vk_draw_call.cpp"
         "src/graphics/vk_cmd_submitter.cpp"
         "src/graphics/vk_texture.hpp"
         "src/graphics/vk_texture.cpp"
+        "src/graphics/vk_utils.hpp"
+        #"src/graphics/vk_draw_call.hpp"
+        #"src/graphics/vk_draw_call.cpp"
+        #"src/graphics/vk_sync.cpp"
     )
 endif()
 
