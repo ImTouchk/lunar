@@ -15,7 +15,6 @@
 #include "vk_shader.hpp"
 #include "vk_object.hpp"
 #include "vk_texture.hpp"
-#include "vk_draw_call.hpp"
 
 class GameWindow;
 
@@ -95,27 +94,6 @@ namespace Vk
         int height = 0;
     };
 
-    class SyncObjectsWrapper
-    {
-    public:
-        SyncObjectsWrapper() = default;
-        ~SyncObjectsWrapper() = default;
-
-        void create(SwapchainWrapper& swapchain);
-        void destroy();
-
-        [[nodiscard]] VkFence& image_in_flight(size_t i);
-        [[nodiscard]] VkFence& in_flight_fence(size_t i);
-        [[nodiscard]] VkSemaphore& image_available(size_t i);
-        [[nodiscard]] VkSemaphore& rendering_finished(size_t i);
-
-    private:
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores = {};
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderingFinishedSemaphore = {};
-        std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences = {};
-        std::vector<VkFence> imagesInFlight = {};
-    };
-
     struct RendererInternalData
     {
         SurfaceWrapper surface;
@@ -125,8 +103,10 @@ namespace Vk
         TextureManager textureManager;
 
         size_t currentFrame = 0;
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> isImageAvailable    = {};
-        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> isRenderingFinished = {};
+        size_t recordedMeshes = 0;
+        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT + 1> submitCommands = {};
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> isImageAvailable       = {};
+        std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> isRenderingFinished    = {};
     };
 
     VkInstance GetInstance();
@@ -157,13 +137,14 @@ namespace Vk
 
         struct AdditionalRecordData
         {
-            VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            std::optional<VkCommandBufferInheritanceInfo> inheritanceInfo;
-            std::optional<VkCommandBufferBeginInfo> beginInfo;
+            VkCommandBufferLevel           level           = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            VkCommandBufferInheritanceInfo inheritanceInfo = {};
+            VkCommandBufferBeginInfo       beginInfo       = {};
         };
 
-        std::future<std::any> SubmitAsync(CommandRecordFn&& commands, VkSubmitInfo submitInfo = {});
-        std::future<std::any> RecordAsync(CommandRecordFn&& commands, AdditionalRecordData&& recordData = {});
+        void SubmitSync(VkCommandBuffer command, bool waitForExecution = false, VkSubmitInfo submitInfo = {});
+        void SubmitSync(CommandRecordFn&& commands, bool waitForExecution = false, VkSubmitInfo submitInfo = {});
+        VkCommandBuffer RecordSync(CommandRecordFn&& commands, AdditionalRecordData&& recordData = {});
     }
 
     QueueIndices GetQueueIndices();
