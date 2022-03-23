@@ -99,10 +99,10 @@ namespace Vk
 			.size = dataSize
 		};
 
-		CommandSubmitter::SubmitAsync([staging_buffer, dst, buffer_copy_region](VkCommandBuffer& buffer)
+		CommandSubmitter::SubmitSync([staging_buffer, dst, buffer_copy_region](VkCommandBuffer& buffer)
 		{
 			vkCmdCopyBuffer(buffer, staging_buffer, dst, 1, &buffer_copy_region);
-		}).wait();
+		});
 
 		vmaDestroyBuffer(GetMemoryAllocator(), staging_buffer, staging_memory);
 	}

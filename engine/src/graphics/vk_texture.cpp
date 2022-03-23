@@ -185,7 +185,7 @@ namespace Vk
 
     void TextureManager::convert_tex_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
     {
-        CommandSubmitter::SubmitAsync([&](VkCommandBuffer buffer)
+        CommandSubmitter::SubmitSync([&](VkCommandBuffer buffer)
         {
             VkPipelineStageFlags source_stage;
             VkPipelineStageFlags dest_stage;
@@ -232,12 +232,12 @@ namespace Vk
             }
 
             vkCmdPipelineBarrier(buffer, source_stage, dest_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-        }).wait();
+        });
     }
 
     void TextureManager::upload_texture_to_gpu(BufferWrapper& src, VkImage dst, unsigned width, unsigned height, unsigned channels)
     {
-        CommandSubmitter::SubmitAsync([&](VkCommandBuffer buffer)
+        CommandSubmitter::SubmitSync([&](VkCommandBuffer buffer)
         {
             VkBufferImageCopy copy_region =
             {
@@ -256,6 +256,6 @@ namespace Vk
             };
 
             vkCmdCopyBufferToImage(buffer, src.handle(), dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
-        }).wait();
+        });
     }
 }

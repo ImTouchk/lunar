@@ -104,6 +104,49 @@ void GameRenderer::draw()
 
     object_manager.update();
 
+    if(internal_data->recordedMeshes != object_manager.mesh_count())
+    {
+        for(int i = 0; i <= Vk::MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            auto* pSwapchain = &internal_data->swapchain;
+            auto* pObjectManager = &internal_data->objectManager;
+
+            auto buffer = Vk::CommandSubmitter::RecordSync([pSwapchain, pObjectManager, i](VkCommandBuffer& buffer)
+            {
+                const auto meshes = pObjectManager->mesh_commands();
+
+                const VkClearValue clear_values[2] =
+                {
+                    {.color = { 0.f, 0.f, 0.f, 1.f } },
+                    {.depthStencil = { 1.f, 0 } }
+                };
+
+                const VkRenderPassBeginInfo render_pass_begin_info =
+                {
+                    .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                    .renderPass      = pSwapchain->render_pass(),
+                    .framebuffer     = pSwapchain->frame_buffers()[i],
+                    .renderArea      =
+                    {
+                        .offset      = { 0, 0 },
+                        .extent      = pSwapchain->surface_extent()
+                    },
+                    .clearValueCount = 2,
+                    .pClearValues    = clear_values,
+                };
+
+                vkCmdBeginRenderPass(buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+                if (!meshes.empty())
+                {
+                    vkCmdExecuteCommands(buffer, static_cast<uint32_t>(meshes.size()), meshes.data());
+                }
+                vkCmdEndRenderPass(buffer);
+            });
+
+            internal_data->submitCommands[i] = buffer;
+        }
+    }
+
     const VkPipelineStageFlags wait_stages[] =
     {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -112,36 +155,8 @@ void GameRenderer::draw()
     uint32_t image_index;
     vkAcquireNextImageKHR(device.handle, swapchain.handle(), UINT64_MAX, internal_data->isImageAvailable[current_frame], VK_NULL_HANDLE, &image_index);
 
-    Vk::CommandSubmitter::SubmitAsync([&swapchain, &image_index, &object_manager](VkCommandBuffer& buffer)
-    {
-        const VkClearValue clear_values[2] =
-        {
-            {.color = { 0.f, 0.f, 0.f, 1.f } },
-            {.depthStencil = { 1.f, 0 } }
-        };
-
-        const VkRenderPassBeginInfo render_pass_begin_info =
-        {
-            .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass  = swapchain.render_pass(),
-            .framebuffer = swapchain.frame_buffers()[image_index],
-            .renderArea  =
-            {
-                .offset  = { 0, 0 },
-                .extent  = swapchain.surface_extent()
-            },
-            .clearValueCount = 2,
-            .pClearValues    = clear_values,
-        };
-
-        vkCmdBeginRenderPass(buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-        const auto meshes = object_manager.mesh_commands();
-        if (!meshes.empty())
-        {
-            vkCmdExecuteCommands(buffer, static_cast<uint32_t>(meshes.size()), meshes.data());
-        }
-        vkCmdEndRenderPass(buffer);
-    },
+    // img_indx
+    Vk::CommandSubmitter::SubmitSync(internal_data->submitCommands[image_index], true,
     VkSubmitInfo
     {
         .waitSemaphoreCount   = 1,
@@ -149,7 +164,7 @@ void GameRenderer::draw()
         .pWaitDstStageMask    = wait_stages,
         .signalSemaphoreCount = 1,
         .pSignalSemaphores    = &internal_data->isRenderingFinished[current_frame]
-    }).wait();
+    });
 
     VkSwapchainKHR swap = swapchain.handle();
 

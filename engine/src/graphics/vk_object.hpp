@@ -29,7 +29,7 @@ namespace Vk
 		unsigned vertexCount;
 		unsigned indexCount;
 		glm::mat4 transform;
-		GpuCommand command;
+		VkCommandBuffer command;
 		
 		std::optional<std::vector<Vertex>> vertices;
 		std::optional<std::vector<unsigned>> indices;
@@ -48,6 +48,7 @@ namespace Vk
 
 		void update();
 
+		[[nodiscard]] size_t mesh_count() const;
 		[[nodiscard]] std::vector<VkCommandBuffer> mesh_commands() const;
 
 		MeshWrapper create_mesh(MeshCreateInfo&& createInfo);
@@ -63,8 +64,8 @@ namespace Vk
 		bool active = false;
 
 		std::vector<DrawableObjectData> meshes = {};
-		std::vector<GpuCommand> command_buffers = {};
-		std::vector<std::pair<Identifier, std::shared_future<std::any>>> pending_buffers = {};
+		std::vector<VkCommandBuffer> command_buffers = {};
+		std::vector<std::pair<Identifier, std::shared_future<VkCommandBuffer>>> pending_buffers = {};
 
 		VkRect2D scissor    = {};
 		VkViewport viewport = {};

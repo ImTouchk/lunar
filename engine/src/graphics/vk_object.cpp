@@ -31,7 +31,6 @@ namespace Vk
 
 		for (auto& mesh : meshes)
 		{
-			mesh.command.destroy();
 			mesh.indexBuffer.destroy();
 			mesh.vertexBuffer.destroy();
 		}
@@ -66,7 +65,7 @@ namespace Vk
 			if(future_value.valid())
 			{
 				auto& mesh = find_by_identifier_safe(meshes, identifier);
-				mesh.command = std::any_cast<GpuCommand>(future_value.get());
+				mesh.command = std::any_cast<VkCommandBuffer>(future_value.get());
 
 				pending_buffers.erase(pending_buffers.begin() + i);
 			}
@@ -118,10 +117,10 @@ namespace Vk
 
 	void ObjectManager::rebuild_mesh_command(DrawableObjectData& object)
 	{
-		if(object.command.exists())
-		{
-			object.command.destroy();
-		}
+		//if(object.command.exists())
+		//{
+		//	object.command.destroy();
+		//}
 
 		VkCommandBufferInheritanceInfo buffer_inheritance_info =
 		{
@@ -145,7 +144,7 @@ namespace Vk
 
 		const auto graphics_layout = pShaderManager->get_graphics_layout();
 
-		auto res = CommandSubmitter::RecordAsync([&object, graphics_layout, swapchain](VkCommandBuffer buffer)
+		const auto res = CommandSubmitter::RecordSync([&object, graphics_layout, swapchain](VkCommandBuffer buffer)
 		{
 			const auto shader = object.shader.pipeline();
 			const auto shader_desc = object.shader.descriptor();
@@ -175,7 +174,12 @@ namespace Vk
 			.beginInfo       = buffer_begin_info,
 		});
 
-		pending_buffers.push_back({ object.identifier, res.share() });
+		object.command = res;
+	}
+
+	size_t ObjectManager::mesh_count() const
+	{
+		return meshes.size();
 	}
 
 	std::vector<VkCommandBuffer> ObjectManager::mesh_commands() const
@@ -183,9 +187,9 @@ namespace Vk
 		auto final_handles = std::vector<VkCommandBuffer>();
 		for(int i = 0; i < meshes.size(); i++)
 		{
-			if(meshes[i].command.handle() != VK_NULL_HANDLE)
+			if(meshes[i].command != VK_NULL_HANDLE)
 			{
-				final_handles.push_back(meshes[i].command.handle());
+				final_handles.push_back(meshes[i].command);
 			}
 		}
 		return final_handles;
