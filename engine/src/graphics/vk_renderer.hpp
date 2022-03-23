@@ -145,6 +145,7 @@ namespace Vk
         void SubmitSync(VkCommandBuffer command, bool waitForExecution = false, VkSubmitInfo submitInfo = {});
         void SubmitSync(CommandRecordFn&& commands, bool waitForExecution = false, VkSubmitInfo submitInfo = {});
         VkCommandBuffer RecordSync(CommandRecordFn&& commands, AdditionalRecordData&& recordData = {});
+        void DestroyCommandBuffer(VkCommandBuffer& buffer);
     }
 
     QueueIndices GetQueueIndices();
