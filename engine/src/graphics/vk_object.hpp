@@ -65,7 +65,6 @@ namespace Vk
 
 		std::vector<DrawableObjectData> meshes = {};
 		std::vector<VkCommandBuffer> command_buffers = {};
-		std::vector<std::pair<Identifier, std::shared_future<VkCommandBuffer>>> pending_buffers = {};
 
 		VkRect2D scissor    = {};
 		VkViewport viewport = {};

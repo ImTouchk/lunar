@@ -56,24 +56,6 @@ namespace Vk
 				mesh.wasModified = false;
 			}
 		}
-
-		for (int i = 0; i < pending_buffers.size();)
-		{
-			const auto& identifier = pending_buffers[i].first;
-			auto& future_value = pending_buffers[i].second;
-
-			if(future_value.valid())
-			{
-				auto& mesh = find_by_identifier_safe(meshes, identifier);
-				mesh.command = std::any_cast<VkCommandBuffer>(future_value.get());
-
-				pending_buffers.erase(pending_buffers.begin() + i);
-			}
-			else
-			{
-				i++;
-			}
-		}
 	}
 
 	MeshWrapper ObjectManager::create_mesh(MeshCreateInfo&& createInfo)
@@ -117,10 +99,10 @@ namespace Vk
 
 	void ObjectManager::rebuild_mesh_command(DrawableObjectData& object)
 	{
-		//if(object.command.exists())
-		//{
-		//	object.command.destroy();
-		//}
+		if(object.command != VK_NULL_HANDLE)
+		{
+			CommandSubmitter::DestroyCommandBuffer(object.command);
+		}
 
 		VkCommandBufferInheritanceInfo buffer_inheritance_info =
 		{
