@@ -145,6 +145,8 @@ void GameRenderer::draw()
 
             internal_data->submitCommands[i] = buffer;
         }
+
+        internal_data->recordedMeshes = object_manager.mesh_count();
     }
 
     const VkPipelineStageFlags wait_stages[] =
