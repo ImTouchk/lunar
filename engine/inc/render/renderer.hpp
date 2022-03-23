@@ -24,6 +24,8 @@ public:
     void destroy();
 
     [[nodiscard]] std::vector<ShaderWrapper> create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
+    [[nodiscard]] std::vector<ShaderWrapper> create_shaders(ComputeShaderCreateInfo* pCreateInfos, unsigned count);
+
     [[nodiscard]] MeshWrapper create_object(MeshCreateInfo&& meshCreateInfo);
     [[nodiscard]] TextureWrapper create_texture(TextureCreateInfo&& textureCreateInfo);
 

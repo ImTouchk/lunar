@@ -29,6 +29,7 @@ namespace Vk
         void destroy();
 
         std::vector<ShaderWrapper> create_graphics(GraphicsShaderCreateInfo* pCreateInfos, unsigned count);
+        std::vector<ShaderWrapper> create_compute(ComputeShaderCreateInfo* pCreateInfos, unsigned count);
         //void create_compute();
 
         [[nodiscard]] VkPipelineLayout& get_graphics_layout();
@@ -39,15 +40,17 @@ namespace Vk
     private:
         void create_descriptor_pool();
         void create_graphics_layout();
+        void create_compute_layout();
 
     private:
         SwapchainWrapper* pSwapchain = nullptr;
 
         bool active = false;
 
-        std::vector<ShaderData> shaders                                  = {};
-        VkPipelineLayout graphicsLayout                                  = VK_NULL_HANDLE;
-        VkDescriptorPool descriptorPool                                  = VK_NULL_HANDLE;
-        VkDescriptorSetLayout descriptorLayout                           = VK_NULL_HANDLE;
+        std::vector<ShaderData> shaders           = {};
+        VkPipelineLayout graphicsLayout           = VK_NULL_HANDLE;
+        VkPipelineLayout computePathTracingLayout = VK_NULL_HANDLE;
+        VkDescriptorPool descriptorPool           = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptorLayout    = VK_NULL_HANDLE;
     };
 }

@@ -175,6 +175,26 @@ namespace Vk
         }
     }
 
+    void ShaderManager::create_compute_layout()
+    {
+        const VkPipelineLayoutCreateInfo pipeline_layout_create_info =
+        {
+            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount         = 0,
+            .pSetLayouts            = nullptr,
+            .pushConstantRangeCount = 0,
+            .pPushConstantRanges    = nullptr
+        };
+
+        VkResult result;
+        result = vkCreatePipelineLayout(GetDevice().handle, &pipeline_layout_create_info, nullptr, &computePathTracingLayout);
+        if(result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Shader manager creation fail (vkCreatePipelineLayout didn't return VK_SUCCESS).");
+            throw std::runtime_error("Renderer-Vulkan-ShaderManager-CreationFail");
+        }
+    }
+
     void ShaderManager::create(SwapchainWrapper& swapchain)
     {
         assert(not active);
@@ -183,6 +203,7 @@ namespace Vk
 
         create_descriptor_pool();
         create_graphics_layout();
+        create_compute_layout();
 
         active = true;
     }
@@ -197,6 +218,8 @@ namespace Vk
         }
 
         vkDestroyPipelineLayout(GetDevice().handle, graphicsLayout, nullptr);
+        vkDestroyPipelineLayout(GetDevice().handle, computePathTracingLayout, nullptr);
+
         vkDestroyDescriptorPool(GetDevice().handle, descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(GetDevice().handle, descriptorLayout, nullptr);
 
@@ -378,8 +401,8 @@ namespace Vk
         {
             auto& create_info = pCreateInfos[i];
 
-            auto vertex_module   = Vk::CreateModule(create_info.vertexCode);
-            auto fragment_module = Vk::CreateModule(create_info.fragmentCode);
+            auto vertex_module   = CreateModule(create_info.vertexCode);
+            auto fragment_module = CreateModule(create_info.fragmentCode);
 
             if (vertex_module == VK_NULL_HANDLE || fragment_module == VK_NULL_HANDLE)
             {
@@ -480,6 +503,80 @@ namespace Vk
         {
             vkDestroyShaderModule(GetDevice().handle, pipeline_stage_create_infos[i].modules[0], nullptr);
             vkDestroyShaderModule(GetDevice().handle, pipeline_stage_create_infos[i].modules[1], nullptr);
+        }
+
+        return final_handles;
+    }
+
+    std::vector<ShaderWrapper> ShaderManager::create_compute(ComputeShaderCreateInfo* pCreateInfos, unsigned count)
+    {
+        auto pipeline_modules      = std::unique_ptr<VkShaderModule[]>(new VkShaderModule[count]);
+        auto pipeline_create_infos = std::unique_ptr<VkComputePipelineCreateInfo[]>(new VkComputePipelineCreateInfo[count]);
+        auto result_pipelines      = std::unique_ptr<VkPipeline[]>(new VkPipeline[count]);
+        auto shaders_to_compile    = 0;
+
+        for(auto i : range(0, count - 1))
+        {
+            auto& create_info = pCreateInfos[i];
+            auto  module      = CreateModule(create_info.code);
+
+            if(module == VK_NULL_HANDLE)
+            {
+                CDebug::Error("Vulkan Renderer | Failed to create shader pipeline {}. Skipping...", i);
+                continue;
+            }
+
+            VkPipelineShaderStageCreateInfo stage_create_info =
+            {
+                .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
+                .module = module,
+                .pName  = "main"
+            };
+
+            pipeline_create_infos[shaders_to_compile]  =
+            {
+                .sType              = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                .pNext              = nullptr,
+                .flags              = 0,
+                .stage              = stage_create_info,
+                .layout             = computePathTracingLayout,
+                .basePipelineHandle = nullptr,
+                .basePipelineIndex  = -1
+            };
+
+            shaders_to_compile++;
+        }
+
+        vkCreateComputePipelines(GetDevice().handle, nullptr, shaders_to_compile, pipeline_create_infos.get(), nullptr, result_pipelines.get());
+
+        auto start_index        = shaders.size();
+        auto final_handles      = std::vector<ShaderWrapper>();
+        auto compiled_pipelines = 0;
+        for (auto i : range(0, shaders_to_compile - 1))
+        {
+            if (result_pipelines[i] == VK_NULL_HANDLE)
+            {
+                continue;
+            }
+
+            auto final_data = ShaderData
+            {
+                .identifier = get_unique_number(),
+                .type       = ShaderType::eCompute,
+                .handle     = result_pipelines[i],
+                .descriptor = VK_NULL_HANDLE
+            };
+
+            final_handles.emplace_back(ShaderWrapper(*this, final_data.identifier));
+            shaders.push_back(std::move(final_data));
+        }
+
+        CDebug::Log("Vulkan Renderer | Compiled {} (compute) pipelines.", final_handles.size());
+
+        for (auto i : range(0, shaders_to_compile - 1))
+        {
+            vkDestroyShaderModule(GetDevice().handle, pipeline_modules[i], nullptr);
         }
 
         return final_handles;

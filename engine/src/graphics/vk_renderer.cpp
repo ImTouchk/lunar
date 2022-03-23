@@ -191,6 +191,12 @@ std::vector<ShaderWrapper> GameRenderer::create_shaders(GraphicsShaderCreateInfo
     return internal_data->shaderManager.create_graphics(pCreateInfos, count);
 }
 
+std::vector<ShaderWrapper> GameRenderer::create_shaders(ComputeShaderCreateInfo* pCreateInfos, unsigned count)
+{
+    auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
+    return internal_data->shaderManager.create_compute(pCreateInfos, count);
+}
+
 MeshWrapper GameRenderer::create_object(MeshCreateInfo&& meshCreateInfo)
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
