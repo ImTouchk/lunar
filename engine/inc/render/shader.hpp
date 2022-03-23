@@ -13,10 +13,22 @@ namespace Vk
 
 #endif
 
+enum class ShaderType
+{
+	eUnknown = 0,
+	eGraphics,
+	eCompute
+};
+
 struct GraphicsShaderCreateInfo
 {
 	const std::vector<char>& vertexCode;
 	const std::vector<char>& fragmentCode;
+};
+
+struct ComputeShaderCreateInfo
+{
+	const std::vector<char>& code;
 };
 
 class ShaderWrapper

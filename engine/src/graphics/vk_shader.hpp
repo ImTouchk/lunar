@@ -9,13 +9,6 @@
 
 namespace Vk
 {
-    enum class ShaderType
-    {
-        eUnknown = 0,
-        eGraphics,
-        eCompute,
-    };
-
     struct ShaderData
     {
         Identifier identifier      = 0;
