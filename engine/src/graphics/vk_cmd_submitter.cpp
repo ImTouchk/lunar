@@ -110,6 +110,7 @@ namespace Vk
             if(buffer_begin_info.sType != VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
             {
                 buffer_begin_info = DefaultCmdBufferBeginInfo();
+                buffer_begin_info.flags = 0; // it is by default VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT which is not the use case a prerecorded buffer has
             }
 
             if(buffer_inheritance_info.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO)
