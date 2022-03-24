@@ -56,21 +56,6 @@ namespace Vk
             vkFreeCommandBuffers(GetDevice().handle, SHARED_POOL, 1, &buffer);
         }
 
-        inline void SubmitToQueue(const VkDevice& device, const VkQueue& queue, const VkSubmitInfo& submitInfo)
-        {
-            if(GRAPHICS_QUEUE_FENCE == VK_NULL_HANDLE)
-            {
-                GRAPHICS_QUEUE_FENCE = CreateFence();
-            }
-            else
-            {
-                vkWaitForFences(device, 1, &GRAPHICS_QUEUE_FENCE, VK_TRUE, -1);
-            }
-
-            vkResetFences(device, 1, &GRAPHICS_QUEUE_FENCE);
-            vkQueueSubmit(queue, 1, &submitInfo, GRAPHICS_QUEUE_FENCE);
-        }
-
         void SubmitSync(CommandRecordFn&& commands, bool waitForExecution, VkSubmitInfo submitInfo)
         {
             VkCommandBuffer one_time_buffer;
