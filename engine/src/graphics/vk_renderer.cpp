@@ -110,6 +110,11 @@ void GameRenderer::draw()
     {
         for(int i = 0; i <= Vk::MAX_FRAMES_IN_FLIGHT; i++)
         {
+            if(internal_data->submitCommands[i] != VK_NULL_HANDLE)
+            {
+                Vk::CommandSubmitter::DestroyCommandBuffer(internal_data->submitCommands[i]);
+            }
+
             auto* pSwapchain = &internal_data->swapchain;
             auto* pObjectManager = &internal_data->objectManager;
 
