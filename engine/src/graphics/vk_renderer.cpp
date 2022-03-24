@@ -78,6 +78,7 @@ void GameRenderer::destroy()
     {
         vkDestroySemaphore(Vk::GetDevice().handle, internal_data->isImageAvailable[i], nullptr);
         vkDestroySemaphore(Vk::GetDevice().handle, internal_data->isRenderingFinished[i], nullptr);
+        Vk::CommandSubmitter::DestroyCommandBuffer(internal_data->submitCommands[i]);
     }
 
     internal_data->objectManager.destroy();
