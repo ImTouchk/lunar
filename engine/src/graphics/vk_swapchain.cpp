@@ -192,6 +192,7 @@ namespace Vk
         auto device = GetDevice().handle;
         vkDeviceWaitIdle(device);
 
+        vkDestroyRenderPass(device, shadowMap.renderPass, nullptr);
         vkDestroyFramebuffer(device, shadowMap.framebuffer, nullptr);
         vkDestroyImageView(device, shadowMap.view, nullptr);
         vmaDestroyImage(GetMemoryAllocator(), shadowMap.image, shadowMap.allocation);
