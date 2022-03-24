@@ -24,13 +24,19 @@ namespace Vk
         return pool;
     }
 
+    inline void WaitForFence(VkFence fence)
+    {
+        vkWaitForFences(GetDevice().handle, 1, &fence, VK_TRUE, -1);
+        vkResetFences(GetDevice().handle, 1, &fence);
+    }
+
     inline VkFence CreateFence()
     {
         const VkFenceCreateInfo fence_create_info =
         {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .pNext = nullptr,
-            .flags = 0
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT
         };
 
         VkResult result;
