@@ -18,6 +18,7 @@ namespace Vk
         {
             SHARED_POOL = CreateThreadPool();
             GRAPHICS_QUEUE_FENCE = CreateFence();
+            vkResetFences(GetDevice().handle, 1, &GRAPHICS_QUEUE_FENCE);
         }
 
         void Destroy()
@@ -70,8 +71,7 @@ namespace Vk
             submitInfo.pCommandBuffers    = &one_time_buffer;
 
             vkQueueSubmit(GetDevice().graphics, 1, &submitInfo, GRAPHICS_QUEUE_FENCE);
-            vkWaitForFences(GetDevice().handle, 1, &GRAPHICS_QUEUE_FENCE, VK_TRUE, -1);
-            vkResetFences(GetDevice().handle, 1, &GRAPHICS_QUEUE_FENCE);
+            WaitForFence(GRAPHICS_QUEUE_FENCE);
 
             DestroyCommandBuffer(one_time_buffer);
         }
@@ -83,8 +83,7 @@ namespace Vk
             submitInfo.pCommandBuffers    = &command;
 
             vkQueueSubmit(GetDevice().graphics, 1, &submitInfo, GRAPHICS_QUEUE_FENCE);
-            vkWaitForFences(GetDevice().handle, 1, &GRAPHICS_QUEUE_FENCE, VK_TRUE, -1);
-            vkResetFences(GetDevice().handle, 1, &GRAPHICS_QUEUE_FENCE);
+            WaitForFence(GRAPHICS_QUEUE_FENCE);
         }
 
         VkCommandBuffer RecordSync(CommandRecordFn&& commands, AdditionalRecordData&& recordData)
