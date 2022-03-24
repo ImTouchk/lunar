@@ -36,6 +36,12 @@ void MeshWrapper::use_texture(TextureWrapper&& texture)
 	data.shader.use_texture(texture);
 }
 
+void MeshWrapper::set_transform(glm::mat4&& transform)
+{
+	auto& data = find_by_identifier_safe(objectManager.meshes, identifier);
+	data.transform = transform;
+}
+
 namespace Vk
 {
 	void ObjectManager::create(ObjectManagerCreateInfo&& createInfo)

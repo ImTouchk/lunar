@@ -46,6 +46,8 @@ public:
     void set_indices(std::vector<Index>&& indices);
     void set_active(bool new_state);
 
+    void set_transform(glm::mat4&& transform);
+
     void use_shader(ShaderWrapper& shader);
     void use_texture(TextureWrapper&& texture);
 
