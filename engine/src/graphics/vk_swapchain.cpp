@@ -172,13 +172,15 @@ namespace Vk
         height = window.get_height();
 
         create_swapchain(window, surface);
-        create_depth_buffer();
         create_image_views();
+        create_depth_buffer();
+        create_shadow_map();
 
         if (renderPass == VK_NULL_HANDLE)
         {
             create_render_pass();
         }
+
 
         create_framebuffers();
     }
@@ -189,6 +191,10 @@ namespace Vk
 
         auto device = GetDevice().handle;
         vkDeviceWaitIdle(device);
+
+        vkDestroyFramebuffer(device, shadowMap.framebuffer, nullptr);
+        vkDestroyImageView(device, shadowMap.view, nullptr);
+        vmaDestroyImage(GetMemoryAllocator(), shadowMap.image, shadowMap.allocation);
 
         vkDestroyImageView(device, depthBuffer.view, nullptr);
         vmaDestroyImage(GetMemoryAllocator(), depthBuffer.image, depthBuffer.allocation);
@@ -220,6 +226,11 @@ namespace Vk
         // resize optimization: render pass does not need to get recreated
         auto device = GetDevice().handle;
         vkDeviceWaitIdle(device);
+
+        vkDestroyRenderPass(device, shadowMap.renderPass, nullptr);
+        vkDestroyFramebuffer(device, shadowMap.framebuffer, nullptr);
+        vkDestroyImageView(device, shadowMap.view, nullptr);
+        vmaDestroyImage(GetMemoryAllocator(), shadowMap.image, shadowMap.allocation);
 
         vkDestroyImageView(device, depthBuffer.view, nullptr);
         vmaDestroyImage(GetMemoryAllocator(), depthBuffer.image, depthBuffer.allocation);
@@ -375,28 +386,28 @@ namespace Vk
 
     void SwapchainWrapper::create_render_pass()
     {
-        VkAttachmentDescription color_attachment =
+        VkAttachmentDescription attachments[] =
         {
-            .format         = surfaceFormat,
-            .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-        };
-
-        VkAttachmentDescription depth_attachment =
-        {
-            .format         = depthBuffer.format,
-            .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            { // Color buffer
+                .format         = surfaceFormat,
+                .samples        = VK_SAMPLE_COUNT_1_BIT,
+                .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+                .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            },
+            { // Depth buffer
+                .format         = depthBuffer.format,
+                .samples        = VK_SAMPLE_COUNT_1_BIT,
+                .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            },
         };
 
         VkAttachmentReference depth_attachment_reference =
@@ -417,12 +428,6 @@ namespace Vk
             .colorAttachmentCount    = 1,
             .pColorAttachments       = &attachment_reference,
             .pDepthStencilAttachment = &depth_attachment_reference
-        };
-
-        VkAttachmentDescription attachments[2] =
-        {
-            color_attachment,
-            depth_attachment
         };
 
         VkSubpassDependency dependency =
@@ -459,18 +464,18 @@ namespace Vk
     {
         for (auto i : range(0, frameBuffers.size() - 1))
         {
-            VkImageView attachments[2] =
+            std::array<VkImageView, 2> attachments =
             {
                 views[i],
-                depthBuffer.view
+                depthBuffer.view,
             };
 
             VkFramebufferCreateInfo framebuffer_create_info =
             {
                 .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .renderPass      = renderPass,
-                .attachmentCount = 2,
-                .pAttachments    = attachments,
+                .attachmentCount = attachments.size(),
+                .pAttachments    = attachments.data(),
                 .width           = static_cast<uint32_t>(width),
                 .height          = static_cast<uint32_t>(height),
                 .layers          = 1
@@ -483,6 +488,27 @@ namespace Vk
                 CDebug::Error("Vulkan Renderer | Swapchain creation failed (vkCreateFramebuffer did not return VK_SUCCESS).");
                 throw std::runtime_error("Renderer-Vulkan-Swapchain-FramebufferCreationFail");
             }
+        }
+
+        VkFramebufferCreateInfo shadowmap_buffer_create_info =
+        {
+            .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .pNext           = nullptr,
+            .flags           = 0,
+            .renderPass      = shadowMap.renderPass,
+            .attachmentCount = 1,
+            .pAttachments    = &shadowMap.view,
+            .width           = surfaceExtent.width,
+            .height          = surfaceExtent.height,
+            .layers          = 1,
+        };
+
+        VkResult result;
+        result = vkCreateFramebuffer(GetDevice().handle, &shadowmap_buffer_create_info, nullptr, &shadowMap.framebuffer);
+        if (result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Swapchain creation fail (vkCreateFramebuffer didn't return VK_SUCCESS for the shadow map).");
+            throw std::runtime_error("Renderer-Vulkan-Swapchain-CreationFail");
         }
     }
 
@@ -550,6 +576,133 @@ namespace Vk
         {
             CDebug::Error("Vulkan Renderer | Swapchain creation fail (vkCreateImageView didn't return VK_SUCCESS for the depth buffer image).");
             throw std::runtime_error("Renderer-Vulkan-Swapchain-DepthBuffer-CreationFail");
+        }
+    }
+
+    void SwapchainWrapper::create_shadow_map()
+    {
+        shadowMap.format = VK_FORMAT_D32_SFLOAT;
+
+        VkImageCreateInfo image_create_info =
+        {
+            .sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext                 = nullptr,
+            .flags                 = 0,
+            .imageType             = VK_IMAGE_TYPE_2D,
+            .format                = VK_FORMAT_D32_SFLOAT,
+            .extent                =
+            {
+                .width             = surfaceExtent.width,
+                .height            = surfaceExtent.height,
+                .depth             = 1,
+            },
+            .mipLevels             = 1,
+            .arrayLayers           = 1,
+            .samples               = VK_SAMPLE_COUNT_1_BIT,
+            .usage                 = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .sharingMode           = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices   = nullptr,
+            .initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+
+        VmaAllocationCreateInfo allocation_create_info =
+        {
+            .usage         = VMA_MEMORY_USAGE_GPU_ONLY,
+            .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        };
+
+        VkResult result;
+        result = vmaCreateImage(GetMemoryAllocator(), &image_create_info, &allocation_create_info, &shadowMap.image, &shadowMap.allocation, nullptr);
+        if(result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Swapchain creation failed (vmaCreateImage didn't return VK_SUCCESS [shadow map creation]).");
+            throw std::runtime_error("Renderer-Vulkan-Swapchain-CreationFail");
+        }
+
+        VkImageViewCreateInfo view_create_info =
+        {
+            .sType              = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext              = nullptr,
+            .image              = shadowMap.image,
+            .viewType           = VK_IMAGE_VIEW_TYPE_2D,
+            .format             = VK_FORMAT_D32_SFLOAT,
+            .components         = 
+            {
+                .r              = VK_COMPONENT_SWIZZLE_R,
+                .g              = VK_COMPONENT_SWIZZLE_G,
+                .b              = VK_COMPONENT_SWIZZLE_B,
+                .a              = VK_COMPONENT_SWIZZLE_A
+            },
+            .subresourceRange   =
+            {
+                .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+                .baseMipLevel   = 0,
+                .levelCount     = 1,
+                .baseArrayLayer = 0,
+                .layerCount     = 1,
+            }
+        };
+
+        result = vkCreateImageView(GetDevice().handle, &view_create_info, nullptr, &shadowMap.view);
+        if (result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Swapchain creation fail (vkCreateImageView didn't return VK_SUCCESS for the shadow map).");
+            throw std::runtime_error("Renderer-Vulkan-Swapchain-CreationFail");
+        }
+
+        VkAttachmentDescription attachments[] =
+        {
+            {
+                .format         = shadowMap.format,
+                .samples        = VK_SAMPLE_COUNT_1_BIT,
+                .loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+                .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            }
+        };
+
+        VkAttachmentReference depth_ref =
+        {
+            .attachment = 0,
+            .layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        VkSubpassDescription subpass_description =
+        {
+            .flags                   = 0,
+            .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .inputAttachmentCount    = 0,
+            .pInputAttachments       = nullptr,
+            .colorAttachmentCount    = 0,
+            .pColorAttachments       = nullptr,
+            .pResolveAttachments     = nullptr,
+            .pDepthStencilAttachment = &depth_ref,
+            .preserveAttachmentCount = 0,
+            .pPreserveAttachments    = nullptr
+        };
+
+        VkRenderPassCreateInfo render_pass_create_info =
+        {
+            .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .pNext           = nullptr,
+            .flags           = 0,
+            .attachmentCount = 1,
+            .pAttachments    = attachments,
+            .subpassCount    = 1,
+            .pSubpasses      = &subpass_description,
+            .dependencyCount = 0,
+            .pDependencies   = nullptr,
+        };
+
+        result = vkCreateRenderPass(GetDevice().handle, &render_pass_create_info, nullptr, &shadowMap.renderPass);
+        if(result != VK_SUCCESS)
+        {
+            CDebug::Error("Vulkan Renderer | Swapchain creation fail (vkCreateRenderPass didn't return VK_SUCCESS for the shadow map).");
+            throw std::runtime_error("Renderer-Vulkan-Swapchain-CreationFail");
         }
     }
 }

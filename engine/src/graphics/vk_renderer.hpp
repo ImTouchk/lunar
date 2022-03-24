@@ -72,14 +72,25 @@ namespace Vk
         void create_image_views();
         void create_framebuffers();
         void create_depth_buffer();
+        void create_shadow_map();
 
         struct
         {
             VmaAllocation allocation = VK_NULL_HANDLE;
-            VkImage image            = VK_NULL_HANDLE;
-            VkImageView view         = VK_NULL_HANDLE;
-            VkFormat format          = {};
+            VkImage       image      = VK_NULL_HANDLE;
+            VkImageView   view       = VK_NULL_HANDLE;
+            VkFormat      format     = {};
         } depthBuffer = {};
+
+        struct
+        {
+            VmaAllocation allocation  = VK_NULL_HANDLE;
+            VkImage       image       = VK_NULL_HANDLE;
+            VkImageView   view        = VK_NULL_HANDLE;
+            VkFramebuffer framebuffer = VK_NULL_HANDLE;
+            VkRenderPass  renderPass  = VK_NULL_HANDLE;
+            VkFormat      format      = {};
+        } shadowMap = {};
 
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;
         VkRenderPass renderPass  = VK_NULL_HANDLE;
