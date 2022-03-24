@@ -62,10 +62,10 @@ int main()
         auto shaders = game_renderer.create_shaders(&shader_create_info, 1);
         std::vector<Vertex> vertices =
         {
-            { {-0.5f,   0.5f, 0.0f},   {1.0f, 0.0f}},
-            { { 0.5f,   0.5f, 0.0f},   {0.0f, 0.0f}},
-            { { 0.5f,  -0.5f, 0.0f},   {0.0f, 1.0f}},
-            { {-0.5f,  -0.5f, 0.0f},   {1.0f, 1.0f}}
+            { {-0.5f,   0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {1.0f, 0.0f}},
+            { { 0.5f,   0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {0.0f, 0.0f}},
+            { { 0.5f,  -0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {0.0f, 1.0f}},
+            { {-0.5f,  -0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {1.0f, 1.0f}}
         };
 
         std::vector<Index> indices = { 0, 1, 2, 2, 3, 0 };
@@ -100,6 +100,14 @@ int main()
 
         while(game_window.is_active())
         {
+            mesh.set_vertices
+            ({
+                { {-0.5f,   0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {1.0f, 0.0f}},
+                { { 0.5f,   0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {0.0f, 0.0f}},
+                { { 0.5f,  -0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {0.0f, 1.0f}},
+                { {-0.5f,  -0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {1.0f, 1.0f}}
+            });
+
             if(!game_window.is_minimized())
             {
                 game_renderer.draw();
