@@ -46,7 +46,7 @@ if(LUNAR_COUNT_HEADERS_AS_SOURCE)
         "inc/io/filesystem.hpp"
         "inc/utils/fast_mutex.hpp"
         "inc/utils/stb_image.h"
-        #"inc/math/vec.hpp"
+        "inc/core/time.hpp"
     )
 endif()
 
@@ -57,7 +57,8 @@ if(LUNAR_WINDOW_BACKEND STREQUAL "GLFW")
     target_link_libraries("lunar" glfw)
     target_include_directories("lunar" PRIVATE glfw)
 
-    target_sources("lunar" PRIVATE "src/glfw_window.cpp")
+    target_compile_definitions("lunar" PRIVATE GLFW_WINDOW_BACKEND=1)
+    target_sources("lunar" PRIVATE "src/glfw_window.cpp" "src/glfw_time.cpp")
 endif()
 
 if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")

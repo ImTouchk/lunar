@@ -1,6 +1,7 @@
 #include "utils/debug.hpp"
 #include "utils/range.hpp"
 
+#include "core/time.hpp"
 #include "render/window.hpp"
 #include "render/renderer.hpp"
 #include "io/filesystem.hpp"
@@ -9,6 +10,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "utils/stb_image.h"
 
+#include <glm/gtc/matrix_transform.hpp>
 #ifdef WIN32
 #   define WIN32_LEAN_AND_MEAN
 #   include <windows.h>
@@ -98,8 +100,12 @@ int main()
         auto texture = game_renderer.create_texture(std::move(texture_create_info));
         shaders[0].use_texture(texture);
 
+        float rot = 0.f;
+
         while(game_window.is_active())
         {
+            CTime::Update();
+
             mesh.set_vertices
             ({
                 { {-0.5f,   0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {1.0f, 0.0f}},
@@ -107,6 +113,13 @@ int main()
                 { { 0.5f,  -0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {0.0f, 1.0f}},
                 { {-0.5f,  -0.5f, 0.0f}, { 0.f, 0.f, 0.f }, {1.0f, 1.0f}}
             });
+
+            auto model = glm::scale(glm::mat4(1.0f), glm::vec3(rot, rot, rot));
+            mesh.set_transform(std::move(model));
+
+            rot += 1.f * CTime::DeltaTime();
+            if (rot >= 5.f)
+                rot = 0.f;
 
             if(!game_window.is_minimized())
             {
