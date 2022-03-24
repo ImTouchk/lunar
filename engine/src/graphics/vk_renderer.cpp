@@ -102,9 +102,10 @@ void GameRenderer::draw()
     auto& swapchain      = internal_data->swapchain;
     const auto& device   = Vk::GetDevice();
 
-    object_manager.update();
+    auto needs_update = internal_data->recordedMeshes != object_manager.mesh_count() ||
+                        object_manager.update();
 
-    if(internal_data->recordedMeshes != object_manager.mesh_count())
+    if(needs_update)
     {
         for(int i = 0; i <= Vk::MAX_FRAMES_IN_FLIGHT; i++)
         {

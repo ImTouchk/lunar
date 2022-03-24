@@ -81,16 +81,21 @@ namespace Vk
 		pShaderManager   = nullptr;
 	}
 
-	void ObjectManager::update()
+	bool ObjectManager::update()
 	{
+		bool buffers_rebuilt = false;
+
 		for(auto& mesh : meshes)
 		{
 			if(mesh.wasModified)
 			{
 				rebuild_mesh_command(mesh);
 				mesh.wasModified = false;
+				buffers_rebuilt = true;
 			}
 		}
+
+		return buffers_rebuilt;
 	}
 
 	MeshWrapper ObjectManager::create_mesh(MeshCreateInfo&& createInfo)

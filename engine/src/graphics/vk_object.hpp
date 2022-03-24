@@ -46,7 +46,8 @@ namespace Vk
 		void create(ObjectManagerCreateInfo&& createInfo);
 		void destroy();
 
-		void update();
+		// Returns whether any command buffers were rebuilt this frame
+		[[nodiscard]] bool update();
 
 		[[nodiscard]] size_t mesh_count() const;
 		[[nodiscard]] std::vector<VkCommandBuffer> mesh_commands() const;
