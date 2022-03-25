@@ -30,9 +30,6 @@ namespace Vk
 		unsigned indexCount;
 		glm::mat4 transform;
 		VkCommandBuffer command;
-		
-		std::optional<std::vector<Vertex>> vertices;
-		std::optional<std::vector<unsigned>> indices;
 	};
 
 	class ObjectManager

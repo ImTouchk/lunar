@@ -100,10 +100,14 @@ namespace Vk
 
 	MeshWrapper ObjectManager::create_mesh(MeshCreateInfo&& createInfo)
 	{
+		auto data_buffer_type = (createInfo.type == MeshType::eDynamic)
+									? BufferMemoryType::eGpuDynamic
+									: BufferMemoryType::eGpuStatic;
+
 		BufferWrapper vertex_buffer = BufferManager::CreateBuffer(BufferCreateInfo
 		{
 			.type       = BufferType::eVertex,
-			.memoryType = BufferMemoryType::eGpuStatic,
+			.memoryType = data_buffer_type,
 			.pData      = createInfo.vertices.data(),
 			.dataSize   = static_cast<unsigned>(createInfo.vertices.size() * sizeof(Vertex)),
 		});
@@ -111,7 +115,7 @@ namespace Vk
 		BufferWrapper index_buffer = BufferManager::CreateBuffer(BufferCreateInfo
 		{
 			.type       = BufferType::eIndex,
-			.memoryType = BufferMemoryType::eGpuStatic,
+			.memoryType = data_buffer_type,
 			.pData      = createInfo.indices.data(),
 			.dataSize   = static_cast<unsigned>(createInfo.indices.size() * sizeof(Index))
 		});
@@ -127,8 +131,6 @@ namespace Vk
 			.vertexCount  = static_cast<unsigned>(createInfo.vertices.size()),
 			.indexCount   = static_cast<unsigned>(createInfo.indices.size()),
 			.transform    = glm::mat4(1.f),
-			.vertices     = {},
-			.indices      = {},
 		};
 
 		auto identifier = object_data.identifier;
