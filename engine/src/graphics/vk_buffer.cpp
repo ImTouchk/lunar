@@ -163,7 +163,7 @@ namespace Vk
 			{
 				upload_to_gpu_buffer(createInfo.pData, createInfo.dataSize, new_buffer.handle);
 			}
-			else if (createInfo.memoryType == BufferMemoryType::eCpuAny)
+			else if (createInfo.memoryType == BufferMemoryType::eCpuAny || createInfo.memoryType == BufferMemoryType::eGpuDynamic)
 			{
 				void* mapped_buf = nullptr;
 				vmaMapMemory(GetMemoryAllocator(), new_buffer.memory, &mapped_buf);
@@ -210,6 +210,13 @@ namespace Vk
 		if (data.memoryType == BufferMemoryType::eGpuStatic)
 		{
 			upload_to_gpu_buffer(pNewData, size, data.handle);
+		}
+		else if(data.memoryType == BufferMemoryType::eGpuDynamic || data.memoryType == BufferMemoryType::eCpuAny)
+		{
+			void* mapped_buff = nullptr;
+			vmaMapMemory(GetMemoryAllocator(), data.memory, &mapped_buff);
+			memcpy(mapped_buff, pNewData, size);
+			vmaUnmapMemory(GetMemoryAllocator(), data.memory);
 		}
 		else
 		{
