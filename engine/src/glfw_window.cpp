@@ -24,6 +24,7 @@ struct GlfwLifeguard
 };
 
 GlfwLifeguard GLFW_LIFEGUARD = {};
+GameWindow*   PRIMARY_WINDOW = nullptr;
 
 void GLFW_KEY_CALLBACK(GLFWwindow* handle, int key, int scancode, int action, int mods)
 {
@@ -78,9 +79,20 @@ void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::a
     }
 }
 
+GameWindow& GameWindow::GetPrimary()
+{
+    assert(PRIMARY_WINDOW != nullptr);
+    return *PRIMARY_WINDOW;
+}
+
 void GameWindow::create(WindowCreateInfo createInfo)
 {
     assert(is_created == false);
+
+    if(createInfo.isMainWindow)
+    {
+        PRIMARY_WINDOW = this;
+    }
 
     int new_width = createInfo.width;
     int new_height = createInfo.height;

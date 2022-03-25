@@ -17,6 +17,7 @@ struct WindowCreateInfo
 {
     bool isResizable;
     bool isFullscreen;
+    bool isMainWindow;
     int width, height;
     const char* pTitle;
 };
@@ -40,6 +41,8 @@ public:
     [[nodiscard]] int get_height() const;
 
     void update();
+
+    [[nodiscard]] static GameWindow& GetPrimary();
 
     void* get_handle();
 
