@@ -7,11 +7,11 @@
 #include "render/texture.hpp"
 #include "math/vec.hpp"
 
-class GameWindow;
+class CGameWindow;
 
 struct RendererCreateInfo
 {
-    GameWindow* pWindow;
+    CGameWindow* pWindow;
 };
 
 class CRenderer
@@ -33,7 +33,7 @@ public:
 
 private:
     std::any backend_data = 0;
-    GameWindow* window_handle = nullptr;
+    CGameWindow* window_handle = nullptr;
     bool is_active = false;
     bool is_window_minimized = false;
 };
