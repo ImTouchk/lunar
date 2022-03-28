@@ -14,11 +14,11 @@ struct RendererCreateInfo
     GameWindow* pWindow;
 };
 
-class GameRenderer
+class CRenderer
 {
 public:
-    GameRenderer() = default;
-    ~GameRenderer() = default;
+    CRenderer() = default;
+    ~CRenderer() = default;
 
     void create(RendererCreateInfo&& createInfo);
     void destroy();

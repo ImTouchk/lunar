@@ -24,31 +24,31 @@ struct GlfwLifeguard
 };
 
 GlfwLifeguard GLFW_LIFEGUARD = {};
-GameWindow*   PRIMARY_WINDOW = nullptr;
+CGameWindow*   PRIMARY_WINDOW = nullptr;
 
 void GLFW_KEY_CALLBACK(GLFWwindow* handle, int key, int scancode, int action, int mods)
 {
-    auto window = (GameWindow*)glfwGetWindowUserPointer(handle);
+    auto window = (CGameWindow*)glfwGetWindowUserPointer(handle);
     auto data = std::pair<int, bool>(key, action);
-    GameWindow::HandleEvent(window, WindowEvent::eKeyStateChanged, data);
+    CGameWindow::HandleEvent(window, WindowEvent::eKeyStateChanged, data);
 }
 
 void GLFW_CURSOR_POS_CALLBACK(GLFWwindow* handle, double x, double y)
 {
-    auto window = (GameWindow*)glfwGetWindowUserPointer(handle);
+    auto window = (CGameWindow*)glfwGetWindowUserPointer(handle);
     auto data = std::pair<double, double>(x, y);
-    GameWindow::HandleEvent(window, WindowEvent::eMouseMoved, data);
+    CGameWindow::HandleEvent(window, WindowEvent::eMouseMoved, data);
 }
 
 void GLFW_FRAMEBUFFER_SIZE_CALLBACK(GLFWwindow* handle, int width, int height)
 {
-    auto window = (GameWindow*)glfwGetWindowUserPointer(handle);
+    auto window = (CGameWindow*)glfwGetWindowUserPointer(handle);
     auto data = std::pair<int, int>(width, height);
 
-    GameWindow::HandleEvent(window, WindowEvent::eResized, data);
+    CGameWindow::HandleEvent(window, WindowEvent::eResized, data);
 }
 
-void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::any& data)
+void CGameWindow::HandleEvent(CGameWindow* window, WindowEvent event, const std::any& data)
 {
     switch(event)
     {
@@ -79,13 +79,13 @@ void GameWindow::HandleEvent(GameWindow* window, WindowEvent event, const std::a
     }
 }
 
-GameWindow& GameWindow::GetPrimary()
+CGameWindow& CGameWindow::GetPrimary()
 {
     assert(PRIMARY_WINDOW != nullptr);
     return *PRIMARY_WINDOW;
 }
 
-void GameWindow::create(WindowCreateInfo createInfo)
+void CGameWindow::create(WindowCreateInfo createInfo)
 {
     assert(is_created == false);
 
@@ -137,50 +137,50 @@ void GameWindow::create(WindowCreateInfo createInfo)
     width = new_width;
     height = new_height;
 
-    GameWindow::HandleEvent(this, WindowEvent::eCreated, nullptr);
+    CGameWindow::HandleEvent(this, WindowEvent::eCreated, nullptr);
 }
 
-void GameWindow::destroy()
+void CGameWindow::destroy()
 {
     assert(is_created == true);
     glfwDestroyWindow((GLFWwindow*)native_handle);
 }
 
-bool GameWindow::is_active() const
+bool CGameWindow::is_active() const
 {
     assert(is_created == true);
     return !glfwWindowShouldClose((GLFWwindow*)native_handle);
 }
 
-bool GameWindow::is_minimized() const
+bool CGameWindow::is_minimized() const
 {
     assert(is_created == true);
     return is_inactive;
 }
 
-void GameWindow::update()
+void CGameWindow::update()
 {
     assert(is_created == true);
     glfwSwapBuffers((GLFWwindow*)native_handle);
     glfwPollEvents();
 }
 
-void* GameWindow::get_handle()
+void* CGameWindow::get_handle()
 {
     return native_handle;
 }
 
-int GameWindow::get_width() const
+int CGameWindow::get_width() const
 {
     return width;
 }
 
-int GameWindow::get_height() const
+int CGameWindow::get_height() const
 {
     return height;
 }
 
-void GameWindow::subscribe(WindowEvent event, WindowEventSubscriber handler)
+void CGameWindow::subscribe(WindowEvent event, WindowEventSubscriber handler)
 {
     for(const auto& subscriber : subscribers)
     {
@@ -203,7 +203,7 @@ void GameWindow::subscribe(WindowEvent event, WindowEventSubscriber handler)
     CDebug::Log("GameWindow | Handler subscribed to event.");
 }
 
-void GameWindow::unsubscribe(WindowEvent event, WindowEventSubscriber handler)
+void CGameWindow::unsubscribe(WindowEvent event, WindowEventSubscriber handler)
 {
     for(auto iterator = subscribers.begin(); iterator != subscribers.end(); iterator++)
     {

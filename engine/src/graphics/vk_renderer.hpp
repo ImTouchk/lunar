@@ -16,7 +16,7 @@
 #include "vk_object.hpp"
 #include "vk_texture.hpp"
 
-class GameWindow;
+class CGameWindow;
 
 namespace Vk
 {
@@ -35,7 +35,7 @@ namespace Vk
         SurfaceWrapper() = default;
         ~SurfaceWrapper() = default;
 
-        void create(GameWindow& window);
+        void create(CGameWindow& window);
         void destroy();
 
         [[nodiscard]] VkSurfaceKHR handle() const;
@@ -50,10 +50,10 @@ namespace Vk
         SwapchainWrapper() = default;
         ~SwapchainWrapper() = default;
 
-        void create(GameWindow& window, SurfaceWrapper& surface);
+        void create(CGameWindow& window, SurfaceWrapper& surface);
         void destroy();
 
-        void resize(GameWindow& window, SurfaceWrapper& surface);
+        void resize(CGameWindow& window, SurfaceWrapper& surface);
 
         [[nodiscard]] VkSwapchainKHR handle() const;
         [[nodiscard]] VkRenderPass render_pass() const;
@@ -67,7 +67,7 @@ namespace Vk
         [[nodiscard]] const VkRect2D& get_scissor() const;
 
     private:
-        void create_swapchain(GameWindow& window, SurfaceWrapper& surface);
+        void create_swapchain(CGameWindow& window, SurfaceWrapper& surface);
         void create_render_pass();
         void create_image_views();
         void create_framebuffers();

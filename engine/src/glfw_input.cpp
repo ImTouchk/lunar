@@ -43,13 +43,13 @@ namespace CInput
 
 	void Initialize()
 	{
-		GameWindow::GetPrimary()
+		CGameWindow::GetPrimary()
 			.subscribe(WindowEvent::eKeyStateChanged, KeyEventHandler);
 	}
 
 	void Destroy()
 	{
-		GameWindow::GetPrimary()
+		CGameWindow::GetPrimary()
 			.unsubscribe(WindowEvent::eKeyStateChanged, KeyEventHandler);
 	}
 

@@ -37,7 +37,7 @@ int main()
         CThreadPool::Initialize();
         CFilesystem::LoadPackage("default.vpak");
 
-        GameWindow game_window;
+        CGameWindow game_window;
         game_window.create(WindowCreateInfo
         {
            .isResizable  = true,
@@ -50,7 +50,7 @@ int main()
 
         CInput::Initialize();
 
-        GameRenderer game_renderer;
+        CRenderer game_renderer;
         game_renderer.create(RendererCreateInfo
         {
             .pWindow = &game_window

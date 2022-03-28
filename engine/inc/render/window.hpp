@@ -25,11 +25,11 @@ struct WindowCreateInfo
 using WindowEventSubscriber = std::function<void(void*, const std::any&)>;
 
 // Wrapper over native windowing system; does not include any rendering capabilities.
-class GameWindow
+class CGameWindow
 {
 public:
-    GameWindow() = default;
-    ~GameWindow() = default;
+    CGameWindow() = default;
+    ~CGameWindow() = default;
 
     void create(WindowCreateInfo createInfo);
     void destroy();
@@ -42,14 +42,14 @@ public:
 
     void update();
 
-    [[nodiscard]] static GameWindow& GetPrimary();
+    [[nodiscard]] static CGameWindow& GetPrimary();
 
     void* get_handle();
 
     void subscribe(WindowEvent event, WindowEventSubscriber handler);
     void unsubscribe(WindowEvent event, WindowEventSubscriber handler);
 
-    static void HandleEvent(GameWindow* window, WindowEvent event, const std::any& data);
+    static void HandleEvent(CGameWindow* window, WindowEvent event, const std::any& data);
 
 private:
     void* native_handle = nullptr;

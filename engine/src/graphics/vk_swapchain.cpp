@@ -77,7 +77,7 @@ namespace Vk
         return VK_PRESENT_MODE_IMMEDIATE_KHR; // available everywhere (makes the empty check redundant?)
     }
 
-    VkExtent2D PickSwapExtent(GameWindow& window, const VkSurfaceCapabilitiesKHR& capabilities)
+    VkExtent2D PickSwapExtent(CGameWindow& window, const VkSurfaceCapabilitiesKHR& capabilities)
     {
         if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
         {
@@ -164,7 +164,7 @@ namespace Vk
         return surfaceFormat;
     }
 
-    void SwapchainWrapper::create(GameWindow& window, SurfaceWrapper& surface)
+    void SwapchainWrapper::create(CGameWindow& window, SurfaceWrapper& surface)
     {
         assert(swapchain == VK_NULL_HANDLE);
 
@@ -222,7 +222,7 @@ namespace Vk
         surfaceExtent = {};
     }
 
-    void SwapchainWrapper::resize(GameWindow& window, SurfaceWrapper& surface)
+    void SwapchainWrapper::resize(CGameWindow& window, SurfaceWrapper& surface)
     {
         // resize optimization: render pass does not need to get recreated
         auto device = GetDevice().handle;
@@ -258,7 +258,7 @@ namespace Vk
         create(window, surface);
     }
 
-    void SwapchainWrapper::create_swapchain(GameWindow& window, SurfaceWrapper& surface)
+    void SwapchainWrapper::create_swapchain(CGameWindow& window, SurfaceWrapper& surface)
     {
         auto render_device = GetRenderingDevice();
         auto swapchain_details = SwapchainSupportDetails::query(render_device, surface.handle());

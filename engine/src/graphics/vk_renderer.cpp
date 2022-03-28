@@ -7,7 +7,7 @@
 #include <vulkan/vulkan.h>
 #include <any>
 
-void GameRenderer::create(RendererCreateInfo&& createInfo)
+void CRenderer::create(RendererCreateInfo&& createInfo)
 {
     window_handle = createInfo.pWindow;
     backend_data = Vk::RendererInternalData();
@@ -62,13 +62,13 @@ void GameRenderer::create(RendererCreateInfo&& createInfo)
             is_window_minimized = false;
         }
 
-        GameWindow& window = *window_handle;
+        CGameWindow& window = *window_handle;
         auto* data = std::any_cast<Vk::RendererInternalData>(&backend_data);
         data->swapchain.resize(window, data->surface);
     });
 }
 
-void GameRenderer::destroy()
+void CRenderer::destroy()
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
 
@@ -90,7 +90,7 @@ void GameRenderer::destroy()
     Vk::SignalRendererDestroy();
 }
 
-void GameRenderer::draw()
+void CRenderer::draw()
 {
     if(is_window_minimized)
     {
@@ -192,25 +192,25 @@ void GameRenderer::draw()
     current_frame = (current_frame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
 }
 
-std::vector<ShaderWrapper> GameRenderer::create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned int count)
+std::vector<ShaderWrapper> CRenderer::create_shaders(GraphicsShaderCreateInfo* pCreateInfos, unsigned int count)
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     return internal_data->shaderManager.create_graphics(pCreateInfos, count);
 }
 
-std::vector<ShaderWrapper> GameRenderer::create_shaders(ComputeShaderCreateInfo* pCreateInfos, unsigned count)
+std::vector<ShaderWrapper> CRenderer::create_shaders(ComputeShaderCreateInfo* pCreateInfos, unsigned count)
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     return internal_data->shaderManager.create_compute(pCreateInfos, count);
 }
 
-MeshWrapper GameRenderer::create_object(MeshCreateInfo&& meshCreateInfo)
+MeshWrapper CRenderer::create_object(MeshCreateInfo&& meshCreateInfo)
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     return internal_data->objectManager.create_mesh(std::move(meshCreateInfo));
 }
 
-TextureWrapper GameRenderer::create_texture(TextureCreateInfo&& textureCreateInfo)
+TextureWrapper CRenderer::create_texture(TextureCreateInfo&& textureCreateInfo)
 {
     auto* internal_data = std::any_cast<Vk::RendererInternalData>(&backend_data);
     return internal_data->textureManager.create_texture(std::move(textureCreateInfo));

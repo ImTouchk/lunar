@@ -15,7 +15,7 @@
 
 namespace Vk
 {
-    void SurfaceWrapper::create(GameWindow& window)
+    void SurfaceWrapper::create(CGameWindow& window)
     {
 #       if WINDOW_BACKEND == GLFW
         VkWin32SurfaceCreateInfoKHR  surface_create_info =
