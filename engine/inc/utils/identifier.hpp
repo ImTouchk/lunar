@@ -28,8 +28,6 @@ inline Identifier get_unique_number()
 template<typename T>
 T* find_by_identifier(std::vector<T>& elements, unsigned identifier)
 {
-	assert(not elements.empty());
-
 	T* pElements = elements.data();
 
 	for (int i = 0; i < elements.size(); i++)
@@ -49,6 +47,7 @@ T* find_by_identifier(std::vector<T>& elements, unsigned identifier)
 template<typename T>
 T& find_by_identifier_safe(std::vector<T>& elements, unsigned identifier)
 {
+	assert(not elements.empty());
 	T* element = find_by_identifier(elements, identifier);
 	if (element == nullptr)
 	{
