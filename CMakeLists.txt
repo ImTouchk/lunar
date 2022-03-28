@@ -5,7 +5,7 @@ set(LUNAR_BUNDLE_SAMPLE_ASSETS ON)
 
 add_subdirectory(engine)
 add_subdirectory(asset-packer)
-#add_subdirectory(lunarsl)
+add_subdirectory(lunixc)
 
 add_custom_target("lunar-assets")
 
