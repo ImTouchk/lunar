@@ -1,6 +1,5 @@
 #include "core/time.hpp"
 #include "utils/fast_mutex.hpp"
-#include "utils/debug.hpp"
 
 #ifdef GLFW_WINDOW_BACKEND
 #	include <GLFW/glfw3.h>

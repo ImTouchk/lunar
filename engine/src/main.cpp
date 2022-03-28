@@ -2,6 +2,7 @@
 #include "utils/range.hpp"
 
 #include "core/time.hpp"
+#include "core/input.hpp"
 #include "render/window.hpp"
 #include "render/renderer.hpp"
 #include "io/filesystem.hpp"
@@ -39,12 +40,15 @@ int main()
         GameWindow game_window;
         game_window.create(WindowCreateInfo
         {
-           .isResizable = true,
+           .isResizable  = true,
            .isFullscreen = false,
-           .width = 1280,
-           .height = 720,
-           .pTitle = "Vulkan app"
+           .isMainWindow = true,
+           .width        = 1280,
+           .height       = 720,
+           .pTitle       = "Vulkan app"
         });
+
+        CInput::Initialize();
 
         GameRenderer game_renderer;
         game_renderer.create(RendererCreateInfo
@@ -91,7 +95,7 @@ int main()
 
         auto mesh = game_renderer.create_object(MeshCreateInfo
         {
-            .type     = MeshType::eUnknown,
+            .type     = MeshType::eDynamic,
             .vertices = vertices,
             .indices  = indices,
             .shader   = shaders[0],
