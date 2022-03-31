@@ -111,7 +111,9 @@ void CGameWindow::create(WindowCreateInfo createInfo)
     }
 
     glfwWindowHint(GLFW_RESIZABLE, createInfo.isResizable);
+#ifndef OPENGL_RENDERER
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+#endif
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
 
     native_handle = (void*)glfwCreateWindow(new_width, new_height, createInfo.pTitle, pMonitor, nullptr);

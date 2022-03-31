@@ -101,7 +101,10 @@ elseif(LUNAR_RENDERER_BACKEND STREQUAL "OpenGL")
     target_include_directories("lunar" PRIVATE glad)
     target_compile_definitions("lunar" PRIVATE OPENGL_RENDERER=1)
 
-    
+    target_sources("lunar" PRIVATE
+        "src/graphics/gl_renderer.hpp"
+        "src/graphics/gl_renderer.cpp"
+    )    
 endif()
 
 if(WIN32)

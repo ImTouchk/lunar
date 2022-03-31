@@ -52,11 +52,11 @@ int main()
 
         CInput::Initialize();
 
-        //CRenderer game_renderer;
-        //game_renderer.create(RendererCreateInfo
-        //{
-        //    .pWindow = &game_window
-        //});
+        CRenderer game_renderer;
+        game_renderer.create(RendererCreateInfo
+        {
+            .pWindow = &game_window
+        });
 
         //auto vertex_code = CVirtualPath("Default/shader.vert").get_bytes();
         //auto fragment_code = CVirtualPath("Default/shader.frag").get_bytes();
@@ -145,10 +145,10 @@ int main()
             //if (rot >= 5.f)
             //    rot = 0.f;
 
-            //if(!game_window.is_minimized())
-            //{
-            //    game_renderer.draw();
-            //}
+            if(!game_window.is_minimized())
+            {
+                game_renderer.draw();
+            }
 
             game_window.update();
 
