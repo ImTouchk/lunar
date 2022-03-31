@@ -40,7 +40,9 @@ struct MeshCreateInfo
 class MeshWrapper
 {
 public:
+#ifdef VULKAN_RENDERER
     explicit MeshWrapper(Vk::ObjectManager& objectManager, Identifier handle);
+#endif
     ~MeshWrapper() = default;
 
     void set_vertices(std::vector<Vertex>&& vertices);
@@ -57,6 +59,8 @@ public:
 
     [[nodiscard]] bool active() const;
 private:
+#ifdef VULKAN_RENDERER
     Vk::ObjectManager& objectManager;
+#endif
     Identifier identifier;
 };
