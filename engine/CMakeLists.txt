@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(LUNAR_COUNT_HEADERS_AS_SOURCE 1)
 set(LUNAR_WINDOW_BACKEND "GLFW")
-set(LUNAR_RENDERER_BACKEND "Vulkan")
+set(LUNAR_RENDERER_BACKEND "OpenGL")
 
 set(LUNAR_WINDOW_BACKEND ${LUNAR_WINDOW_BACKEND} PARENT_SCOPE)
 set(LUNAR_RENDERER_BACKEND ${LUNAR_RENDERER_BACKEND} PARENT_SCOPE)
@@ -93,6 +93,15 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         "src/graphics/vk_texture.cpp"
         "src/graphics/vk_utils.hpp"
     )
+elseif(LUNAR_RENDERER_BACKEND STREQUAL "OpenGL")
+    message("-- Using OpenGL as the rendering backend")
+
+    add_subdirectory("glad")
+    target_link_libraries("lunar" glad)
+    target_include_directories("lunar" PRIVATE glad)
+    target_compile_definitions("lunar" PRIVATE OPENGL_RENDERER=1)
+
+    
 endif()
 
 if(WIN32)
