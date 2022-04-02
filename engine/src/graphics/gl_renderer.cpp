@@ -2,6 +2,7 @@
 #include "render/renderer.hpp"
 #include "render/window.hpp"
 #include "render/shader.hpp"
+#include "render/texture.hpp"
 #include "utils/debug.hpp"
 #include "utils/range.hpp"
 #include "utils/identifier.hpp"
@@ -22,7 +23,7 @@ ShaderWrapper::ShaderWrapper(Identifier handle)
 
 void ShaderWrapper::use_texture(TextureWrapper& texture)
 {
-	// TODO:
+	glBindTexture(GL_TEXTURE_2D, texture.handle());
 }
 
 unsigned ShaderWrapper::handle() const
@@ -40,6 +41,17 @@ void MeshWrapper::set_transform(glm::mat4&& transform)
 {
 	find_by_identifier_safe(rendererData.meshes, identifier)
 		.transform = transform;
+}
+
+TextureWrapper::TextureWrapper(GL::RendererInternalData& internalData, Identifier handle)
+	: identifier(handle),
+	renderer_data(internalData)
+{
+}
+
+unsigned TextureWrapper::handle() const
+{
+	return identifier;
 }
 
 void CRenderer::create(RendererCreateInfo&& createInfo)
@@ -211,4 +223,21 @@ MeshWrapper CRenderer::create_object(MeshCreateInfo&& meshCreateInfo)
 
 	internal_data->meshes.push_back(std::move(object_data));
 	return MeshWrapper { *internal_data, identifier };
+}
+
+TextureWrapper CRenderer::create_texture(TextureCreateInfo&& createInfo)
+{
+	auto* internal_data = std::any_cast<GL::RendererInternalData>(&backend_data);
+
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, createInfo.width, createInfo.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, createInfo.pData);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	return TextureWrapper { *internal_data, static_cast<Identifier>(texture) };
 }

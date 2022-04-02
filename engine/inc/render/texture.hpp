@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "utils/identifier.hpp"
 #ifdef VULKAN_RENDERER
 #   include <vulkan/vulkan.h>
 #endif
@@ -29,22 +30,31 @@ namespace Vk
 {
     class TextureManager;
 }
+#elif OPENGL_RENDERER
+namespace GL
+{
+    struct RendererInternalData;
+}
 #endif
 
 class TextureWrapper
 {
 public:
 #ifdef VULKAN_RENDERER
-    TextureWrapper(Vk::TextureManager& textureManager, unsigned handle);
+    explicit TextureWrapper(Vk::TextureManager& textureManager, Identifer handle);
     [[nodiscard]] VkImageView view() const;
     [[nodiscard]] VkSampler sampler() const;
+#elif OPENGL_RENDERER
+    explicit TextureWrapper(GL::RendererInternalData& internalData, Identifier handle);
+    [[nodiscard]] unsigned handle() const;
 #endif
     ~TextureWrapper() = default;
 
 private:
 #ifdef VULKAN_RENDERER
     Vk::TextureManager& texture_manager;
+#elif OPENGL_RENDERER
+    GL::RendererInternalData& renderer_data;
 #endif
-    unsigned identifier;
-
+    Identifier identifier;
 };
