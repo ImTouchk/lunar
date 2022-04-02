@@ -72,7 +72,7 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
     target_include_directories("lunar" PRIVATE ${Vulkan_INCLUDE_DIRS} VulkanMemoryAllocator)
     target_link_libraries("lunar" ${Vulkan_LIBRARIES} VulkanMemoryAllocator)
 
-    target_compile_definitions("lunar" PRIVATE VULKAN_USE_DEBUG_LAYERS=1 VULKAN_RENDERER=1)
+    target_compile_definitions("lunar" PRIVATE VULKAN_USE_DEBUG_LAYERS=1 VULKAN_RENDERER=1 GLFW_INCLUDE_NONE=1)
 
     target_sources("lunar" PRIVATE
         "src/graphics/vk_device.cpp"
