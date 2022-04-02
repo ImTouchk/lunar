@@ -6,10 +6,10 @@ layout (location = 2) in vec2 tex_uv;
 
 uniform mat4 transform;
 
-out vec3 vertex_pos;
+out vec2 texture_uv;
 
 void main()
 {
 	gl_Position = transform * vec4(pos.xyz, 1);
-	vertex_pos = normal;
+	texture_uv = tex_uv;
 }

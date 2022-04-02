@@ -2,9 +2,10 @@
 
 out vec4 color;
 
-in vec3 vertex_pos;
+in vec2 texture_uv;
+uniform sampler2D mytex;
 
 void main()
 {
-	color = vec4(vertex_pos.xyz, 1);
+	color = texture(mytex, texture_uv);
 }
