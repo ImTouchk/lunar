@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(LUNAR_COUNT_HEADERS_AS_SOURCE 1)
 set(LUNAR_WINDOW_BACKEND "GLFW")
-set(LUNAR_RENDERER_BACKEND "OpenGL")
+set(LUNAR_RENDERER_BACKEND "Vulkan")
 
 set(LUNAR_WINDOW_BACKEND ${LUNAR_WINDOW_BACKEND} PARENT_SCOPE)
 set(LUNAR_RENDERER_BACKEND ${LUNAR_RENDERER_BACKEND} PARENT_SCOPE)
@@ -87,7 +87,6 @@ if(LUNAR_RENDERER_BACKEND STREQUAL "Vulkan")
         "src/graphics/vk_buffer.hpp"
         "src/graphics/vk_object.hpp"
         "src/graphics/vk_object.cpp"
-        "src/graphics/vk_lifetime.cpp"
         "src/graphics/vk_cmd_submitter.cpp"
         "src/graphics/vk_texture.hpp"
         "src/graphics/vk_texture.cpp"
