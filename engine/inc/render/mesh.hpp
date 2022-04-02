@@ -11,6 +11,11 @@ namespace Vk
 {
     class ObjectManager;  
 }
+#elif OPENGL_RENDERER
+namespace GL
+{
+    struct RendererInternalData;
+}
 #endif
 
 enum class MeshType
@@ -42,6 +47,8 @@ class MeshWrapper
 public:
 #ifdef VULKAN_RENDERER
     explicit MeshWrapper(Vk::ObjectManager& objectManager, Identifier handle);
+#elif OPENGL_RENDERER
+    explicit MeshWrapper(GL::RendererInternalData& internalData, Identifier handle);
 #endif
     ~MeshWrapper() = default;
 
@@ -61,6 +68,8 @@ public:
 private:
 #ifdef VULKAN_RENDERER
     Vk::ObjectManager& objectManager;
+#elif OPENGL_RENDERER
+    GL::RendererInternalData& rendererData;
 #endif
     Identifier identifier;
 };

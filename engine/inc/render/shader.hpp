@@ -1,8 +1,4 @@
 #pragma once
-#include "utils/identifier.hpp"
-#include "render/texture.hpp"
-#include <vector>
-
 #ifdef VULKAN_RENDERER
 #	include <vulkan/vulkan.h>
 
@@ -10,8 +6,11 @@ namespace Vk
 {
 	class ShaderManager;
 }
-
 #endif
+
+#include "utils/identifier.hpp"
+#include "render/texture.hpp"
+#include <vector>
 
 enum class ShaderType
 {
@@ -38,6 +37,9 @@ public:
 	explicit ShaderWrapper(Vk::ShaderManager& manager, Identifier handle);
 	[[nodiscard]] VkPipeline pipeline() const;
 	[[nodiscard]] VkDescriptorSet descriptor() const;
+#elif OPENGL_RENDERER
+	explicit ShaderWrapper(Identifier handle);
+	[[nodiscard]] unsigned handle() const;
 #endif
 	~ShaderWrapper() = default;
 
