@@ -23,10 +23,18 @@ namespace Utils
 
 		int number();
 		float real();
-		std::string string();
+		std::string string(char stopChar = ' ');
+		std::string identifier();
+
+		const std::string& getLastError() const;
+
+		// Go to last token before error was thrown
+		void unwind();
 
 	private:
 		std::string text;
 		std::string::const_iterator it;
+		std::string::const_iterator lastBeforeError;
+		std::string lastError;
 	};
 }

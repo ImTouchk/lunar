@@ -1,19 +1,29 @@
 #include <utils/lexer.hpp>
+#include <debug/log.hpp>
 #include <charconv>
 #include <cstdarg>
+#include <format>
 
 namespace Utils
 {
 	Lexer::Lexer(const char* text)
 		: text(text),
-		it(this->text.begin())
+		it(this->text.begin()),
+		lastError(""),
+		lastBeforeError(it)
 	{
 	}
 
 	Lexer::Lexer(const std::string_view& text)
 		: text(text),
-		it(this->text.begin())
+		it(this->text.begin()),
+		lastError("")
 	{
+	}
+
+	const std::string& Lexer::getLastError() const
+	{
+		return lastError;
 	}
 
 	bool Lexer::atEnd()
@@ -93,12 +103,44 @@ namespace Utils
 		return value;
 	}
 
-	std::string Utils::Lexer::string()
+	std::string Lexer::string(char stopChar)
 	{
 		auto start = it;
 		size_t count = 0;
 
-		while (!atEnd() && !isspace(current()))
+		while (!atEnd())
+		{
+			if (stopChar == ' ')
+			{
+				if (!isspace(current()))
+					break;
+			}
+			else
+			{
+				if (current() == stopChar)
+					break;
+			}
+
+			count++;
+			advance();
+		}
+
+		auto end = it;
+		return std::string(start, end);
+	}
+
+	std::string Lexer::identifier()
+	{
+		auto start = it;
+		size_t count = 0;
+
+		while (!atEnd() && 
+			(isalpha(current()) || 
+				( count > 0 && 
+					(isdigit(current()) || current() == '-') 
+				)
+			)
+		)
 		{
 			count++;
 			advance();
@@ -106,6 +148,11 @@ namespace Utils
 
 		auto end = it;
 		return std::string(start, end);
+	}
+
+	void Lexer::unwind()
+	{
+		it = lastBeforeError;
 	}
 
 	bool Lexer::consume(char c)
@@ -146,9 +193,17 @@ namespace Utils
 		va_list args;
 		va_start(args, lexerTemplate);
 
+		auto start = it;
 		auto sub_lexer = Lexer(lexerTemplate);
 		while (!sub_lexer.atEnd())
 		{
+			if (atEnd())
+			{
+				lastError = "Reached end of string.";
+				lastBeforeError = start;
+				return false;
+			}
+
 			if (sub_lexer.consume("{:d}"))
 			{
 				int* number_ptr = va_arg(args, int*);
@@ -164,16 +219,44 @@ namespace Utils
 				std::string* str_ptr = va_arg(args, std::string*);
 				*str_ptr = string();
 			}
+			else if (sub_lexer.consume("{:s_id}"))
+			{
+				std::string* str_ptr = va_arg(args, std::string*);
+				*str_ptr = identifier();
+			}
+			else if (sub_lexer.consume("{:s_until}"))
+			{
+				char c = va_arg(args, char);
+				std::string* str_ptr = va_arg(args, std::string*);
+				*str_ptr = string(c);
+			}
+			else if (sub_lexer.consume("{:c}"))
+			{
+				char* char_ptr = va_arg(args, char*);
+				*char_ptr = current();
+				advance();
+			}
 			else
 			{
-				if (sub_lexer.current() != current())
-					return false;
-
 				if (sub_lexer.current() == ' ')
+				{
 					skipWhitespace();
-				else
-					advance();
+					sub_lexer.advance();
+					continue;
+				}
 
+				if (sub_lexer.current() != current())
+				{
+					lastError = std::format(
+						"Expected token '{}' from lexer template \"{}\". Found '{}' instead.",
+						printable(sub_lexer.current()), printable(lexerTemplate),
+						printable(current())
+					);
+					lastBeforeError = start;
+					return false;
+				}
+
+				advance();
 				sub_lexer.advance();
 			}
 		}

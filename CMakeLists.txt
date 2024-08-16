@@ -17,10 +17,14 @@ add_executable(lunar
     "src/file/filesystem.cpp"
     "inc/file/text_file.hpp"
     "src/file/text_file.cpp"
+    "inc/file/json_file.hpp"
+    "src/file/json_file.cpp"
     "inc/utils/lexer.hpp"
     "src/utils/lexer.cpp"
     "inc/debug/log.hpp"
     "src/debug/log.cpp"
+    "inc/ui/stylesheet.hpp"
+    "src/ui/stylesheet.cpp"
     "src/main.cpp"
 )
 target_include_directories(lunar PUBLIC inc)
