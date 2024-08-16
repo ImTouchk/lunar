@@ -8,6 +8,8 @@ namespace Fs
 	Path baseDirectory();
 	Path dataDirectory();
 
+	bool fileExists(const Path& path);
+
 	class Resource
 	{
 	public:
