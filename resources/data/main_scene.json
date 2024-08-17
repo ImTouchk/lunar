@@ -1,0 +1,14 @@
+{
+  "name": "Test Scene",
+  "gameObjects": [
+    {
+      "name": "Test Object",
+      "components": [
+        {
+          "type": "core.scriptComponent",
+          "scriptName": "dev/mugur/TestScript"
+        }
+      ]
+    }
+  ]
+}
