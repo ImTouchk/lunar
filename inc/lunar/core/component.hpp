@@ -1,11 +1,13 @@
 #pragma once
-#include <jni.h>
-#include <string_view>
+#include <lunar/api.hpp>
 #include <glm/glm.hpp>
+#include <string_view>
+#include <string>
+#include <jni.h>
 
 namespace Core
 {
-	class Component
+	class LUNAR_API Component
 	{
 	public:
 		virtual size_t getTypeHash();
@@ -14,7 +16,7 @@ namespace Core
 		virtual void update() = 0;
 	};
 
-	class ScriptComponent : public Component
+	class LUNAR_API ScriptComponent : public Component
 	{
 	public:
 		ScriptComponent(const std::string_view& name);
@@ -36,7 +38,7 @@ namespace Core
 		jmethodID updateMethod;
 	};
 
-	class TransformComponent : public Component
+	class LUNAR_API TransformComponent : public Component
 	{
 	public:
 		glm::vec3 position;

@@ -1,16 +1,17 @@
 #pragma once
+#include <lunar/api.hpp>
 #include <filesystem>
 
 namespace Fs
 {
 	using Path = std::filesystem::path;
 
-	Path baseDirectory();
-	Path dataDirectory();
+	LUNAR_API Path baseDirectory();
+	LUNAR_API Path dataDirectory();
 
-	bool fileExists(const Path& path);
+	LUNAR_API bool fileExists(const Path& path);
 
-	class Resource
+	class LUNAR_API Resource
 	{
 	public:
 		virtual void toFile(const Path& path);

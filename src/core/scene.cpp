@@ -1,13 +1,28 @@
-#include <core/scene.hpp>
-#include <debug/log.hpp>
+#include <lunar/core/scene.hpp>
+#include <lunar/debug/log.hpp>
 
 namespace Core
 {
 	Scene::Scene(const Fs::Path& path)
 		: name(),
-		nameHash(0)
+		nameHash(0),
+		objects()
 	{
 		fromFile(path);
+	}
+
+	Scene::Scene(const std::string& name)
+		: name(name),
+		nameHash(std::hash<std::string>{}(name)),
+		objects()
+	{
+	}
+
+	Scene::Scene()
+		: name("Default Scene"),
+		nameHash(std::hash<std::string>{}("Default Scene")),
+		objects()
+	{
 	}
 
 	void Scene::fromJson(nlohmann::json& json)
@@ -20,7 +35,7 @@ namespace Core
 			auto& gameobjects_json = json["gameObjects"];
 			for (auto& [key, gameobj_data] : gameobjects_json.items())
 			{
-				objects.push_back(GameObject(gameobj_data));
+				objects.push_back(std::move(GameObject(gameobj_data)));
 			}
 		}
 

@@ -1,20 +1,21 @@
 #pragma once
-#include <file/filesystem.hpp>
-#include <string>
-#include <utils/lexer.hpp>
+#include <lunar/file/filesystem.hpp>
+#include <lunar/utils/lexer.hpp>
+#include <lunar/api.hpp>
 #include <string_view>
+#include <string>
 #include <map>
 
 namespace UI
 {
-	enum class SheetType
+	enum class LUNAR_API SheetType
 	{
 		Uninitialized,
 		Class,
 		Identifier
 	};
 
-	class Stylesheet
+	class LUNAR_API Stylesheet
 	{
 	public:
 		Stylesheet(SheetType type);
@@ -27,7 +28,7 @@ namespace UI
 		std::map<size_t, std::string> registry;
 	};
 
-	class StylesheetDictionary
+	class LUNAR_API StylesheetDictionary
 	{
 	public:
 		StylesheetDictionary(const Fs::Path& path);

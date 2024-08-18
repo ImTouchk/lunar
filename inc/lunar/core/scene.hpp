@@ -1,12 +1,12 @@
 #pragma once
-#include <core/gameobject.hpp>
-#include <file/json_file.hpp>
+#include <lunar/core/gameobject.hpp>
+#include <lunar/file/json_file.hpp>
 #include <string>
 #include <vector>
 
 namespace Core
 {
-	class Scene : public Fs::JsonObject
+	class LUNAR_API Scene : public Fs::JsonObject
 	{
 	public:
 		Scene(const Fs::Path& path);

@@ -1,6 +1,6 @@
-#include <core/gameobject.hpp>
-#include <core/component.hpp>
-#include <debug/log.hpp>
+#include <lunar/core/gameobject.hpp>
+#include <lunar/core/component.hpp>
+#include <lunar/debug/log.hpp>
 #include <functional>
 #include <map>
 
@@ -21,6 +21,13 @@ namespace Core
 	{
 	}
 
+	GameObject::GameObject()
+		: nameHash(std::hash<std::string>{}("Default GameObject")),
+		components(),
+		data({ 19, "Default GameObject" })
+	{
+	}
+
 	void GameObject::update()
 	{
 		for (auto& component_ptr : components)
@@ -36,27 +43,27 @@ namespace Core
 		using json_obj = nlohmann::json;
 		using comp_ptr = std::unique_ptr<Component>;
 
-		static std::map<std::string, std::function<void(json_obj&, comp_ptr&)>> component_types = {
+		static std::map<std::string, std::function<comp_ptr(json_obj&)>> component_types = {
 			{
-				"core.scriptComponent", [](auto& json, auto& res) {
+				"core.scriptComponent", [](auto& json) -> auto {
 					std::string script_name = json["scriptName"];
 					DEBUG_LOG("Loading script component \"{}\"...", script_name);
-					res = std::make_unique<ScriptComponent>(script_name);
+					return std::make_unique<ScriptComponent>(script_name);
 				},
 			},
 			{
-				"core.transformComponent", [](auto& json, auto& res) {
+				"core.transformComponent", [](auto& json) -> auto {
 					// TODO: handle error cases
 					DEBUG_LOG("Loading transform component...");
 					glm::vec3 pos = { json["position"]["x"], json["position"]["y"], json["position"]["z"] };
 					glm::vec3 rot = { json["rotation"]["x"], json["rotation"]["y"], json["rotation"]["z"] };
 					glm::vec3 scale = { json["scale"]["x"], json["scale"]["y"], json["scale"]["z"] };
-					res = std::make_unique<TransformComponent>();
+					return std::make_unique<TransformComponent>();
 
-					auto& _tr = *((TransformComponent*)res.get());
-					_tr.position = pos;
-					_tr.rotation = rot;
-					_tr.scale = scale;
+					//auto& _tr = *((TransformComponent*)res.get());
+					//_tr.position = pos;
+					//_tr.rotation = rot;
+					//_tr.scale = scale;
 				}
 			}
 		};
@@ -78,8 +85,7 @@ namespace Core
 					throw;
 				}
 
-				std::unique_ptr<Component> component;
-				component_types.at(comp_data["type"])(comp_data, component);
+				std::unique_ptr<Component> component = component_types.at(comp_data["type"])(comp_data);
 				components.push_back(std::move(component));
 			}
 		}

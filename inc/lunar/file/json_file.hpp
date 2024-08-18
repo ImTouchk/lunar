@@ -1,10 +1,11 @@
 #pragma once
-#include <file/filesystem.hpp>
+#include <lunar/file/filesystem.hpp>
+#include <lunar/api.hpp>
 #include <nlohmann/json.hpp>
 
 namespace Fs
 {
-	class JsonFile : public Resource
+	class LUNAR_API JsonFile : public Resource
 	{
 	public:
 		bool fromFile(const Path& path) override;
@@ -13,7 +14,7 @@ namespace Fs
 		nlohmann::json content;
 	};
 
-	class JsonObject : public Resource
+	class LUNAR_API JsonObject : public Resource
 	{
 	public:
 		bool fromFile(const Path& path) override;

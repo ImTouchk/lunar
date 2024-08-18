@@ -1,11 +1,12 @@
 #pragma once
-#include <jni.h>
-#include <string>
+#include <lunar/api.hpp>
 #include <string_view>
+#include <string>
+#include <jni.h>
 
 namespace Script
 {
-	class VmWrapper
+	class LUNAR_API VmWrapper
 	{
 	public:
 		VmWrapper();

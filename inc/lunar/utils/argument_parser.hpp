@@ -1,11 +1,12 @@
 #pragma once
-#include <vector>
-#include <string>
+#include <lunar/api.hpp>
 #include <string_view>
+#include <string>
+#include <vector>
 
 namespace Utils
 {
-	class ArgumentParser
+	class LUNAR_API ArgumentParser
 	{
 	public:
 		ArgumentParser(int argc, char* argv[]);

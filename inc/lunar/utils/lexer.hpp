@@ -1,9 +1,10 @@
 #pragma once
+#include <lunar/api.hpp>
 #include <string>
 
 namespace Utils
 {
-	class Lexer
+	class LUNAR_API Lexer
 	{
 	public:
 		explicit Lexer(const char* text);

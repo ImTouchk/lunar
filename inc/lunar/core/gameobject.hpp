@@ -1,20 +1,22 @@
 #pragma once
-#include <string>
-#include <vector>
-#include <memory>
+#include <lunar/core/component.hpp>
+#include <lunar/file/json_file.hpp>
+#include <lunar/api.hpp>
 #include <concepts>
-#include <core/component.hpp>
-#include <file/json_file.hpp>
+#include <string>
+#include <memory>
+#include <vector>
 
 namespace Core
 {
 	// TODO: sort components based on nameHash so binary search can be done
 
-	class GameObject : public Fs::JsonObject
+	class LUNAR_API GameObject : public Fs::JsonObject
 	{
 	public:
 		GameObject(nlohmann::json& json);
 		GameObject(std::string name);
+		GameObject();
 
 		void fromJson(nlohmann::json& json);
 

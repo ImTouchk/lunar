@@ -1,10 +1,11 @@
 #pragma once
-#include <file/filesystem.hpp>
+#include <lunar/file/filesystem.hpp>
+#include <lunar/api.hpp>
 #include <string>
 
 namespace Fs
 {
-	class TextFile : public Resource
+	class LUNAR_API TextFile : public Resource
 	{
 	public:
 		TextFile(const Path& path) { fromFile(path); }

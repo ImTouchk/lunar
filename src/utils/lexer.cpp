@@ -1,5 +1,5 @@
-#include <utils/lexer.hpp>
-#include <debug/log.hpp>
+#include <lunar/utils/lexer.hpp>
+#include <lunar/debug/log.hpp>
 #include <charconv>
 #include <cstdarg>
 #include <format>
@@ -79,7 +79,7 @@ namespace Utils
 		}
 
 		float value;
-		auto result = std::from_chars(start._Ptr, it._Ptr, value);
+		auto result = std::from_chars(&(*start), &(*it), value);
 		if (result.ec != std::errc())
 			return (float)0xCACA;
 	}
@@ -96,7 +96,7 @@ namespace Utils
 		}
 
 		int value;
-		auto result = std::from_chars(start._Ptr, it._Ptr, value);
+		auto result = std::from_chars(&(*start), &(*it), value);
 		if (result.ec != std::errc())
 			return 0xCACA;
 

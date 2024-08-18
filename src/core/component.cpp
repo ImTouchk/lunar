@@ -1,5 +1,5 @@
-#include <core/component.hpp>
-#include <script/script_vm.hpp>
+#include <lunar/core/component.hpp>
+#include <lunar/script/script_vm.hpp>
 
 namespace Core
 {
