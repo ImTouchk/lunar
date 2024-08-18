@@ -1,13 +1,14 @@
 #pragma once
 #include <jni.h>
 #include <string_view>
+#include <glm/glm.hpp>
 
 namespace Core
 {
 	class Component
 	{
 	public:
-		virtual size_t getTypeHash() = 0;
+		virtual size_t getTypeHash();
 		virtual const char* getType() = 0;
 		virtual bool isUpdateable() = 0;
 		virtual void update() = 0;
@@ -17,7 +18,7 @@ namespace Core
 	{
 	public:
 		ScriptComponent(const std::string_view& name);
-		ScriptComponent() = default;
+		ScriptComponent();
 		~ScriptComponent();
 
 		size_t getTypeHash() override;
@@ -25,11 +26,25 @@ namespace Core
 		bool isUpdateable() override;
 		void update() override;
 
+		const std::string& getScriptName() const;
+
 	private:
-		const char* scriptName;
+		std::string scriptName;
 		jobject instance;
 		jmethodID startMethod;
 		jmethodID stopMethod;
 		jmethodID updateMethod;
+	};
+
+	class TransformComponent : public Component
+	{
+	public:
+		glm::vec3 position;
+		glm::vec3 rotation;
+		glm::vec3 scale;
+
+		const char* getType() override;
+		bool isUpdateable() override;
+		void update() override;
 	};
 }

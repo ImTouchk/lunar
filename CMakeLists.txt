@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git)
-FetchContent_MakeAvailable(json)
+FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git)
+FetchContent_MakeAvailable(json glm)
 
 find_package(JNI REQUIRED)
 
@@ -40,8 +41,8 @@ add_executable(lunar
     "src/main.cpp"
 )
 target_include_directories(lunar PUBLIC inc)
-target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM)
-target_link_libraries(lunar PRIVATE nlohmann_json JNI::JNI JNI::JVM)
+target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm)
+target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm)
 
 target_compile_definitions(lunar PRIVATE
     DEBUG_JVM_VERBOSE=0

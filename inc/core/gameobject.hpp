@@ -35,11 +35,39 @@ namespace Core
 			return nullptr;
 		}
 
+		template<typename T> requires std::derived_from<T, Component>
+		inline T* getComponent()
+		{
+			auto _default = T();
+			return reinterpret_cast<T*>(
+				getComponent(
+					reinterpret_cast<Component*>(&_default)->getType()
+				)
+			);
+		}
+
+		template<typename T> requires std::derived_from<T, Component>
+		inline T& getComponentRef()
+		{
+			auto _default = T();
+			return *reinterpret_cast<T*>(
+				getComponent(
+					reinterpret_cast<Component*>(&_default)->getType()
+				)
+			);
+		}
+
 	private:
 		friend class Scene;
 
+		struct ObjectData
+		{
+			int nameSize;
+			const char* name;
+		} data;
+
 		size_t nameHash;
-		std::string name;
 		std::vector<std::unique_ptr<Component>> components;
+		
 	};
 }

@@ -3,8 +3,27 @@
 
 namespace Core
 {
+	size_t Component::getTypeHash()
+	{
+		return std::hash<std::string>{}(getType());
+	}
+
+	const char* TransformComponent::getType()
+	{
+		return "core.transformComponent";
+	}
+
+	bool TransformComponent::isUpdateable()
+	{
+		return false;
+	}
+
+	void TransformComponent::update() 
+	{
+	}
+
 	ScriptComponent::ScriptComponent(const std::string_view& name)
-		: scriptName(name.data()),
+		: scriptName(name),
 		instance(nullptr),
 		startMethod(nullptr), stopMethod(nullptr), updateMethod(nullptr)
 	{
@@ -18,10 +37,23 @@ namespace Core
 		vm.callVoidMethod(instance, startMethod);
 	}
 
+	ScriptComponent::ScriptComponent()
+		: scriptName(""),
+		instance(nullptr),
+		startMethod(nullptr), stopMethod(nullptr), updateMethod(nullptr)
+	{
+	}
+
 	ScriptComponent::~ScriptComponent()
 	{
-		Script::getMainVm()
-			.callVoidMethod(instance, stopMethod);
+		if (scriptName != "")
+			Script::getMainVm()
+				.callVoidMethod(instance, stopMethod);
+	}
+
+	const std::string& ScriptComponent::getScriptName() const
+	{
+		return scriptName;
 	}
 
 	const char* ScriptComponent::getType()

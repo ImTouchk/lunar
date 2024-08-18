@@ -2,6 +2,7 @@
 #include <script/script_vm.hpp>
 #include <core/scene.hpp>
 #include <core/gameobject.hpp>
+#include <debug/log.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -11,6 +12,22 @@ int main(int argc, char* argv[])
     for (auto& obj : main_scene.getGameObjects())
     {
         obj.update();
+        
+        auto* transform = obj.getComponent<Core::TransformComponent>();
+        if (transform != nullptr)
+        {
+            DEBUG_LOG("{}, {}, {}", transform->position.x, transform->position.y, transform->position.z);
+        }
+        else
+            DEBUG_LOG("No transform component");
+           
+        if (obj.getComponent<Core::ScriptComponent>() != nullptr)
+        {
+            auto& script = obj.getComponentRef<Core::ScriptComponent>();
+            DEBUG_LOG("Script: {}", script.getScriptName());
+            script.update();
+
+        }
     }
     
     //auto test = Core::GameObject("Test Object");
