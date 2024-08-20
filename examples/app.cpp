@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 {
     auto args = Utils::ArgumentParser(argc, argv);
 
-    auto main_scene = Core::Scene(Fs::dataDirectory().append("main_scene.json"));
+    auto& main_scene = Core::getActiveScene();
     for (auto& obj : main_scene.getGameObjects())
     {
         obj.update();

@@ -8,25 +8,38 @@ namespace Core
 {
 	GameObject::GameObject(nlohmann::json& json)
 		: nameHash(),
+        name(),
 		components(),
-		data({ 0, "" })
+        Identifiable()
 	{
 		fromJson(json);
 	}
 
 	GameObject::GameObject(std::string name)
 		: nameHash(std::hash<std::string>{}(name)),
+        name(name),
 		components(),
-		data({ (int)name.size(), name.c_str() })
+        Identifiable()
 	{
 	}
 
 	GameObject::GameObject()
 		: nameHash(std::hash<std::string>{}("Default GameObject")),
 		components(),
-		data({ 19, "Default GameObject" })
+        name("Default GameObject"),
+        Identifiable()
 	{
 	}
+
+    size_t GameObject::getNameHash() const
+    {
+        return nameHash;
+    }
+
+    const std::string &GameObject::getName() const
+    {
+        return name;
+    }
 
 	void GameObject::update()
 	{
@@ -68,9 +81,7 @@ namespace Core
 			}
 		};
 
-		std::string name = json["name"];
-		data.nameSize = name.size();
-		data.name = name.c_str();
+        name = json["name"];
 		nameHash = std::hash<std::string>{}(name);
 		DEBUG_LOG("Loading GameObject \"{}\" from json object.", name);
 		if (json.contains("components"))

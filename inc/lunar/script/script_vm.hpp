@@ -1,4 +1,5 @@
 #pragma once
+#include <lunar/script/script_api.hpp>
 #include <lunar/api.hpp>
 #include <string_view>
 #include <string>
@@ -6,7 +7,7 @@
 
 namespace Script
 {
-	class LUNAR_API VmWrapper
+	class VmWrapper
 	{
 	public:
 		VmWrapper();
@@ -15,12 +16,20 @@ namespace Script
 		jclass findClass(const std::string_view& name);
 		jmethodID findMainMethod(jclass& klass, const std::string_view& name);
 		jmethodID findVoidMethod(jclass& klass, const std::string_view& name);
+        jfieldID getFieldId(jclass& klass, const char* name, const char* signature);
 		jmethodID getDefaultConstructor(jclass& klass);
 		jobject createClassInstance(jclass& klass);
 		void callVoidMethod(jobject& object, jmethodID& method);
+
+        JNIEnv* getJniEnv();
+
+        void initialize();
+        NativeObjectWrapper& getWrapper(int index);
 	private:
 		JavaVM* jvm;
 		JNIEnv* env;
+
+        NativeObjectWrapper wrappers[VM_OBJECT_COUNT];
 	};
 
 	VmWrapper& getMainVm();

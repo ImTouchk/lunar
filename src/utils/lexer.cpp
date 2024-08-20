@@ -9,7 +9,7 @@ namespace Utils
 	Lexer::Lexer(const char* text)
 		: text(text),
 		it(this->text.begin()),
-		lastError(""),
+		lastError(),
 		lastBeforeError(it)
 	{
 	}
@@ -17,7 +17,8 @@ namespace Utils
 	Lexer::Lexer(const std::string_view& text)
 		: text(text),
 		it(this->text.begin()),
-		lastError("")
+		lastError(),
+        lastBeforeError(it)
 	{
 	}
 
@@ -80,8 +81,12 @@ namespace Utils
 
 		float value;
 		auto result = std::from_chars(&(*start), &(*it), value);
-		if (result.ec != std::errc())
-			return (float)0xCACA;
+        if (result.ec != std::errc()) {
+            return (float)0xCACA;
+        }
+        else {
+            return value;
+        }
 	}
 
 	int Lexer::number()
@@ -226,7 +231,7 @@ namespace Utils
 			}
 			else if (sub_lexer.consume("{:s_until}"))
 			{
-				char c = va_arg(args, char);
+				char c = va_arg(args, int);
 				std::string* str_ptr = va_arg(args, std::string*);
 				*str_ptr = string(c);
 			}

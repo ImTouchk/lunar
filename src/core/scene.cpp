@@ -25,6 +25,46 @@ namespace Core
 	{
 	}
 
+	Scene& getActiveScene()
+	{
+        static auto active = Scene(Fs::dataDirectory().append("main_scene.json"));
+        return active;
+	}
+
+    // TODO:
+    Scene& getScene(size_t nameHash)
+    {
+        return getActiveScene();
+    }
+
+    const std::string& Scene::getName() const
+    {
+        return name;
+    }
+
+    size_t Scene::getNameHash() const
+    {
+        return nameHash;
+    }
+
+    GameObject& Scene::getGameObject(int id)
+    {
+        for(auto& game_object : objects)
+        {
+            if(game_object.getId() == id)
+                return game_object;
+        }
+
+        DEBUG_ERROR("Called on inexistent game object (id: {})", id);
+        throw;
+    }
+
+    GameObject& Scene::getGameObject(const char* name)
+    {
+        size_t hash = std::hash<std::string>{}(name);
+        return getGameObject(hash);
+    }
+
 	void Scene::fromJson(nlohmann::json& json)
 	{
 		name = json["name"];
@@ -35,11 +75,10 @@ namespace Core
 			auto& gameobjects_json = json["gameObjects"];
 			for (auto& [key, gameobj_data] : gameobjects_json.items())
 			{
-				objects.push_back(std::move(GameObject(gameobj_data)));
+                auto& game_object = objects.emplace_back();
+                game_object.fromJson(gameobj_data);
 			}
 		}
-
-
 	}
 
 	std::vector<GameObject>& Scene::getGameObjects()

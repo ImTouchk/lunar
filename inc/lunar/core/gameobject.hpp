@@ -1,6 +1,7 @@
 #pragma once
 #include <lunar/core/component.hpp>
 #include <lunar/file/json_file.hpp>
+#include <lunar/utils/identifiable.hpp>
 #include <lunar/api.hpp>
 #include <concepts>
 #include <string>
@@ -11,7 +12,7 @@ namespace Core
 {
 	// TODO: sort components based on nameHash so binary search can be done
 
-	class LUNAR_API GameObject : public Fs::JsonObject
+	class LUNAR_API GameObject : public Fs::JsonObject, public Identifiable
 	{
 	public:
 		GameObject(nlohmann::json& json);
@@ -21,6 +22,8 @@ namespace Core
 		void fromJson(nlohmann::json& json);
 
 		void update();
+        size_t getNameHash() const;
+        const std::string& getName() const;
 
 		template<typename T> requires std::derived_from<T, Component>
 		void addComponent(const T& component) { components.push_back(std::make_unique<T>(component)); }
@@ -62,13 +65,8 @@ namespace Core
 	private:
 		friend class Scene;
 
-		struct ObjectData
-		{
-			int nameSize;
-			const char* name;
-		} data;
-
 		size_t nameHash;
+        std::string name;
 		std::vector<std::unique_ptr<Component>> components;
 		
 	};

@@ -1,5 +1,5 @@
 {
-  "name": "Test Scene",
+  "name": "Scene in Ohio",
   "gameObjects": [
     {
       "name": "Skibidi Toilet",
@@ -29,7 +29,7 @@
       "components": [
         {
           "type": "core.scriptComponent",
-          "scriptName": "dev/mugur/TestScript"
+          "scriptName": "dev/lunar/TestScript"
         }
       ]
     }

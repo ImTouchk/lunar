@@ -10,6 +10,8 @@ namespace Core
 	class LUNAR_API Component
 	{
 	public:
+        Component() = default;
+
 		virtual size_t getTypeHash();
 		virtual const char* getType() = 0;
 		virtual bool isUpdateable() = 0;

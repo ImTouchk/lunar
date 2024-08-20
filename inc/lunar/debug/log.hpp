@@ -26,7 +26,7 @@ inline void warn(const std::string_view& fn_name, const std::string_view& format
 	warnf(fn_name, format, std::make_format_args(std::forward<Args>(args)...));
 }
 
-LUNAR_API inline std::string printable(const char c)
+inline std::string printable(const char c)
 {
 	if (isprint(c))
 		return { c };
@@ -40,7 +40,7 @@ LUNAR_API inline std::string printable(const char c)
 	}
 }
 
-LUNAR_API inline std::string printable(const std::string& str)
+inline std::string printable(const std::string& str)
 {
 	auto printableVersion = std::string("");
 	for (auto it = str.begin(); it != str.end(); it++)
@@ -49,7 +49,7 @@ LUNAR_API inline std::string printable(const std::string& str)
 	return printableVersion;
 }
 
-#ifndef MSVC
+#ifndef _MSC_VER
 #   define LUNAR_FUNCTION __PRETTY_FUNCTION__
 #else
 #   define LUNAR_FUNCTION __func__
@@ -60,7 +60,13 @@ LUNAR_API inline std::string printable(const std::string& str)
 #	define DEBUG_ERROR(fmt, ...)
 #   define DEBUG_WARN(fmt, ...)
 #else
-#	define DEBUG_LOG(fmt, ...) log(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
-#	define DEBUG_ERROR(fmt, ...) error(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
-#	define DEBUG_WARN(fmt, ...) warn(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
+#	ifdef _MSC_VER
+#		define DEBUG_LOG(fmt, ...) log(LUNAR_FUNCTION, fmt, __VA_ARGS__)
+#		define DEBUG_WARN(fmt, ...) warn(LUNAR_FUNCTION, fmt, __VA_ARGS__)
+#		define DEBUG_ERROR(fmt, ...) error(LUNAR_FUNCTION, fmt, __VA_ARGS__)
+#	else
+#		define DEBUG_LOG(fmt, ...) log(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
+#		define DEBUG_ERROR(fmt, ...) error(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
+#		define DEBUG_WARN(fmt, ...) warn(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
+#	endif
 #endif

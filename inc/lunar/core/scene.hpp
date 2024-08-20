@@ -13,6 +13,14 @@ namespace Core
 		Scene(const std::string& name);
 		Scene();
 
+        Scene(const Scene&) = delete;
+        Scene& operator=(const Scene&) = delete;
+
+        size_t getNameHash() const;
+        const std::string& getName() const;
+        GameObject& getGameObject(const char* name);
+        GameObject& getGameObject(int id);
+
 		void fromJson(nlohmann::json& json) override;
 
 		std::vector<GameObject>& getGameObjects();
@@ -22,4 +30,8 @@ namespace Core
 		std::string name;
 		std::vector<GameObject> objects;
 	};
+
+    LUNAR_API Scene& getActiveScene();
+    LUNAR_API Scene& getScene(const char* name);
+    LUNAR_API Scene& getScene(size_t nameHash);
 }

@@ -29,9 +29,9 @@ namespace Core
 	{
 		auto& vm = Script::getMainVm();
 		jclass klass = vm.findClass(name);
-		startMethod = vm.findVoidMethod(klass, "start");
-		stopMethod = vm.findVoidMethod(klass, "stop");
-		updateMethod = vm.findVoidMethod(klass, "update");
+		startMethod = vm.findVoidMethod(klass, "onStart");
+		stopMethod = vm.findVoidMethod(klass, "onStop");
+		updateMethod = vm.findVoidMethod(klass, "onUpdate");
 
 		instance = vm.createClassInstance(klass);
 		vm.callVoidMethod(instance, startMethod);

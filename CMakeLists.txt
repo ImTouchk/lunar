@@ -18,16 +18,22 @@ add_library(lunar SHARED
     "inc/lunar/file/text_file.hpp"
     "inc/lunar/file/json_file.hpp"
     "inc/lunar/utils/lexer.hpp"
+    "inc/lunar/utils/identifiable.hpp"
     "inc/lunar/debug/log.hpp"
     "inc/lunar/debug/assert.hpp"
     "inc/lunar/ui/stylesheet.hpp"
     "inc/lunar/core/scene.hpp"
     "inc/lunar/core/gameobject.hpp"
     "inc/lunar/core/component.hpp"
+
     "inc/lunar/script/script_vm.hpp"
+    "inc/lunar/script/script_api.hpp"
+    "inc/lunar/script/api/scene.hpp"
+
     "inc/lunar/api.hpp"
 
     "src/utils/argument_parser.cpp"
+    "src/utils/identifiable.cpp"
     "src/file/filesystem.cpp"
     "src/file/text_file.cpp"
     "src/file/json_file.cpp"
@@ -37,7 +43,11 @@ add_library(lunar SHARED
     "src/core/scene.cpp"
     "src/core/gameobject.cpp"
     "src/core/component.cpp"
+
     "src/script/script_vm.cpp"
+    "src/script/script_scene.cpp"
+    "src/script/script_gameobject.cpp"
+    "src/script/vm_utils.cpp"
 )
 target_include_directories(lunar PUBLIC inc)
 target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm)

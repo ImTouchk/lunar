@@ -1,4 +1,5 @@
 #include <lunar/script/script_vm.hpp>
+#include <lunar/script/script_api.hpp>
 #include <lunar/file/filesystem.hpp>
 #include <lunar/debug/log.hpp>
 #include <format>
@@ -9,7 +10,13 @@ namespace Script
 {
 	VmWrapper& getMainVm()
 	{
+        static bool initialized = false;
 		static VmWrapper vm = {};
+        if(!initialized)
+        {
+            initialized = true;
+            vm.initialize();
+        }
 		return vm;
 	}
 
@@ -29,7 +36,8 @@ namespace Script
 
 		std::vector<std::string> options = { 
 			std::format("-Djava.class.path={}", loader),
-			std::format("-Djava.system.class.loader=dev.mugur.ScriptLoader")
+			std::format("-Djava.system.class.loader=dev.lunar.ScriptLoader"),
+            "--enable-preview"
 		};
 
 #if DEBUG_JVM_VERBOSE
@@ -54,7 +62,7 @@ namespace Script
 		else
 			DEBUG_LOG("Java Virtual Machine created.");
 
-		jclass main_class = findClass("dev/mugur/Main");
+		jclass main_class = findClass("dev/lunar/Main");
 		jmethodID main_id = findMainMethod(main_class, "main");
 		env->CallStaticVoidMethod(main_class, main_id, nullptr);
 	}
@@ -107,4 +115,20 @@ namespace Script
 	{
 		env->CallVoidMethod(object, method);
 	}
+
+    jfieldID VmWrapper::getFieldId(jclass &klass, const char *name, const char *signature)
+    {
+        return env->GetFieldID(klass, name, signature);
+    }
+
+    JNIEnv* VmWrapper::getJniEnv()
+    {
+        return env;
+    }
+
+    void VmWrapper::initialize()
+    {
+        wrappers[VM_SCENE_WRAPPER] = NativeObjectWrapper("dev/lunar/core/Scene");
+        wrappers[VM_GAMEOBJ_WRAPPER] = NativeObjectWrapper("dev/lunar/core/GameObject");
+    }
 }
