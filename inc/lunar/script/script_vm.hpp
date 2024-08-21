@@ -13,24 +13,21 @@ namespace Script
 		VmWrapper();
 		~VmWrapper();
 
-		jclass findClass(const std::string_view& name);
-		jmethodID findMainMethod(jclass& klass, const std::string_view& name);
-		jmethodID findVoidMethod(jclass& klass, const std::string_view& name);
-        jfieldID getFieldId(jclass& klass, const char* name, const char* signature);
-		jmethodID getDefaultConstructor(jclass& klass);
-		jobject createClassInstance(jclass& klass);
-		void callVoidMethod(jobject& object, jmethodID& method);
-
         JNIEnv* getJniEnv();
 
-        void initialize();
-        NativeObjectWrapper& getWrapper(int index);
+		Identifiable::NativeType getNativeHandle(jobject& object);
+		jobject createNativeHandle(Identifiable::NativeType id);
 	private:
 		JavaVM* jvm;
 		JNIEnv* env;
-
-        NativeObjectWrapper wrappers[VM_OBJECT_COUNT];
+		struct
+		{
+			jclass klass;
+			jmethodID baseCtor;
+			jfieldID valueField;
+		} nativeHandle;
 	};
 
 	LUNAR_API VmWrapper& getMainVm();
+	LUNAR_API VmWrapper& getVmFromEnv(JNIEnv* env);
 }

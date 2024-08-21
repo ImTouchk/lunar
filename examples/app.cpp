@@ -14,14 +14,9 @@ int main(int argc, char* argv[])
     {
         for (auto& obj : main_scene.getGameObjects())
         {
-            auto& transform = obj.getTransform();
-            DEBUG_LOG("{}, {}, {}", transform.position.x, transform.position.y, transform.position.z);
             obj.update();
         }
     }
-
-    //auto test = Core::GameObject("Test Object");
-    //test.addComponent(Core::ScriptComponent("dev/mugur/TestScript"));
 
     return 1;
 }

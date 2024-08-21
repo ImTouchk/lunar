@@ -7,6 +7,13 @@
 
 namespace Core
 {
+	enum LUNAR_API ComponentUpdatePriority
+	{
+		COMPONENT_PRIORITY_NORMAL = 0,
+		COMPONENT_PRIORITY_LOW = 1,
+		COMPONENT_PRIORITY_HIGH = 2,
+	};
+
 	class LUNAR_API Component
 	{
 	public:
@@ -16,6 +23,9 @@ namespace Core
 		virtual const char* getType() = 0;
 		virtual bool isUpdateable() = 0;
 		virtual void update() = 0;
+
+	protected:
+		int priority = COMPONENT_PRIORITY_NORMAL;
 	};
 
 	class LUNAR_API ScriptComponent : public Component
@@ -35,9 +45,9 @@ namespace Core
 	private:
 		std::string scriptName;
 		jobject instance;
-		jmethodID startMethod;
-		jmethodID stopMethod;
-		jmethodID updateMethod;
+		jmethodID onLoad;
+		jmethodID onUnload;
+		jmethodID onUpdate;
 	};
 
 	class LUNAR_API TransformComponent : public Component

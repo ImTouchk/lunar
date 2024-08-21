@@ -4,30 +4,21 @@
 #include <lunar/debug/log.hpp>
 #include <jni.h>
 
-namespace Script
-{
-    inline Core::Scene& getSceneFromVmHandle(jobject& object)
-    {
-        return Core::getSceneById(
-                    getMainVm()
-                        .getWrapper(VM_SCENE_WRAPPER)
-                        .getHandle(object)
-                );
-    }
-}
-
 extern "C"
 {
     /*
-    * Class:     dev_lunar_core_Scene
-    * Method:    getActiveScene
-    * Signature: ()Ldev/lunar/core/Scene;
-    */
-    JNIEXPORT jobject JNICALL Java_dev_lunar_core_Scene_getActiveScene
-    (JNIEnv* env, jclass klass)
+     * Class:     dev_lunar_core_Scene
+     * Method:    _getActiveScene
+     * Signature: ()Ldev/lunar/core/internal/NativeObjectHandle;
+     */
+    JNIEXPORT jobject JNICALL Java_dev_lunar_core_Scene__1getActiveScene
+    (JNIEnv* env, jclass)
     {
-        return Script::getMainVm().getWrapper(Script::VM_SCENE_WRAPPER)
-            .createHandle(Core::getActiveScene().getNameHash());
+        auto& vm = Script::getVmFromEnv(env);
+        auto scene_id = Core::getActiveScene()
+                            .getId();
+
+        return vm.createNativeHandle(scene_id);
     }
 
     /*
@@ -38,48 +29,49 @@ extern "C"
     JNIEXPORT jstring JNICALL Java_dev_lunar_core_Scene_getName
     (JNIEnv* env, jobject object)
     {
-        auto& scene = Script::getSceneFromVmHandle(object);
-        return Script::createManagedString(scene.getName());
+        auto& vm = Script::getVmFromEnv(env);
+        auto scene_id = vm.getNativeHandle(object);
+        return Script::createManagedString(
+            Core::getSceneById(scene_id)
+                .getName()
+        );
     }
 
     /*
      * Class:     dev_lunar_core_Scene
-     * Method:    getGameObjects
-     * Signature: ()Ljava/util/List;
+     * Method:    _getGameObject
+     * Signature: (Ljava/lang/String;)Ldev/lunar/core/internal/NativeObjectHandle;
      */
-    JNIEXPORT jobject JNICALL Java_dev_lunar_core_Scene_getGameObjects
-    (JNIEnv* env, jobject object)
+    JNIEXPORT jobject JNICALL Java_dev_lunar_core_Scene__1getGameObject
+    (JNIEnv* env, jobject scene_object, jstring name)
     {
-        auto& scene = Script::getSceneFromVmHandle(object);
-        auto& game_objects = scene.getGameObjects();
-        auto array_list = Script::JavaArrayList(game_objects.size());
-        for(auto& game_object : game_objects)
-        {
-            array_list.add(
-                Script::getMainVm()
-                    .getWrapper(Script::VM_GAMEOBJ_WRAPPER)
-                    .createHandle(game_object.getId())
-            );
-        }
+        auto& vm = Script::getVmFromEnv(env);
+        auto scene_id = vm.getNativeHandle(scene_object);
+        const char* object_name = env->GetStringUTFChars(name, 0);
 
-        return array_list.object;
+        auto& scene = Core::getSceneById(scene_id);
+        auto& object = scene.getGameObject(object_name);
+        // TODO: return null if not found
+        return vm.createNativeHandle(object.getId());
     }
 
     /*
-    * Class:     dev_lunar_core_Scene
-    * Method:    getGameObject
-    * Signature: (Ljava/lang/String;)Ldev/lunar/core/GameObject;
-    */
-    JNIEXPORT jobject JNICALL Java_dev_lunar_core_Scene_getGameObject
-    (JNIEnv* env, jobject object, jstring name)
+     * Class:     dev_lunar_core_Scene
+     * Method:    _getGameObjects
+     * Signature: ()Ljava/util/List;
+     */
+    JNIEXPORT jobject JNICALL Java_dev_lunar_core_Scene__1getGameObjects
+    (JNIEnv* env, jobject object)
     {
-        // TODO: error checking
-
-        auto& scene = Script::getSceneFromVmHandle(object);
-        const char* name_str = env->GetStringUTFChars(name, 0);
-        auto& game_object = scene.getGameObject(name_str);
-        return Script::getMainVm()
-            .getWrapper(Script::VM_GAMEOBJ_WRAPPER)
-            .createHandle(game_object.getId());
+        auto& vm = Script::getVmFromEnv(env);
+        
+        auto scene_id = vm.getNativeHandle(object);
+        auto& scene = Core::getSceneById(scene_id);
+        auto& scene_objects = scene.getGameObjects();
+        auto array_list = Script::JavaArrayList(scene_objects.size());
+        for (auto& game_object : scene_objects) {
+            array_list.add(vm.createNativeHandle(game_object.getId()));
+        }
+        return array_list.object;
     }
 }

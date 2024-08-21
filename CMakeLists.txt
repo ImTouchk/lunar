@@ -48,7 +48,9 @@ add_library(lunar SHARED
     "src/script/script_vm.cpp"
     "src/script/script_scene.cpp"
     "src/script/script_gameobject.cpp"
+    "src/script/script_transform.cpp"
     "src/script/vm_utils.cpp"
+
 )
 target_include_directories(lunar PUBLIC inc)
 target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm)

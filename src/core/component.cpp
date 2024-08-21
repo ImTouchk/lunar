@@ -25,22 +25,28 @@ namespace Core
 	ScriptComponent::ScriptComponent(const std::string_view& name)
 		: scriptName(name),
 		instance(nullptr),
-		startMethod(nullptr), stopMethod(nullptr), updateMethod(nullptr)
+		onLoad(nullptr), 
+		onUnload(nullptr), 
+		onUpdate(nullptr)
 	{
 		auto& vm = Script::getMainVm();
-		jclass klass = vm.findClass(name);
-		startMethod = vm.findVoidMethod(klass, "onStart");
-		stopMethod = vm.findVoidMethod(klass, "onStop");
-		updateMethod = vm.findVoidMethod(klass, "onUpdate");
+		auto* env = vm.getJniEnv();
+		jclass klass = env->FindClass(name.data());
+		onLoad = env->GetMethodID(klass, "onLoad", "()V");
+		onUnload = env->GetMethodID(klass, "onUnload", "()V");
+		onUpdate = env->GetMethodID(klass, "onUpdate", "()V");
 
-		instance = vm.createClassInstance(klass);
-		vm.callVoidMethod(instance, startMethod);
+		jmethodID constructor = env->GetMethodID(klass, "<init>", "()V");
+		instance = env->NewObject(klass, constructor);
+		env->CallVoidMethod(instance, onLoad);
 	}
 
 	ScriptComponent::ScriptComponent()
 		: scriptName(""),
 		instance(nullptr),
-		startMethod(nullptr), stopMethod(nullptr), updateMethod(nullptr)
+		onLoad(nullptr), 
+		onUnload(nullptr), 
+		onUpdate(nullptr)
 	{
 	}
 
@@ -48,7 +54,8 @@ namespace Core
 	{
 		if (scriptName != "")
 			Script::getMainVm()
-				.callVoidMethod(instance, stopMethod);
+				.getJniEnv()
+					->CallVoidMethod(instance, onUnload);
 	}
 
 	const std::string& ScriptComponent::getScriptName() const
@@ -75,6 +82,7 @@ namespace Core
 	void ScriptComponent::update()
 	{
 		Script::getMainVm()
-			.callVoidMethod(instance, updateMethod);
+			.getJniEnv()
+			->CallVoidMethod(instance, onUpdate);
 	}
 }

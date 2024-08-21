@@ -8,21 +8,22 @@
 
 namespace Script
 {
+	VmWrapper& getVmFromEnv(JNIEnv* env)
+	{
+		// TODO
+		return getMainVm();
+	}
+
 	VmWrapper& getMainVm()
 	{
-        static bool initialized = false;
 		static VmWrapper vm = {};
-        if(!initialized)
-        {
-            initialized = true;
-            vm.initialize();
-        }
 		return vm;
 	}
 
 	VmWrapper::VmWrapper()
 		: env(nullptr),
-		jvm(nullptr)
+		jvm(nullptr),
+		nativeHandle()
 	{
 		auto loader = Fs::baseDirectory()
 			.append("core.jar")
@@ -62,8 +63,13 @@ namespace Script
 		else
 			DEBUG_LOG("Java Virtual Machine created.");
 
-		jclass main_class = findClass("dev/lunar/Main");
-		jmethodID main_id = findMainMethod(main_class, "main");
+		jclass main_class = env->FindClass("dev/lunar/Main");
+		jmethodID main_id = env->GetStaticMethodID(main_class, "main", "([Ljava/lang/String;)V");
+
+		nativeHandle.klass = env->FindClass("dev/lunar/core/internal/NativeObjectHandle");
+		nativeHandle.baseCtor = env->GetMethodID(nativeHandle.klass, "<init>", "()V");
+		nativeHandle.valueField = env->GetFieldID(nativeHandle.klass, "handle", "I");
+
 		env->CallStaticVoidMethod(main_class, main_id, nullptr);
 	}
 
@@ -75,60 +81,20 @@ namespace Script
 		//	DEBUG_LOG("Java Virtual Machine instance destroyed.");
 	}
 
-	jmethodID VmWrapper::findVoidMethod(jclass& klass, const std::string_view& name)
-	{
-		return env->GetMethodID(klass, name.data(), "()V");
-	}
-
-	jmethodID VmWrapper::findMainMethod(jclass& klass, const std::string_view& name)
-	{
-		jmethodID main_id = env->GetStaticMethodID(klass, name.data(), "([Ljava/lang/String;)V");
-		if (main_id == nullptr)
-		{
-			DEBUG_ERROR("Could not find entry point of JVM class.");
-		}
-		return main_id;
-	}
-
-	jclass VmWrapper::findClass(const std::string_view& name)
-	{
-		jclass clss = env->FindClass(name.data());
-		if (clss == nullptr)
-		{
-			DEBUG_ERROR("Could not find java class \"{}\".", name);
-		}
-
-		return clss;
-	}
-
-	jmethodID VmWrapper::getDefaultConstructor(jclass& klass)
-	{
-		return env->GetMethodID(klass, "<init>", "()V");
-	}
-
-	jobject VmWrapper::createClassInstance(jclass& klass)
-	{
-		return env->NewObject(klass, getDefaultConstructor(klass));
-	}
-
-	void VmWrapper::callVoidMethod(jobject& object, jmethodID& method)
-	{
-		env->CallVoidMethod(object, method);
-	}
-
-    jfieldID VmWrapper::getFieldId(jclass &klass, const char *name, const char *signature)
-    {
-        return env->GetFieldID(klass, name, signature);
-    }
-
     JNIEnv* VmWrapper::getJniEnv()
     {
         return env;
     }
 
-    void VmWrapper::initialize()
-    {
-        wrappers[VM_SCENE_WRAPPER] = NativeObjectWrapper("dev/lunar/core/Scene");
-        wrappers[VM_GAMEOBJ_WRAPPER] = NativeObjectWrapper("dev/lunar/core/GameObject");
-    }
+	Identifiable::NativeType VmWrapper::getNativeHandle(jobject& object)
+	{
+		return env->GetIntField(object, nativeHandle.valueField);
+	}
+
+	jobject VmWrapper::createNativeHandle(Identifiable::NativeType id)
+	{
+		jobject object = env->NewObject(nativeHandle.klass, nativeHandle.baseCtor);
+		env->SetIntField(object, nativeHandle.valueField, id);
+		return object;
+	}
 }

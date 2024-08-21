@@ -27,33 +27,6 @@ namespace Script
         getMainVm().getJniEnv()->CallBooleanMethod(object, addMethod, elem);
     }
 
-    NativeObjectWrapper::NativeObjectWrapper(const char *name)
-            : klass(getMainVm().findClass(name)),
-              baseConstructor(getMainVm().findVoidMethod(klass, "<init>")),
-              handleField(getMainVm().getFieldId(klass, "handle", "I"))
-    {
-    }
-
-    int NativeObjectWrapper::getHandle(jobject &object) const
-    {
-        return getMainVm()
-                .getJniEnv()
-                ->GetIntField(object, handleField);
-    }
-
-    jobject NativeObjectWrapper::createHandle(int handle)
-    {
-        JNIEnv* env = getMainVm().getJniEnv();
-        jobject object = env->NewObject(klass, baseConstructor);
-        env->SetIntField(object, handleField, handle);
-        return object;
-    }
-
-    NativeObjectWrapper& VmWrapper::getWrapper(int index)
-    {
-        return wrappers[index];
-    }
-
     jstring createManagedString(const std::string& str)
     {
         return getMainVm().getJniEnv()->NewStringUTF(str.c_str());
