@@ -69,10 +69,10 @@ namespace Script
 
 	VmWrapper::~VmWrapper()
 	{
-		if (jvm->DestroyJavaVM() != JNI_OK)
-			DEBUG_ERROR("Failure to destroy instance of JVM.");
-		else
-			DEBUG_LOG("Java Virtual Machine instance destroyed.");
+		//if (jvm->DestroyJavaVM() != JNI_OK)
+		//	DEBUG_ERROR("Failure to destroy instance of JVM.");
+		//else
+		//	DEBUG_LOG("Java Virtual Machine instance destroyed.");
 	}
 
 	jmethodID VmWrapper::findVoidMethod(jclass& klass, const std::string_view& name)

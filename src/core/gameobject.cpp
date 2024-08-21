@@ -1,15 +1,48 @@
 #include <lunar/core/gameobject.hpp>
 #include <lunar/core/component.hpp>
+#include <lunar/core/scene.hpp>
 #include <lunar/debug/log.hpp>
 #include <functional>
 #include <map>
 
 namespace Core
 {
+	GameObject::GameObject(const GameObject& other)
+		: nameHash(other.nameHash),
+		name(other.name),
+		components(),
+		transform(other.transform),
+		parent(other.parent),
+		scene(other.scene),
+		Identifiable(other)
+	{
+		//for (size_t i = 0; i < components.size(); i++)
+		//{
+		//	components.push_back(std::move(other.components[i]));
+		//}
+	}
+
+	GameObject::GameObject(GameObject&& other)
+		: nameHash(other.nameHash),
+		name(other.name),
+		components(),
+		transform(other.transform),
+		parent(other.parent),
+		scene(other.scene),
+		Identifiable(other)
+	{
+		for (size_t i = 0; i < components.size(); i++)
+		{
+			components.push_back(std::move(other.components[i]));
+		}
+	}
+
 	GameObject::GameObject(nlohmann::json& json)
 		: nameHash(),
         name(),
 		components(),
+		parent(-1),
+		transform(),
         Identifiable()
 	{
 		fromJson(json);
@@ -19,6 +52,9 @@ namespace Core
 		: nameHash(std::hash<std::string>{}(name)),
         name(name),
 		components(),
+		parent(-1),
+		scene(-1),
+		transform(),
         Identifiable()
 	{
 	}
@@ -27,8 +63,57 @@ namespace Core
 		: nameHash(std::hash<std::string>{}("Default GameObject")),
 		components(),
         name("Default GameObject"),
+		parent(-1),
+		scene(-1),
         Identifiable()
 	{
+	}
+
+	GameObject::~GameObject()
+	{
+		// TODO: unload script components
+	}
+
+	GameObject& GameObject::operator=(GameObject&& other)
+	{
+		name = other.name;
+		nameHash = other.nameHash;
+		id = other.id;
+		components = std::vector<std::unique_ptr<Component>>();
+		transform = other.transform;
+		// TODO:
+		return *this;
+	}
+
+	GameObject& GameObject::operator=(const GameObject& other)
+	{
+		name = other.name;
+		nameHash = other.nameHash;
+		id = other.id;
+		transform = other.transform;
+		components = std::vector<std::unique_ptr<Component>>();
+
+
+		// TODO:
+		return *this;
+	}
+
+	GameObject* GameObject::getParent()
+	{
+		if (parent == -1)
+			return nullptr;
+		else return &getParentScene()
+						->getGameObject(parent);
+	}
+
+	Identifiable::NativeType GameObject::getParentId() const
+	{
+		return parent;
+	}
+
+	TransformComponent& GameObject::getTransform()
+	{
+		return transform;
 	}
 
     size_t GameObject::getNameHash() const
@@ -40,6 +125,14 @@ namespace Core
     {
         return name;
     }
+
+	Scene* GameObject::getParentScene()
+	{
+		if (scene == -1)
+			return &getActiveScene();
+		else 
+			return &getSceneById(scene);
+	}
 
 	void GameObject::update()
 	{
@@ -56,28 +149,12 @@ namespace Core
 		using json_obj = nlohmann::json;
 		using comp_ptr = std::unique_ptr<Component>;
 
-		static std::map<std::string, std::function<comp_ptr(json_obj&)>> component_types = {
+		static std::map<std::string, std::function<void(json_obj&, comp_ptr&)>> component_types = {
 			{
-				"core.scriptComponent", [](auto& json) -> auto {
+				"core.scriptComponent", [](auto& json, auto& res) {
 					std::string script_name = json["scriptName"];
-					DEBUG_LOG("Loading script component \"{}\"...", script_name);
-					return std::make_unique<ScriptComponent>(script_name);
+					res = std::make_unique<ScriptComponent>(script_name);
 				},
-			},
-			{
-				"core.transformComponent", [](auto& json) -> auto {
-					// TODO: handle error cases
-					DEBUG_LOG("Loading transform component...");
-					glm::vec3 pos = { json["position"]["x"], json["position"]["y"], json["position"]["z"] };
-					glm::vec3 rot = { json["rotation"]["x"], json["rotation"]["y"], json["rotation"]["z"] };
-					glm::vec3 scale = { json["scale"]["x"], json["scale"]["y"], json["scale"]["z"] };
-					return std::make_unique<TransformComponent>();
-
-					//auto& _tr = *((TransformComponent*)res.get());
-					//_tr.position = pos;
-					//_tr.rotation = rot;
-					//_tr.scale = scale;
-				}
 			}
 		};
 
@@ -96,9 +173,22 @@ namespace Core
 					throw;
 				}
 
-				std::unique_ptr<Component> component = component_types.at(comp_data["type"])(comp_data);
-				components.push_back(std::move(component));
+				std::unique_ptr<Component> component_ptr;
+				component_types.at(comp_data["type"])(comp_data, component_ptr);
+				if(component_ptr != nullptr)
+					components.push_back(std::move(component_ptr));
 			}
+		}
+		
+		if (json.contains("transform"))
+		{
+			auto& transform_json = json["transform"];
+			auto& position = transform_json["position"];
+			auto& rotation = transform_json["rotation"];
+			auto& scale = transform_json["scale"];
+			transform.position = glm::dvec3 { position["x"], position["y"], position["z"] };
+			transform.rotation = glm::dvec3 { rotation["x"], rotation["y"], rotation["z"] };
+			transform.scale = glm::dvec3 { scale["x"], scale["y"], scale["z"] };
 		}
 	}
 }

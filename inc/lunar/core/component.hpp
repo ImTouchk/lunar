@@ -43,9 +43,9 @@ namespace Core
 	class LUNAR_API TransformComponent : public Component
 	{
 	public:
-		glm::vec3 position;
-		glm::vec3 rotation;
-		glm::vec3 scale;
+		glm::dvec3 position;
+		glm::dvec3 rotation;
+		glm::dvec3 scale;
 
 		const char* getType() override;
 		bool isUpdateable() override;

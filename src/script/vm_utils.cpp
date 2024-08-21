@@ -1,5 +1,6 @@
 #include <lunar/script/script_vm.hpp>
 #include <lunar/script/script_api.hpp>
+#include <lunar/script/api/math.hpp>
 #include <lunar/debug/log.hpp>
 
 namespace Script

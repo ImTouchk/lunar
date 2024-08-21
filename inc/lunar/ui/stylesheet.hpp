@@ -8,14 +8,14 @@
 
 namespace UI
 {
-	enum class LUNAR_API SheetType
+	enum class SheetType
 	{
 		Uninitialized,
 		Class,
 		Identifier
 	};
 
-	class LUNAR_API Stylesheet
+	class Stylesheet
 	{
 	public:
 		Stylesheet(SheetType type);
@@ -28,7 +28,7 @@ namespace UI
 		std::map<size_t, std::string> registry;
 	};
 
-	class LUNAR_API StylesheetDictionary
+	class StylesheetDictionary
 	{
 	public:
 		StylesheetDictionary(const Fs::Path& path);

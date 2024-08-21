@@ -9,24 +9,14 @@ int main(int argc, char* argv[])
     auto args = Utils::ArgumentParser(argc, argv);
 
     auto& main_scene = Core::getActiveScene();
-    for (auto& obj : main_scene.getGameObjects())
+
+    for (int i = 0; i < 3; i++)
     {
-        obj.update();
-
-        auto* transform = obj.getComponent<Core::TransformComponent>();
-        if (transform != nullptr)
+        for (auto& obj : main_scene.getGameObjects())
         {
-            DEBUG_LOG("{}, {}, {}", transform->position.x, transform->position.y, transform->position.z);
-        }
-        else
-            DEBUG_LOG("No transform component");
-
-        if (obj.getComponent<Core::ScriptComponent>() != nullptr)
-        {
-            auto& script = obj.getComponentRef<Core::ScriptComponent>();
-            DEBUG_LOG("Script: {}", script.getScriptName());
-            script.update();
-
+            auto& transform = obj.getTransform();
+            DEBUG_LOG("{}, {}, {}", transform.position.x, transform.position.y, transform.position.z);
+            obj.update();
         }
     }
 

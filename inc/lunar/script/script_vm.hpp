@@ -32,5 +32,5 @@ namespace Script
         NativeObjectWrapper wrappers[VM_OBJECT_COUNT];
 	};
 
-	VmWrapper& getMainVm();
+	LUNAR_API VmWrapper& getMainVm();
 }

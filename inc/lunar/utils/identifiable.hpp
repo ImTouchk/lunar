@@ -3,14 +3,16 @@
 class Identifiable
 {
 public:
+    using NativeType = int;
+
     Identifiable();
 
-    virtual int getId() const;
+    virtual NativeType getId() const;
 
 protected:
-    int generateId();
+    NativeType generateId();
 
-    int id;
+    NativeType id;
 };
 
 

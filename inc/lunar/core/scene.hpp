@@ -1,12 +1,13 @@
 #pragma once
 #include <lunar/core/gameobject.hpp>
 #include <lunar/file/json_file.hpp>
+#include <lunar/utils/identifiable.hpp>
 #include <string>
 #include <vector>
 
 namespace Core
 {
-	class LUNAR_API Scene : public Fs::JsonObject
+	class LUNAR_API Scene : public Fs::JsonObject, public Identifiable
 	{
 	public:
 		Scene(const Fs::Path& path);
@@ -32,6 +33,6 @@ namespace Core
 	};
 
     LUNAR_API Scene& getActiveScene();
-    LUNAR_API Scene& getScene(const char* name);
-    LUNAR_API Scene& getScene(size_t nameHash);
+    LUNAR_API Scene& getSceneByName(const char* name);
+    LUNAR_API Scene& getSceneById(int id);
 }

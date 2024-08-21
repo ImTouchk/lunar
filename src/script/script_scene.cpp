@@ -8,7 +8,7 @@ namespace Script
 {
     inline Core::Scene& getSceneFromVmHandle(jobject& object)
     {
-        return Core::getScene(
+        return Core::getSceneById(
                     getMainVm()
                         .getWrapper(VM_SCENE_WRAPPER)
                         .getHandle(object)
@@ -63,5 +63,23 @@ extern "C"
         }
 
         return array_list.object;
+    }
+
+    /*
+    * Class:     dev_lunar_core_Scene
+    * Method:    getGameObject
+    * Signature: (Ljava/lang/String;)Ldev/lunar/core/GameObject;
+    */
+    JNIEXPORT jobject JNICALL Java_dev_lunar_core_Scene_getGameObject
+    (JNIEnv* env, jobject object, jstring name)
+    {
+        // TODO: error checking
+
+        auto& scene = Script::getSceneFromVmHandle(object);
+        const char* name_str = env->GetStringUTFChars(name, 0);
+        auto& game_object = scene.getGameObject(name_str);
+        return Script::getMainVm()
+            .getWrapper(Script::VM_GAMEOBJ_WRAPPER)
+            .createHandle(game_object.getId());
     }
 }

@@ -6,7 +6,8 @@ namespace Core
 	Scene::Scene(const Fs::Path& path)
 		: name(),
 		nameHash(0),
-		objects()
+		objects(),
+		Identifiable()
 	{
 		fromFile(path);
 	}
@@ -14,14 +15,16 @@ namespace Core
 	Scene::Scene(const std::string& name)
 		: name(name),
 		nameHash(std::hash<std::string>{}(name)),
-		objects()
+		objects(),
+		Identifiable()
 	{
 	}
 
 	Scene::Scene()
 		: name("Default Scene"),
 		nameHash(std::hash<std::string>{}("Default Scene")),
-		objects()
+		objects(),
+		Identifiable()
 	{
 	}
 
@@ -31,8 +34,13 @@ namespace Core
         return active;
 	}
 
+	Scene& getSceneByName(const char* name)
+	{
+		return getActiveScene();
+	}
+
     // TODO:
-    Scene& getScene(size_t nameHash)
+    Scene& getSceneById(int id)
     {
         return getActiveScene();
     }
@@ -75,8 +83,7 @@ namespace Core
 			auto& gameobjects_json = json["gameObjects"];
 			for (auto& [key, gameobj_data] : gameobjects_json.items())
 			{
-                auto& game_object = objects.emplace_back();
-                game_object.fromJson(gameobj_data);
+				objects.emplace_back(gameobj_data);
 			}
 		}
 	}

@@ -3,26 +3,11 @@
   "gameObjects": [
     {
       "name": "Skibidi Toilet",
-      "components": [
-        {
-          "type": "core.transformComponent",
-          "position": {
-            "x": 5,
-            "y": 0,
-            "z": 4
-          },
-          "rotation": {
-            "x": 0,
-            "y": 0,
-            "z": 0
-          },
-          "scale": {
-            "x": 0,
-            "y": 0,
-            "z": 0
-          }
-        }
-      ]
+      "transform": {
+        "position": { "x": 5.00, "y": 0.00, "z": 4.00 },
+        "rotation": { "x": 0.00, "y": 0.00, "z": 0.00 },
+        "scale": { "x": 0.00, "y": 0.00, "z": 0.00 }
+      }
     },
     {
       "name": "Test Object",

@@ -11,6 +11,7 @@
 namespace Core
 {
 	// TODO: sort components based on nameHash so binary search can be done
+	class LUNAR_API Scene;
 
 	class LUNAR_API GameObject : public Fs::JsonObject, public Identifiable
 	{
@@ -18,12 +19,23 @@ namespace Core
 		GameObject(nlohmann::json& json);
 		GameObject(std::string name);
 		GameObject();
+		~GameObject();
+
+		GameObject(GameObject&& other);
+		GameObject(const GameObject& other);
+		GameObject& operator=(GameObject&& other);
+		GameObject& operator=(const GameObject& other);
 
 		void fromJson(nlohmann::json& json);
 
 		void update();
         size_t getNameHash() const;
         const std::string& getName() const;
+		TransformComponent& getTransform();
+
+		GameObject* getParent();
+		Identifiable::NativeType getParentId() const;
+		Scene* getParentScene();
 
 		template<typename T> requires std::derived_from<T, Component>
 		void addComponent(const T& component) { components.push_back(std::make_unique<T>(component)); }
@@ -43,30 +55,48 @@ namespace Core
 		template<typename T> requires std::derived_from<T, Component>
 		inline T* getComponent()
 		{
-			auto _default = T();
-			return reinterpret_cast<T*>(
-				getComponent(
-					reinterpret_cast<Component*>(&_default)->getType()
-				)
-			);
+			if constexpr (std::is_same<T, TransformComponent>::value)
+			{
+				return &transform;
+			}
+			else
+			{
+				auto _default = T();
+				return reinterpret_cast<T*>(
+					getComponent(
+						reinterpret_cast<Component*>(&_default)->getType()
+					)
+				);
+			}
+
 		}
 
 		template<typename T> requires std::derived_from<T, Component>
 		inline T& getComponentRef()
 		{
-			auto _default = T();
-			return *reinterpret_cast<T*>(
-				getComponent(
-					reinterpret_cast<Component*>(&_default)->getType()
-				)
-			);
+			if constexpr (std::is_same<T, TransformComponent>::value)
+			{
+				return transform;
+			}
+			else
+			{
+				auto _default = T();
+				return *reinterpret_cast<T*>(
+					getComponent(
+						reinterpret_cast<Component*>(&_default)->getType()
+					)
+				);
+			}
 		}
 
 	private:
 		friend class Scene;
 
+		Identifiable::NativeType scene;
+		Identifiable::NativeType parent;
 		size_t nameHash;
         std::string name;
+		TransformComponent transform;
 		std::vector<std::unique_ptr<Component>> components;
 		
 	};

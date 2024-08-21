@@ -2,6 +2,7 @@
 #include <lunar/script/api/scene.hpp>
 #include <lunar/api.hpp>
 #include <string_view>
+#include <string>
 #include <jni.h>
 
 namespace Script

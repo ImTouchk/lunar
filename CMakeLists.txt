@@ -29,6 +29,7 @@ add_library(lunar SHARED
     "inc/lunar/script/script_vm.hpp"
     "inc/lunar/script/script_api.hpp"
     "inc/lunar/script/api/scene.hpp"
+    "inc/lunar/script/api/math.hpp"
 
     "inc/lunar/api.hpp"
 

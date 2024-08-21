@@ -52,7 +52,7 @@ inline std::string printable(const std::string& str)
 #ifndef _MSC_VER
 #   define LUNAR_FUNCTION __PRETTY_FUNCTION__
 #else
-#   define LUNAR_FUNCTION __func__
+#   define LUNAR_FUNCTION __FUNCTION__
 #endif
 
 #ifdef NDEBUG
