@@ -41,9 +41,9 @@ namespace Script
             "--enable-preview"
 		};
 
-#if DEBUG_JVM_VERBOSE
+#		ifdef LUNAR_VERBOSE
 		options.push_back("-verbose:class");
-#endif
+#		endif
 
 		std::unique_ptr<JavaVMOption[]> option_list = std::make_unique<JavaVMOption[]>(options.size());
 		for (size_t i = 0; i < options.size(); i++)

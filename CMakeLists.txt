@@ -2,13 +2,16 @@ cmake_minimum_required(VERSION 3.28)
 project(lunar)
 
 set(LUNAR_BUILD_EXAMPLE ON)
+set(LUNAR_RENDER_BACKEND "VULKAN")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git)
 FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git)
-FetchContent_MakeAvailable(json glm)
+FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git)
+FetchContent_MakeAvailable(json glm glfw)
 
 find_package(JNI REQUIRED)
 
@@ -17,11 +20,15 @@ add_library(lunar SHARED
     "inc/lunar/file/filesystem.hpp"
     "inc/lunar/file/text_file.hpp"
     "inc/lunar/file/json_file.hpp"
+    "inc/lunar/file/config_file.hpp"
+
     "inc/lunar/utils/lexer.hpp"
     "inc/lunar/utils/identifiable.hpp"
     "inc/lunar/debug/log.hpp"
     "inc/lunar/debug/assert.hpp"
+    
     "inc/lunar/ui/stylesheet.hpp"
+
     "inc/lunar/core/scene.hpp"
     "inc/lunar/core/gameobject.hpp"
     "inc/lunar/core/component.hpp"
@@ -38,6 +45,7 @@ add_library(lunar SHARED
     "src/file/filesystem.cpp"
     "src/file/text_file.cpp"
     "src/file/json_file.cpp"
+    "src/file/config_file.cpp"
     "src/utils/lexer.cpp"
     "src/debug/log.cpp"
     "src/ui/stylesheet.cpp"
@@ -51,13 +59,32 @@ add_library(lunar SHARED
     "src/script/script_transform.cpp"
     "src/script/vm_utils.cpp"
 
-)
-target_include_directories(lunar PUBLIC inc)
-target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm)
-target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm)
+    "inc/lunar/render/window.hpp"
+    "src/render/window.cpp"
 
-target_compile_definitions(lunar PRIVATE
-    DEBUG_JVM_VERBOSE=0
+)
+
+if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
+    find_package(Vulkan REQUIRED)
+
+    message("-- lunar: Using Vulkan backend")
+    target_sources(lunar PRIVATE
+        "src/render/vk_base.cpp"
+        "inc/lunar/render/internal/render_vk.hpp"
+    )
+    target_compile_definitions(lunar PRIVATE
+        VULKAN_HPP_NO_CONSTRUCTORS
+        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+        LUNAR_VULKAN
+        LUNAR_VERBOSE
+    )
+endif()
+
+target_include_directories(lunar PUBLIC inc)
+target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw Vulkan::Vulkan)
+target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw Vulkan::Vulkan)
+
+target_compile_definitions(lunar PRIVATE 
     LUNAR_LIBRARY_EXPORT
 )
 
@@ -68,10 +95,10 @@ if(${LUNAR_BUILD_EXAMPLE})
     add_executable(lunar-example "examples/app.cpp")
     target_include_directories(lunar-example INTERFACE lunar)
     target_link_libraries(lunar-example PUBLIC lunar)
-    message("-- Building example app")
+    message("-- lunar: Building example app")
 endif()
 
 if(MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -static")
-    message("-- Found MinGW build environment.")
+    message("-- lunar: Found MinGW build environment.")
 endif()
