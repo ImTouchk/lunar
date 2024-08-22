@@ -110,6 +110,8 @@ namespace Utils
 
 	std::string Lexer::string(char stopChar)
 	{
+		skipWhitespace();
+
 		auto start = it;
 		size_t count = 0;
 
@@ -117,7 +119,7 @@ namespace Utils
 		{
 			if (stopChar == ' ')
 			{
-				if (!isspace(current()))
+				if (isspace(current()))
 					break;
 			}
 			else

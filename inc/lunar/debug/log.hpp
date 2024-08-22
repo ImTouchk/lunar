@@ -11,19 +11,19 @@ LUNAR_API void warnf(std::string_view fn_name, std::string_view format, std::for
 template<typename... Args>
 void log(const std::string_view& fn_name, const std::string_view& format, Args&&... args)
 {
-	logf(fn_name, format, std::make_format_args(std::forward<Args>(args)...));
+	logf(fn_name, format, std::make_format_args(args...));
 }
 
 template<typename... Args>
 void error(const std::string_view& fn_name, const std::string_view& format, Args&&... args)
 {
-	errorf(fn_name, format, std::make_format_args(std::forward<Args>(args)...));
+	errorf(fn_name, format, std::make_format_args(args...));
 }
 
 template<typename... Args>
 inline void warn(const std::string_view& fn_name, const std::string_view& format, Args&&... args)
 {
-	warnf(fn_name, format, std::make_format_args(std::forward<Args>(args)...));
+	warnf(fn_name, format, std::make_format_args(args...));
 }
 
 inline std::string printable(const char c)
