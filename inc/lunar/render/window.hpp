@@ -51,6 +51,12 @@ namespace Render
 		vk::PresentModeKHR _vkPresentMode;
 		vk::SwapchainKHR _vkSwapchain;
 		vk::Extent2D _vkSwapExtent;
+		struct
+		{
+			vk::Image img;
+			vk::ImageView view;
+		} _vkSwapImages[5];
+		size_t _vkSwapImgCount;
 #		endif
 	};
 }

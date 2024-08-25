@@ -125,6 +125,10 @@ namespace Render
 		auto& device = vk_ctx.getDevice();
 		auto& inst = vk_ctx.getInstance();
 		device.waitIdle();
+		
+		for (size_t i = 0; i < _vkSwapImgCount; i++)
+			device.destroyImageView(_vkSwapImages[i].view);
+
 		device.destroySwapchainKHR(_vkSwapchain);
 		inst.destroySurfaceKHR(_vkSurface);
 	}
@@ -216,8 +220,40 @@ namespace Render
 			swap_info.imageSharingMode = vk::SharingMode::eExclusive;
 		}
 
-		_vkSwapchain = vk_ctx.getDevice()
-							.createSwapchainKHR(swap_info);
+		auto& device = vk_ctx.getDevice();
+		_vkSwapchain = device.createSwapchainKHR(swap_info);
+		
+		auto images = device.getSwapchainImagesKHR(_vkSwapchain);
+		if (images.size() > 5)
+		{
+			DEBUG_ERROR("Too many swapchain images (max supported: 5 | existent: {})", images.size());
+		}
+
+		_vkSwapImgCount = images.size();
+		for (size_t i = 0; i < _vkSwapImgCount; i++)
+		{
+			vk::ImageViewCreateInfo view_info = {
+				.image      = images[i],
+				.viewType   = vk::ImageViewType::e2D,
+				.format     = _vkSurfaceFmt.format,
+				.components = {
+					vk::ComponentSwizzle::eIdentity,
+					vk::ComponentSwizzle::eIdentity,
+					vk::ComponentSwizzle::eIdentity,
+					vk::ComponentSwizzle::eIdentity
+				},
+				.subresourceRange = {
+					.aspectMask     = vk::ImageAspectFlagBits::eColor,
+					.baseMipLevel   = 0,
+					.levelCount     = 1,
+					.baseArrayLayer = 0,
+					.layerCount     = 1
+				}
+			};
+
+			_vkSwapImages[i].img = images[i];
+			_vkSwapImages[i].view = device.createImageView(view_info);
+		}
 	}
 
 	void Window::_vkUpdateSwapExtent()
