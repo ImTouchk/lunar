@@ -60,6 +60,8 @@ add_library(lunar SHARED
     "src/script/vm_utils.cpp"
 
     "inc/lunar/render/window.hpp"
+    "inc/lunar/render/render_context.hpp"
+    "src/render/render_context.cpp"
     "src/render/window.cpp"
 
 )
@@ -74,15 +76,16 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
     )
     target_compile_definitions(lunar PRIVATE
         VULKAN_HPP_NO_CONSTRUCTORS
-        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
         LUNAR_VULKAN
         LUNAR_VERBOSE
     )
+    target_include_directories(lunar SYSTEM INTERFACE Vulkan::Vulkan)
+    target_link_libraries(lunar PUBLIC Vulkan::Vulkan)
 endif()
 
 target_include_directories(lunar PUBLIC inc)
-target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw Vulkan::Vulkan)
-target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw Vulkan::Vulkan)
+target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw)
+target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw)
 
 target_compile_definitions(lunar PRIVATE 
     LUNAR_LIBRARY_EXPORT

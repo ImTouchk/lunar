@@ -1,31 +1,23 @@
-#define GLFW_INCLUDE_VULKAN
+#ifdef LUNAR_VULKAN
+//#	define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
+#	define GLFW_INCLUDE_VULKAN
+#	include <lunar/render/internal/render_vk.hpp>
+#	include <vulkan/vulkan.hpp>
+#endif
+
 #include <lunar/render/window.hpp>
 #include <lunar/debug/log.hpp>
 #include <GLFW/glfw3.h>
 #include <atomic>
 
-#ifdef LUNAR_VULKAN
-#	include <lunar/render/internal/render_vk.hpp>
-#	include <vulkan/vulkan.hpp>
-#endif
 
 namespace Render
 {
 	std::atomic<int> GlfwUsers = 0;
 
-	Window& getGameWindow()
-	{
-		static auto game_window = Window(Fs::baseDirectory().append("window.cfg"));
-		return game_window;
-	}
-
-	Window::Window(const Fs::Path& path)
-		: Window(Fs::ConfigFile(path))
-	{
-	}
-
-	Window::Window(const Fs::ConfigFile& config)
+	Window::Window(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config)
 		: handle(nullptr),
+		renderCtx(context),
 		Identifiable()
 	{
 		int width = config.get<int>("width");
@@ -60,23 +52,14 @@ namespace Render
 			DEBUG_LOG("Window created successfully.");
 
 #		ifdef LUNAR_VULKAN
-		VkSurfaceKHR _surf;
-		if (
-			glfwCreateWindowSurface(static_cast<VkInstance>(Vk::getInstance()), handle, nullptr, &_surf) 
-			!= VK_SUCCESS
-		)
-		{
-			DEBUG_ERROR("Failed to create a window surface.");
-		}
-
-		surface = _surf;
+		_vkInitialize();		
 #		endif
 	}
 
 	Window::~Window()
 	{
 #		ifdef LUNAR_VULKAN
-		Vk::getInstance().destroySurfaceKHR(surface);
+		_vkDestroy();
 #		endif	
 
 		glfwDestroyWindow(handle);
@@ -109,9 +92,143 @@ namespace Render
 	}
 
 #ifdef LUNAR_VULKAN
+	VulkanContext& Window::_getVkContext()
+	{
+		return *reinterpret_cast<VulkanContext*>(renderCtx.get());
+	}
+
+	void Window::_vkDestroy()
+	{
+		auto& vk_ctx = _getVkContext();
+		auto& device = vk_ctx.getDevice();
+		auto& inst = vk_ctx.getInstance();
+		device.waitIdle();
+		device.destroySwapchainKHR(_vkSwapchain);
+		inst.destroySurfaceKHR(_vkSurface);
+	}
+
+	void Window::_vkInitialize()
+	{
+		auto& vk_ctx = _getVkContext();
+
+		VkSurfaceKHR _surf;
+		if 
+		(
+			glfwCreateWindowSurface(static_cast<VkInstance>(vk_ctx.getInstance()), handle, nullptr, &_surf)
+			!= VK_SUCCESS
+		)
+		{
+			DEBUG_ERROR("Failed to create a window surface.");
+		}
+
+		_vkSurface = _surf;
+
+		auto& phys_device = vk_ctx.getRenderingDevice();
+
+		auto surface_formats = phys_device.getSurfaceFormatsKHR(_vkSurface);
+		// TODO: size 0 check
+
+		bool found_optimal = false;
+		for (const auto& format : surface_formats)
+		{
+			if (format.format == vk::Format::eB8G8R8A8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+			{
+				_vkSurfaceFmt = format;
+				found_optimal = true;
+				break;
+			}
+		}
+
+		if (!found_optimal)
+			_vkSurfaceFmt = surface_formats.at(0);
+
+		auto surface_present_modes = phys_device.getSurfacePresentModesKHR(_vkSurface);
+		// TODO: size 0 check
+
+		found_optimal = false;
+		for (const auto& present_mode : surface_present_modes)
+		{
+			if (present_mode == vk::PresentModeKHR::eMailbox)
+			{
+				_vkPresentMode = present_mode;
+				found_optimal = true;
+				break;
+			}
+		}
+
+		if (!found_optimal)
+			_vkPresentMode = vk::PresentModeKHR::eImmediate;
+
+		_vkUpdateSwapExtent();
+
+		auto capabilities = phys_device.getSurfaceCapabilitiesKHR(_vkSurface);
+		auto image_count = (capabilities.maxImageCount != 0) 
+								? std::clamp(capabilities.minImageCount + 1, capabilities.minImageCount, capabilities.maxImageCount)
+								: capabilities.minImageCount + 1;
+
+		vk::SwapchainCreateInfoKHR swap_info = {
+			.surface          = _vkSurface,
+			.minImageCount    = image_count,
+			.imageFormat      = _vkSurfaceFmt.format,
+			.imageColorSpace  = _vkSurfaceFmt.colorSpace,
+			.imageExtent      = _vkSwapExtent,
+			.imageArrayLayers = 1,
+			.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment,
+			.preTransform     = capabilities.currentTransform,
+			.compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+			.presentMode      = _vkPresentMode,
+			.clipped          = VK_TRUE,
+			.oldSwapchain     = VK_NULL_HANDLE // todo
+		};
+
+		if (vk_ctx.areQueuesSeparate())
+		{
+			auto indices = vk_ctx.getQueueFamilies();
+
+			swap_info.imageSharingMode      = vk::SharingMode::eConcurrent;
+			swap_info.queueFamilyIndexCount = indices.size();
+			swap_info.pQueueFamilyIndices   = indices.data();
+		}
+		else
+		{
+			swap_info.imageSharingMode = vk::SharingMode::eExclusive;
+		}
+
+		_vkSwapchain = vk_ctx.getDevice()
+							.createSwapchainKHR(swap_info);
+	}
+
+	void Window::_vkUpdateSwapExtent()
+	{
+		int width, height;
+		glfwGetFramebufferSize(handle, &width, &height);
+
+		auto capabilities = _getVkContext()
+								.getRenderingDevice()
+								.getSurfaceCapabilitiesKHR(_vkSurface);
+
+		_vkSwapExtent = vk::Extent2D {
+			std::clamp(
+				(uint32_t)width, 
+				capabilities.minImageExtent.width, 
+				capabilities.maxImageExtent.width
+			),
+			std::clamp(
+				(uint32_t)height, 
+				capabilities.minImageExtent.height, 
+				capabilities.maxImageExtent.height
+			)
+		};
+	}
+
 	vk::SurfaceKHR& Window::getVkSurface()
 	{
-		return surface;
+		return _vkSurface;
+	}
+
+	vk::SwapchainKHR& Window::getVkSwapchain()
+	{
+		return _vkSwapchain;
 	}
 #endif
 }

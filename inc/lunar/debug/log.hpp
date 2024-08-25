@@ -55,12 +55,7 @@ inline std::string printable(const std::string& str)
 #   define LUNAR_FUNCTION __FUNCTION__
 #endif
 
-#ifdef NDEBUG
-#	define DEBUG_LOG(fmt, ...)
-#	define DEBUG_ERROR(fmt, ...)
-#   define DEBUG_WARN(fmt, ...)
-#	define DEBUG_INFO(fmt, ...)
-#else
+#if LUNAR_DEBUG_BUILD == 1
 #	ifdef _MSC_VER
 #		define DEBUG_LOG(fmt, ...) log(LUNAR_FUNCTION, fmt, __VA_ARGS__)
 #		define DEBUG_WARN(fmt, ...) warn(LUNAR_FUNCTION, fmt, __VA_ARGS__)
@@ -76,4 +71,9 @@ inline std::string printable(const std::string& str)
 #			define DEBUG_INFO(fmt, ...) log(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
 #		endif
 #	endif
+#else
+#	define DEBUG_LOG(fmt, ...)
+#	define DEBUG_ERROR(fmt, ...)
+#   define DEBUG_WARN(fmt, ...)
+#	define DEBUG_INFO(fmt, ...)
 #endif

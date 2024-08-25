@@ -1,5 +1,6 @@
 #pragma once
 #include <GLFW/glfw3.h>
+#include <lunar/render/render_context.hpp>
 #include <lunar/utils/identifiable.hpp>
 #include <lunar/file/config_file.hpp>
 #include <lunar/api.hpp>
@@ -10,11 +11,14 @@
 
 namespace Render
 {
+#	ifdef LUNAR_VULKAN
+	class VulkanContext;
+#	endif
+
 	class LUNAR_API Window : public Identifiable
 	{
 	public:
-		Window(const Fs::ConfigFile& config);
-		Window(const Fs::Path& path);
+		Window(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config);
 		~Window();
 
 		void close();
@@ -25,13 +29,24 @@ namespace Render
 
 #		ifdef LUNAR_VULKAN
 		vk::SurfaceKHR& getVkSurface();
+		vk::SwapchainKHR& getVkSwapchain();
 #		endif
 	protected:
 		GLFWwindow* handle;
+		std::shared_ptr<RenderContext> renderCtx;
+
 #		ifdef LUNAR_VULKAN
-		vk::SurfaceKHR surface;
+		VulkanContext& _getVkContext();
+
+		void _vkInitialize();
+		void _vkDestroy();
+		void _vkUpdateSwapExtent();
+
+		vk::SurfaceKHR _vkSurface;
+		vk::SurfaceFormatKHR _vkSurfaceFmt;
+		vk::PresentModeKHR _vkPresentMode;
+		vk::SwapchainKHR _vkSwapchain;
+		vk::Extent2D _vkSwapExtent;
 #		endif
 	};
-
-	LUNAR_API Window& getGameWindow();
 }

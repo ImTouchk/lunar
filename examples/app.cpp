@@ -1,3 +1,5 @@
+#define LUNAR_VULKAN
+#include <lunar/render/render_context.hpp>
 #include <lunar/utils/argument_parser.hpp>
 #include <lunar/script/script_vm.hpp>
 #include <lunar/core/scene.hpp>
@@ -8,28 +10,17 @@
 int main(int argc, char* argv[])
 {
     auto args = Utils::ArgumentParser(argc, argv);
+    
+    auto window_cfg = Fs::ConfigFile(Fs::baseDirectory().append("window.cfg"));
+    auto render_ctx = Render::createSharedContext();
+    auto game_window = Render::Window(render_ctx, window_cfg);
 
     auto& main_scene = Core::getActiveScene();
-
-    if (args.has("--no-graphics") == -1)
+    while (!game_window.shouldClose())
     {
-        auto& game_window = Render::getGameWindow();
-
-        while (!game_window.shouldClose())
-        {
-            Render::Window::pollEvents();
-        }
+        Render::Window::pollEvents();
     }
 
-
-    for (int i = 0; i < 3; i++)
-    {
-        for (auto& obj : main_scene.getGameObjects())
-        {
-            obj.update();
-        }
-    }
-
-
+    
     return 1;
 }
