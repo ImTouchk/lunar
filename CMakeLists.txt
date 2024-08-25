@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 project(lunar)
 
 set(LUNAR_BUILD_EXAMPLE ON)
+set(LUNAR_BUNDLE_RESOURCES ON)
 set(LUNAR_RENDER_BACKEND "VULKAN")
 
 set(CMAKE_CXX_STANDARD 20)
@@ -92,14 +93,19 @@ target_compile_definitions(lunar PRIVATE
     LUNAR_LIBRARY_EXPORT
 )
 
-add_custom_target(lunar_bundler COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR})
-add_dependencies(lunar lunar_bundler)
+target_compile_definitions(lunar PUBLIC LUNAR_RENDER_BACKEND="${LUNAR_RENDER_BACKEND}")
+
+if(${LUNAR_BUNDLE_RESOURCES})
+    add_custom_target(lunar_bundler COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR})
+    add_dependencies(lunar lunar_bundler)
+    message("-- lunar: Copying files from 'resources' folder to build directory.")
+endif()
 
 if(${LUNAR_BUILD_EXAMPLE})
     add_executable(lunar-example "examples/app.cpp")
     target_include_directories(lunar-example INTERFACE lunar)
     target_link_libraries(lunar-example PUBLIC lunar)
-    message("-- lunar: Building example app")
+    message("-- lunar: Building example app.")
 endif()
 
 if(MINGW)

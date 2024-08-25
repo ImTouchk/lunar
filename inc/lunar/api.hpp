@@ -21,7 +21,7 @@
 
 #define LUNAR_VER_MAJOR 0
 #define LUNAR_VER_MINOR 1
-#define LUNAR_VER_PATCH 0
+#define LUNAR_VER_PATCH 2
 
 #ifdef WIN32
 #	ifdef LUNAR_LIBRARY_EXPORT
