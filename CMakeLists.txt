@@ -26,6 +26,7 @@ add_library(lunar SHARED
     "inc/lunar/utils/identifiable.hpp"
     "inc/lunar/debug/log.hpp"
     "inc/lunar/debug/assert.hpp"
+    "inc/lunar/debug.hpp"
     
     "inc/lunar/ui/stylesheet.hpp"
 

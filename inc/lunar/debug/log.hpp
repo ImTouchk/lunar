@@ -49,26 +49,20 @@ inline std::string printable(const std::string& str)
 	return printableVersion;
 }
 
-#ifndef _MSC_VER
-#   define LUNAR_FUNCTION __PRETTY_FUNCTION__
-#else
-#   define LUNAR_FUNCTION __FUNCTION__
-#endif
-
 #if LUNAR_DEBUG_BUILD == 1
 #	ifdef _MSC_VER
-#		define DEBUG_LOG(fmt, ...) log(LUNAR_FUNCTION, fmt, __VA_ARGS__)
-#		define DEBUG_WARN(fmt, ...) warn(LUNAR_FUNCTION, fmt, __VA_ARGS__)
-#		define DEBUG_ERROR(fmt, ...) error(LUNAR_FUNCTION, fmt, __VA_ARGS__)
+#		define DEBUG_LOG(fmt, ...) log(LUNAR_FN_NAME, fmt, __VA_ARGS__)
+#		define DEBUG_WARN(fmt, ...) warn(LUNAR_FN_NAME, fmt, __VA_ARGS__)
+#		define DEBUG_ERROR(fmt, ...) error(LUNAR_FN_NAME, fmt, __VA_ARGS__)
 #		ifdef LUNAR_VERBOSE
-#			define DEBUG_INFO(fmt, ...) log(LUNAR_FUNCTION, fmt, __VA_ARGS__)
+#			define DEBUG_INFO(fmt, ...) log(LUNAR_FN_NAME, fmt, __VA_ARGS__)
 #		endif
 #	else
-#		define DEBUG_LOG(fmt, ...) log(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
-#		define DEBUG_ERROR(fmt, ...) error(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
-#		define DEBUG_WARN(fmt, ...) warn(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
+#		define DEBUG_LOG(fmt, ...) log(LUNAR_FN_NAME, fmt __VA_OPT__(,) __VA_ARGS__)
+#		define DEBUG_ERROR(fmt, ...) error(LUNAR_FN_NAME, fmt __VA_OPT__(,) __VA_ARGS__)
+#		define DEBUG_WARN(fmt, ...) warn(LUNAR_FN_NAME, fmt __VA_OPT__(,) __VA_ARGS__)
 #		ifdef LUNAR_VERBOSE
-#			define DEBUG_INFO(fmt, ...) log(LUNAR_FUNCTION, fmt __VA_OPT__(,) __VA_ARGS__)
+#			define DEBUG_INFO(fmt, ...) log(LUNAR_FN_NAME, fmt __VA_OPT__(,) __VA_ARGS__)
 #		endif
 #	endif
 #else

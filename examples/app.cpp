@@ -11,9 +11,11 @@ int main(int argc, char* argv[])
 {
     auto args = Utils::ArgumentParser(argc, argv);
     
-    auto window_cfg = Fs::ConfigFile(Fs::baseDirectory().append("window.cfg"));
-    auto render_ctx = Render::createSharedContext();
-    auto game_window = Render::Window(render_ctx, window_cfg);
+    auto game_window = Render::Window(
+        Render::createSharedContext(), 
+        Fs::baseDirectory()
+            .append("window.cfg")
+    );
 
     auto& main_scene = Core::getActiveScene();
     while (!game_window.shouldClose())

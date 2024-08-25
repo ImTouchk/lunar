@@ -12,11 +12,13 @@ constexpr inline void do_assert(bool condition, const char* message)
 	}
 }
 
-#define DEBUG_ASSERT(condition) \
-	do_assert(condition, #condition)
 
 #ifdef LUNAR_DEBUG_BUILD
+#	define DEBUG_ASSERT(condition) do_assert(condition, #condition)
 #	define DEBUG_ONLY_EXPR(expr) expr
 #else
+#	define DEBUG_ASERT(condition)
 #	define DEBUG_ONLY_EXPR(expr)
 #endif
+
+#define DEBUG_INIT_CHECK() DEBUG_ASSERT(initialized == true)

@@ -18,8 +18,11 @@ namespace Render
 	class LUNAR_API Window : public Identifiable
 	{
 	public:
-		Window(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config);
+		Window(std::shared_ptr<RenderContext> context, const Fs::ConfigFile& config);
 		~Window();
+
+		void init(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config);
+		void destroy();
 
 		void close();
 		bool shouldClose() const;
@@ -34,6 +37,7 @@ namespace Render
 	protected:
 		GLFWwindow* handle;
 		std::shared_ptr<RenderContext> renderCtx;
+		bool initialized;
 
 #		ifdef LUNAR_VULKAN
 		VulkanContext& _getVkContext();

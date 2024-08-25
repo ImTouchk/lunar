@@ -36,3 +36,9 @@
 #else
 #	define LUNAR_DEBUG_BUILD 0
 #endif
+
+#ifndef _MSC_VER
+#   define LUNAR_FN_NAME __PRETTY_FUNCTION__
+#else
+#   define LUNAR_FN_NAME __FUNCTION__
+#endif

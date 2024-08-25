@@ -6,7 +6,7 @@
 #endif
 
 #include <lunar/render/window.hpp>
-#include <lunar/debug/log.hpp>
+#include <lunar/debug.hpp>
 #include <GLFW/glfw3.h>
 #include <atomic>
 
@@ -15,18 +15,32 @@ namespace Render
 {
 	std::atomic<int> GlfwUsers = 0;
 
-	Window::Window(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config)
+	Window::Window(std::shared_ptr<RenderContext> context, const Fs::ConfigFile& config)
 		: handle(nullptr),
 		renderCtx(context),
+		initialized(false),
 		Identifiable()
 	{
+		init(context, config);
+	}
+
+	Window::~Window()
+	{
+		destroy();
+	}
+
+	void Window::init(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config)
+	{
+		if (initialized)
+			return;
+
 		int width = config.get<int>("width");
 		int height = config.get<int>("height");
 		bool fullscreen = config.get<int>("fullscreen");
 
 		if (GlfwUsers == 0 && glfwInit() == GLFW_FALSE)
 			DEBUG_ERROR("Failed to initialize glfw.");
-		else if(++GlfwUsers == 1)
+		else if (++GlfwUsers == 1)
 		{
 			int major, minor, rev;
 			glfwGetVersion(&major, &minor, &rev);
@@ -40,9 +54,9 @@ namespace Render
 		handle = glfwCreateWindow(
 			width, height,
 			"Lunar Engine Window",
-			(fullscreen) 
-				? glfwGetPrimaryMonitor() 
-				: nullptr,
+			(fullscreen)
+			? glfwGetPrimaryMonitor()
+			: nullptr,
 			nullptr
 		);
 
@@ -52,12 +66,17 @@ namespace Render
 			DEBUG_LOG("Window created successfully.");
 
 #		ifdef LUNAR_VULKAN
-		_vkInitialize();		
+		_vkInitialize();
 #		endif
+
+		initialized = true;
 	}
 
-	Window::~Window()
+	void Window::destroy()
 	{
+		if (!initialized)
+			return;
+
 #		ifdef LUNAR_VULKAN
 		_vkDestroy();
 #		endif	
@@ -68,12 +87,14 @@ namespace Render
 			glfwTerminate();
 			DEBUG_LOG("Terminated glfw library.");
 		}
+
+		initialized = false;
 	}
 
 	void Window::close()
 	{
-		glfwDestroyWindow(handle);
-		handle = nullptr;
+		DEBUG_INIT_CHECK();
+		glfwSetWindowShouldClose(handle, GLFW_TRUE);
 	}
 
 	bool Window::exists() const
@@ -83,6 +104,7 @@ namespace Render
 
 	bool Window::shouldClose() const
 	{
+		DEBUG_INIT_CHECK();
 		return glfwWindowShouldClose(handle);
 	}
 
