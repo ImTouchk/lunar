@@ -3,3 +3,4 @@
 #include <lunar/render/window.hpp>
 #include <lunar/render/shader.hpp>
 #include <lunar/render/render_context.hpp>
+#include <lunar/render/render_components.hpp>
