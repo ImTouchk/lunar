@@ -40,7 +40,7 @@ namespace Core
 	}
 
     // TODO:
-    Scene& getSceneById(int id)
+    Scene& getSceneById(Identifiable::NativeType id)
     {
         return getActiveScene();
     }
@@ -55,7 +55,7 @@ namespace Core
         return nameHash;
     }
 
-    GameObject& Scene::getGameObject(int id)
+    GameObject& Scene::getGameObject(Identifiable::NativeType id)
     {
         for(auto& game_object : objects)
         {
@@ -69,8 +69,15 @@ namespace Core
 
     GameObject& Scene::getGameObject(const char* name)
     {
-        size_t hash = std::hash<std::string>{}(name);
-        return getGameObject(hash);
+		auto hash = std::hash<std::string>{}(name);
+		for (auto& game_object : objects)
+		{
+			if (game_object.getNameHash() == hash)
+				return game_object;
+		}
+
+		DEBUG_ERROR("Called on inexistent game object (name: {})", name);
+        throw;
     }
 
 	void Scene::fromJson(nlohmann::json& json)

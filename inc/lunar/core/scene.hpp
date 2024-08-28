@@ -20,7 +20,7 @@ namespace Core
         size_t getNameHash() const;
         const std::string& getName() const;
         GameObject& getGameObject(const char* name);
-        GameObject& getGameObject(int id);
+        GameObject& getGameObject(Identifiable::NativeType id);
 
 		void fromJson(nlohmann::json& json) override;
 
@@ -34,5 +34,5 @@ namespace Core
 
     LUNAR_API Scene& getActiveScene();
     LUNAR_API Scene& getSceneByName(const char* name);
-    LUNAR_API Scene& getSceneById(int id);
+    LUNAR_API Scene& getSceneById(Identifiable::NativeType id);
 }
