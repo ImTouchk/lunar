@@ -124,11 +124,11 @@ namespace Render
 				return;
 
 			auto app_info = vk::ApplicationInfo{
-				.pApplicationName = APP_NAME,
+				.pApplicationName   = APP_NAME,
 				.applicationVersion = VK_MAKE_API_VERSION(0, APP_VER_MAJOR, APP_VER_MINOR, APP_VER_PATCH),
-				.pEngineName = "Lunar",
-				.engineVersion = VK_MAKE_API_VERSION(0, LUNAR_VER_MAJOR, LUNAR_VER_MINOR, LUNAR_VER_PATCH),
-				.apiVersion = VK_API_VERSION_1_3
+				.pEngineName        = "Lunar",
+				.engineVersion      = VK_MAKE_API_VERSION(0, LUNAR_VER_MAJOR, LUNAR_VER_MINOR, LUNAR_VER_PATCH),
+				.apiVersion         = VK_API_VERSION_1_3
 			};
 
 			auto debug_mess_info = vk::DebugUtilsMessengerCreateInfoEXT{
@@ -143,12 +143,12 @@ namespace Render
 				.pfnUserCallback = DebugLayerCallback
 			};
 
-			auto instance_info = vk::InstanceCreateInfo{
-				.pNext = (LUNAR_DEBUG_BUILD) ? &debug_mess_info : nullptr,
-				.pApplicationInfo = &app_info,
-				.enabledLayerCount = (uint32_t)required_layers.size(),
-				.ppEnabledLayerNames = required_layers.data(),
-				.enabledExtensionCount = (uint32_t)required_ext.size(),
+			auto instance_info = vk::InstanceCreateInfo {
+				.pNext                   = (LUNAR_DEBUG_BUILD) ? &debug_mess_info : nullptr,
+				.pApplicationInfo        = &app_info,
+				.enabledLayerCount       = (uint32_t)required_layers.size(),
+				.ppEnabledLayerNames     = required_layers.data(),
+				.enabledExtensionCount   = (uint32_t)required_ext.size(),
 				.ppEnabledExtensionNames = required_ext.data(),
 			};
 
@@ -266,14 +266,14 @@ namespace Render
 			auto required_layers = GetRequiredLayers();
 			auto required_ext = GetRequiredDeviceExtensions();
 
-			auto device_info = vk::DeviceCreateInfo{
-				.queueCreateInfoCount = 2,
-				.pQueueCreateInfos = queue_infos,
-				.enabledLayerCount = (uint32_t)required_layers.size(),
-				.ppEnabledLayerNames = required_layers.data(),
-				.enabledExtensionCount = (uint32_t)required_ext.size(),
+			auto device_info = vk::DeviceCreateInfo {
+				.queueCreateInfoCount    = 2,
+				.pQueueCreateInfos       = queue_infos,
+				.enabledLayerCount       = (uint32_t)required_layers.size(),
+				.ppEnabledLayerNames     = required_layers.data(),
+				.enabledExtensionCount   = (uint32_t)required_ext.size(),
 				.ppEnabledExtensionNames = required_ext.data(),
-				.pEnabledFeatures = &device_features,
+				.pEnabledFeatures        = &device_features,
 			};
 
 			device = physDevice.createDevice(device_info);
@@ -301,10 +301,12 @@ namespace Render
 			vk::CommandBufferAllocateInfo buffer_alloc_info = {
 				.commandPool        = commandPool,
 				.level              = vk::CommandBufferLevel::ePrimary,
-				.commandBufferCount = 1
+				.commandBufferCount = MAX_FRAMES_IN_FLIGHT
 			};
 
-			primaryCmdBuffer = device.allocateCommandBuffers(buffer_alloc_info)[0];
+			auto res_bufs = device.allocateCommandBuffers(buffer_alloc_info);
+			for (size_t i = 0; i < res_bufs.size(); i++)
+				renderCmdBuffers[i] = res_bufs[i];
 		}
 
 		void CmdBufferWrapper::destroy(VulkanContext& context)
@@ -314,7 +316,6 @@ namespace Render
 			device.destroyCommandPool(commandPool);
 		}
 	}
-
 
 	VulkanContext::VulkanContext() : initialized(false)
 	{

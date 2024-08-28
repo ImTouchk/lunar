@@ -9,6 +9,8 @@ namespace Render { class VulkanContext; }
 
 namespace Render::Vk
 {
+	constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
+
 	struct InstanceWrapper
 	{
 		InstanceWrapper() = default;
@@ -66,7 +68,7 @@ namespace Render::Vk
 		void destroy(VulkanContext& context);
 	private:
 		vk::CommandPool commandPool;
-		vk::CommandBuffer primaryCmdBuffer;
+		vk::CommandBuffer renderCmdBuffers[MAX_FRAMES_IN_FLIGHT];
 
 		friend class VulkanContext;
 	};
