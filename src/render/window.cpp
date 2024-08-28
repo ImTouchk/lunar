@@ -19,6 +19,7 @@ namespace Render
 		: handle(nullptr),
 		renderCtx(context),
 		initialized(false),
+		RenderTarget(RenderTargetType::eWindow),
 		Identifiable()
 	{
 		init(context, config);
@@ -127,7 +128,10 @@ namespace Render
 		device.waitIdle();
 		
 		for (size_t i = 0; i < _vkSwapImgCount; i++)
+		{
+			device.destroyFramebuffer(_vkSwapImages[i].fbuffer);
 			device.destroyImageView(_vkSwapImages[i].view);
+		}
 
 		device.destroySwapchainKHR(_vkSwapchain);
 		inst.destroySurfaceKHR(_vkSurface);
@@ -148,6 +152,7 @@ namespace Render
 		}
 
 		_vkSurface = _surf;
+		_vkCurrentSwapIdx = 0;
 
 		auto& phys_device = vk_ctx.getRenderingDevice();
 
@@ -253,6 +258,17 @@ namespace Render
 
 			_vkSwapImages[i].img = images[i];
 			_vkSwapImages[i].view = device.createImageView(view_info);
+
+			vk::FramebufferCreateInfo frame_buffer_info = {
+				.renderPass      = _getVkContext().getDefaultRenderPass(),
+				.attachmentCount = 1,
+				.pAttachments    = &_vkSwapImages[i].view,
+				.width           = _vkSwapExtent.width,
+				.height          = _vkSwapExtent.height,
+				.layers          = 1
+			};
+
+			_vkSwapImages[i].fbuffer = device.createFramebuffer(frame_buffer_info);
 		}
 	}
 
@@ -279,6 +295,18 @@ namespace Render
 		};
 	}
 
+	size_t Window::getVkFrame() const
+	{
+		return _vkCurrentSwapIdx;
+	}
+
+	void Window::endVkFrame()
+	{
+		_vkCurrentSwapIdx++;
+		if (_vkCurrentSwapIdx >= _vkSwapImgCount)
+			_vkCurrentSwapIdx = 0;
+	}
+
 	vk::SurfaceKHR& Window::getVkSurface()
 	{
 		return _vkSurface;
@@ -287,6 +315,22 @@ namespace Render
 	vk::SwapchainKHR& Window::getVkSwapchain()
 	{
 		return _vkSwapchain;
+	}
+
+	size_t Window::getVkSwapImageCount()
+	{
+		return _vkSwapImgCount;
+	}
+
+	vk::Framebuffer& Window::getVkSwapFramebuffer(size_t idx)
+	{
+		// TODO: bounds check
+		return _vkSwapImages[idx].fbuffer;
+	}
+
+	const vk::Extent2D& Window::getVkSwapExtent() const
+	{
+		return _vkSwapExtent;
 	}
 #endif
 }

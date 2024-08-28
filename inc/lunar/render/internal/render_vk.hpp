@@ -1,5 +1,6 @@
 #pragma once
 #include <lunar/render/render_context.hpp>
+#include <lunar/core/scene.hpp>
 #include <lunar/api.hpp>
 #include <vulkan/vulkan.hpp>
 #include <array>
@@ -55,6 +56,20 @@ namespace Render::Vk
 
 		friend class VulkanContext;
 	};
+
+	struct CmdBufferWrapper
+	{
+		CmdBufferWrapper() = default;
+		~CmdBufferWrapper() = default;
+
+		void init(VulkanContext& context);
+		void destroy(VulkanContext& context);
+	private:
+		vk::CommandPool commandPool;
+		vk::CommandBuffer primaryCmdBuffer;
+
+		friend class VulkanContext;
+	};
 }
 
 namespace Render
@@ -67,6 +82,7 @@ namespace Render
 		
 		void init() override;
 		void destroy() override;
+		void draw(Core::Scene& scene, RenderTarget* target) override;
 
 		vk::Instance& getInstance();
 		vk::PhysicalDevice& getRenderingDevice();
@@ -84,7 +100,8 @@ namespace Render
 		Vk::InstanceWrapper instanceWrapper;
 		Vk::DeviceWrapper deviceWrapper;
 		Vk::PipelineWrapper pipelineWrapper;
-		
+		Vk::CmdBufferWrapper cmdBufferWrapper;
+
 		bool initialized;
 	};
 

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
-project(lunar)
+project(lunar VERSION 0.1.5)
+
+message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar_VERSION_PATCH}")
 
 set(LUNAR_BUILD_EXAMPLE ON)
 set(LUNAR_BUNDLE_RESOURCES ON)
@@ -65,13 +67,15 @@ add_library(lunar SHARED
     "src/script/script_transform.cpp"
     "src/script/vm_utils.cpp"
 
+    "inc/lunar/render/mesh.hpp"
     "inc/lunar/render/window.hpp"
     "inc/lunar/render/shader.hpp"
     "inc/lunar/render/render_context.hpp"
+    "inc/lunar/render/render_components.hpp"
+    "src/render/render_components.cpp"
     "src/render/render_context.cpp"
     "src/render/window.cpp"
     "src/render/shader.cpp"
-
 )
 
 if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
@@ -79,6 +83,7 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
 
     message("-- lunar: Using Vulkan backend")
     target_sources(lunar PRIVATE
+        "src/render/vk_draw.cpp"
         "src/render/vk_base.cpp"
         "src/render/vk_shader.cpp"
         "inc/lunar/render/internal/render_vk.hpp"
@@ -129,7 +134,12 @@ target_compile_definitions(lunar PRIVATE
     LUNAR_LIBRARY_EXPORT
 )
 
-target_compile_definitions(lunar PUBLIC LUNAR_RENDER_BACKEND="${LUNAR_RENDER_BACKEND}")
+target_compile_definitions(lunar PUBLIC 
+    LUNAR_RENDER_BACKEND="${LUNAR_RENDER_BACKEND}"
+    LUNAR_VER_MAJOR=${lunar_VERSION_MAJOR}
+    LUNAR_VER_MINOR=${lunar_VERSION_MINOR}
+    LUNAR_VER_PATCH=${lunar_VERSION_PATCH}
+)
 
 if(${LUNAR_BUNDLE_RESOURCES})
     add_custom_target(lunar_bundler 

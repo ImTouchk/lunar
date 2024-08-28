@@ -286,7 +286,35 @@ namespace Render
 			device.waitIdle();
 			device.destroy();
 		}
+
+		void CmdBufferWrapper::init(VulkanContext& context)
+		{
+			auto& device = context.getDevice();
+
+			vk::CommandPoolCreateInfo pool_info = {
+				.flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+				.queueFamilyIndex = context.getQueueFamilies()[0]
+			};
+
+			commandPool = device.createCommandPool(pool_info);
+
+			vk::CommandBufferAllocateInfo buffer_alloc_info = {
+				.commandPool        = commandPool,
+				.level              = vk::CommandBufferLevel::ePrimary,
+				.commandBufferCount = 1
+			};
+
+			primaryCmdBuffer = device.allocateCommandBuffers(buffer_alloc_info)[0];
+		}
+
+		void CmdBufferWrapper::destroy(VulkanContext& context)
+		{
+			auto& device = context.getDevice();
+			device.waitIdle();
+			device.destroyCommandPool(commandPool);
+		}
 	}
+
 
 	VulkanContext::VulkanContext() : initialized(false)
 	{
@@ -306,6 +334,7 @@ namespace Render
 		instanceWrapper.init();
 		deviceWrapper.init(*this);
 		pipelineWrapper.init(*this);
+		cmdBufferWrapper.init(*this);
 		initialized = true;
 
 		DEBUG_LOG("Vulkan render context initialized.");
@@ -316,6 +345,7 @@ namespace Render
 		if (!initialized)
 			return;
 
+		cmdBufferWrapper.destroy(*this);
 		pipelineWrapper.destroy(*this);
 		deviceWrapper.destroy(*this);
 		instanceWrapper.destroy();

@@ -1,13 +1,10 @@
-#include <lunar/render/render_context.hpp>
-#include <lunar/utils/argument_parser.hpp>
-#include <lunar/script/script_vm.hpp>
 #include <lunar/core/scene.hpp>
 #include <lunar/core/gameobject.hpp>
-#include <lunar/debug/log.hpp>
-#include <lunar/render/window.hpp>
-#include <lunar/file/binary_file.hpp>
 
+#include <lunar/api.hpp>
 #include <lunar/render.hpp>
+#include <lunar/debug.hpp>
+#include <lunar/utils/argument_parser.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -19,20 +16,28 @@ int main(int argc, char* argv[])
         Fs::baseDirectory()
             .append("window.cfg")
     );
-
-    auto shader = Render::GraphicsShader(
-        Render::ShaderBuilder()
-            .fromVertexBinary("default.vert")
-            .fromFragmentBinary("default.frag")
-            .renderContext(render_ctx)
-    );
-
-    DEBUG_LOG("{}", (void*)static_cast<VkPipeline>(shader.getVkPipeline()));
     
     auto& main_scene = Core::getActiveScene();
+    auto& skibidi = main_scene.getGameObject("Skibidi Toilet");
+    
+    auto& mesh_renderer = skibidi.addComponent<Render::MeshRenderer>();
+    mesh_renderer
+        .getShader()
+        .init(
+            Render::ShaderBuilder()
+                .renderContext(render_ctx)
+                .fromVertexBinary("default.vert")
+                .fromFragmentBinary("default.frag")
+        );
+
     while (!game_window.shouldClose())
     {
         Render::Window::pollEvents();
+
+        render_ctx->draw(
+            main_scene, 
+            reinterpret_cast<Render::RenderTarget*>(&game_window)
+        );
     }
 
     //shader.destroy();

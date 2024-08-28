@@ -19,10 +19,6 @@
 #	define APP_VER_PATCH 1
 #endif
 
-#define LUNAR_VER_MAJOR 0
-#define LUNAR_VER_MINOR 1
-#define LUNAR_VER_PATCH 4
-
 #ifdef WIN32
 #	ifdef LUNAR_LIBRARY_EXPORT
 #		define LUNAR_API __declspec(dllexport)

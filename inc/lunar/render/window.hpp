@@ -1,6 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include <lunar/render/render_context.hpp>
+#include <lunar/render/render_target.hpp>
 #include <lunar/utils/identifiable.hpp>
 #include <lunar/file/config_file.hpp>
 #include <lunar/api.hpp>
@@ -15,7 +16,7 @@ namespace Render
 	class VulkanContext;
 #	endif
 
-	class LUNAR_API Window : public Identifiable
+	class LUNAR_API Window : public Identifiable, public RenderTarget
 	{
 	public:
 		Window(std::shared_ptr<RenderContext> context, const Fs::ConfigFile& config);
@@ -33,6 +34,11 @@ namespace Render
 #		ifdef LUNAR_VULKAN
 		vk::SurfaceKHR& getVkSurface();
 		vk::SwapchainKHR& getVkSwapchain();
+		size_t getVkSwapImageCount();
+		vk::Framebuffer& getVkSwapFramebuffer(size_t idx);
+		const vk::Extent2D& getVkSwapExtent() const;
+		size_t getVkFrame() const;
+		void endVkFrame();
 #		endif
 	protected:
 		GLFWwindow* handle;
@@ -55,8 +61,11 @@ namespace Render
 		{
 			vk::Image img;
 			vk::ImageView view;
+			vk::Framebuffer fbuffer;
 		} _vkSwapImages[5];
+
 		size_t _vkSwapImgCount;
+		size_t _vkCurrentSwapIdx;
 #		endif
 	};
 }
