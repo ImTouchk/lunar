@@ -1,9 +1,12 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
 project(lunar)
 
 set(LUNAR_BUILD_EXAMPLE ON)
 set(LUNAR_BUNDLE_RESOURCES ON)
 set(LUNAR_RENDER_BACKEND "VULKAN")
+set(LUNAR_RESOURCES_DIR ${CMAKE_CURRENT_LIST_DIR}/resources)
+set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
+set(LUNAR_RUNTIME_SHADER_BUILD OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,6 +51,7 @@ add_library(lunar SHARED
     "src/file/text_file.cpp"
     "src/file/json_file.cpp"
     "src/file/config_file.cpp"
+    "src/file/binary_file.cpp"
     "src/utils/lexer.cpp"
     "src/debug/log.cpp"
     "src/ui/stylesheet.cpp"
@@ -62,9 +66,11 @@ add_library(lunar SHARED
     "src/script/vm_utils.cpp"
 
     "inc/lunar/render/window.hpp"
+    "inc/lunar/render/shader.hpp"
     "inc/lunar/render/render_context.hpp"
     "src/render/render_context.cpp"
     "src/render/window.cpp"
+    "src/render/shader.cpp"
 
 )
 
@@ -74,15 +80,45 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
     message("-- lunar: Using Vulkan backend")
     target_sources(lunar PRIVATE
         "src/render/vk_base.cpp"
+        "src/render/vk_shader.cpp"
         "inc/lunar/render/internal/render_vk.hpp"
     )
     target_compile_definitions(lunar PRIVATE
-        VULKAN_HPP_NO_CONSTRUCTORS
-        LUNAR_VULKAN
+        VULKAN_HPP_NO_CONSTRUCTORS  
         LUNAR_VERBOSE
+        LUNAR_RUNTIME_SHADER_BUILD=${LUNAR_RUNTIME_SHADER_BUILD}
     )
+    target_compile_definitions(lunar PUBLIC LUNAR_VULKAN)
     target_include_directories(lunar SYSTEM INTERFACE Vulkan::Vulkan)
     target_link_libraries(lunar PUBLIC Vulkan::Vulkan)
+
+    if(NOT ${LUNAR_RUNTIME_SHADER_BUILD})
+        message("-- lunar: Compiling Vulkan shaders at build time")
+
+        file(GLOB SHADER_FILES 
+            ${LUNAR_ASSETS_DIR}/shader-src/*.vert
+            ${LUNAR_ASSETS_DIR}/shader-src/*.frag
+            ${LUNAR_ASSETS_DIR}/shader-src/*.comp
+        )
+
+        foreach(SHADER_FILE IN LISTS SHADER_FILES)
+            get_filename_component(SHADER_FILE_NAME ${SHADER_FILE} NAME)
+            add_custom_command(
+                OUTPUT ${LUNAR_ASSETS_DIR}/shader-bin/${SHADER_FILE_NAME}.spv
+                COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER_FILE} -o ${LUNAR_ASSETS_DIR}/shader-bin/${SHADER_FILE_NAME}.spv
+                DEPENDS ${SHADER_FILE}
+                COMMENT "-- lunar: Compiling Vulkan shader '${SHADER_FILE_NAME}'"
+            )
+            list(APPEND LUNAR_COMPILED_SHADERS ${LUNAR_ASSETS_DIR}/shader-bin/${SHADER_FILE_NAME}.spv)
+        endForeach()
+
+        add_custom_target(lunar_shaders ALL DEPENDS ${LUNAR_COMPILED_SHADERS})
+        add_dependencies(lunar lunar_shaders)
+
+        unset(SHADER_FILES)
+    else()
+        set(LUNAR_COMPILED_SHADERS "")
+    endif()
 endif()
 
 target_include_directories(lunar PUBLIC inc)
@@ -96,7 +132,9 @@ target_compile_definitions(lunar PRIVATE
 target_compile_definitions(lunar PUBLIC LUNAR_RENDER_BACKEND="${LUNAR_RENDER_BACKEND}")
 
 if(${LUNAR_BUNDLE_RESOURCES})
-    add_custom_target(lunar_bundler COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR})
+    add_custom_target(lunar_bundler 
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}
+    )
     add_dependencies(lunar lunar_bundler)
     message("-- lunar: Copying files from 'resources' folder to build directory.")
 endif()

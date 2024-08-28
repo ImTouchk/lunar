@@ -41,6 +41,20 @@ namespace Render::Vk
 
 		friend class VulkanContext;
 	};
+
+	struct PipelineWrapper
+	{
+		PipelineWrapper() = default;
+		~PipelineWrapper() = default;
+
+		void init(VulkanContext& context);
+		void destroy(VulkanContext& context);
+	private:
+		vk::RenderPass defaultRenderPass;
+		vk::PipelineLayout defaultGraphicsLayout;
+
+		friend class VulkanContext;
+	};
 }
 
 namespace Render
@@ -63,9 +77,19 @@ namespace Render
 		const std::array<uint32_t, 2>& getQueueFamilies() const;
 		bool areQueuesSeparate() const;
 
+		vk::PipelineLayout& getDefaultGraphicsLayout();
+		vk::RenderPass& getDefaultRenderPass();
+
 	private:
 		Vk::InstanceWrapper instanceWrapper;
 		Vk::DeviceWrapper deviceWrapper;
+		Vk::PipelineWrapper pipelineWrapper;
+		
 		bool initialized;
 	};
+
+	inline VulkanContext& getVulkanContext(std::shared_ptr<RenderContext>& context)
+	{
+		return *reinterpret_cast<VulkanContext*>(context.get());
+	}
 }

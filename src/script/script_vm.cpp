@@ -41,7 +41,7 @@ namespace Script
             "--enable-preview"
 		};
 
-#		ifdef LUNAR_VERBOSE
+#		if LUNAR_JVM_VERBOSE == 1
 		options.push_back("-verbose:class");
 #		endif
 

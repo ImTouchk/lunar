@@ -305,6 +305,7 @@ namespace Render
 
 		instanceWrapper.init();
 		deviceWrapper.init(*this);
+		pipelineWrapper.init(*this);
 		initialized = true;
 
 		DEBUG_LOG("Vulkan render context initialized.");
@@ -315,6 +316,7 @@ namespace Render
 		if (!initialized)
 			return;
 
+		pipelineWrapper.destroy(*this);
 		deviceWrapper.destroy(*this);
 		instanceWrapper.destroy();
 		initialized = false;
@@ -329,4 +331,6 @@ namespace Render
 	vk::Queue& VulkanContext::getPresentQueue() { return deviceWrapper.presentQueue; }
 	const std::array<uint32_t, 2>& VulkanContext::getQueueFamilies() const { return deviceWrapper.queueFamilies; }
 	bool VulkanContext::areQueuesSeparate() const { return deviceWrapper.queueFamilies[0] != deviceWrapper.queueFamilies[1]; }
+	vk::PipelineLayout& VulkanContext::getDefaultGraphicsLayout() { return pipelineWrapper.defaultGraphicsLayout; }
+	vk::RenderPass& VulkanContext::getDefaultRenderPass() { return pipelineWrapper.defaultRenderPass; }
 }

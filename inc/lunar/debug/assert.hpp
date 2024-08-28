@@ -22,3 +22,4 @@ constexpr inline void do_assert(bool condition, const char* message)
 #endif
 
 #define DEBUG_INIT_CHECK() DEBUG_ASSERT(initialized == true)
+#define DEBUG_NOT_IMPLEMENTED() throw

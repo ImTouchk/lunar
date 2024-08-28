@@ -21,7 +21,7 @@
 
 #define LUNAR_VER_MAJOR 0
 #define LUNAR_VER_MINOR 1
-#define LUNAR_VER_PATCH 3
+#define LUNAR_VER_PATCH 4
 
 #ifdef WIN32
 #	ifdef LUNAR_LIBRARY_EXPORT
@@ -42,3 +42,7 @@
 #else
 #   define LUNAR_FN_NAME __FUNCTION__
 #endif
+
+// TODO: add possibility to enable/disable this flag
+#define LUNAR_JVM_VERBOSE 0
+

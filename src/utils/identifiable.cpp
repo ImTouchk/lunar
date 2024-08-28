@@ -1,6 +1,12 @@
 #include <lunar/utils/identifiable.hpp>
 #include <atomic>
 
+Identifiable::Identifiable(NativeType customId)
+    : id(customId)
+{
+
+}
+
 Identifiable::Identifiable()
     : id(generateId())
 {
