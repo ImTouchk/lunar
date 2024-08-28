@@ -34,10 +34,7 @@ int main(int argc, char* argv[])
     {
         Render::Window::pollEvents();
 
-        render_ctx->draw(
-            main_scene, 
-            reinterpret_cast<Render::RenderTarget*>(&game_window)
-        );
+        render_ctx->draw(main_scene, game_window);
     }
 
     //shader.destroy();
