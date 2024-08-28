@@ -38,7 +38,13 @@ namespace Core
 		Scene* getParentScene();
 
 		template<typename T> requires std::derived_from<T, Component>
-		void addComponent(const T& component) { components.push_back(std::make_unique<T>(component)); }
+		T& addComponent() 
+		{
+			return *reinterpret_cast<T*>(
+					components.emplace_back(std::make_unique<T>())
+						.get()
+					);
+		}
 
 		Component* getComponent(const char* name)
 		{

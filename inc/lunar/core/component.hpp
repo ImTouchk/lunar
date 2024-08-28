@@ -7,11 +7,11 @@
 
 namespace Core
 {
-	enum LUNAR_API ComponentUpdatePriority
+	enum class LUNAR_API ComponentUpdatePriority
 	{
-		COMPONENT_PRIORITY_NORMAL = 0,
-		COMPONENT_PRIORITY_LOW = 1,
-		COMPONENT_PRIORITY_HIGH = 2,
+		eNormal = 0,
+		eLow = 1,
+		eHigh = 2,
 	};
 
 	class LUNAR_API Component
@@ -25,7 +25,7 @@ namespace Core
 		virtual void update() = 0;
 
 	protected:
-		int priority = COMPONENT_PRIORITY_NORMAL;
+		ComponentUpdatePriority priority = ComponentUpdatePriority::eNormal;
 	};
 
 	class LUNAR_API ScriptComponent : public Component
