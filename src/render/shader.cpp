@@ -27,14 +27,14 @@ namespace Render
 #		endif
 	}
 
-	ShaderBuilder& ShaderBuilder::fromVertexBinary(const std::string_view& name)
+	ShaderBuilder& ShaderBuilder::fromVertexBinaryFile(const std::string_view& name)
 	{
 		auto bin_file = Fs::BinaryFile(GetBinaryShaderPath(name));
 		_vertCode = std::string(bin_file.content.data(), bin_file.content.size());
 		return *this;
 	}
 
-	ShaderBuilder& ShaderBuilder::fromFragmentBinary(const std::string_view& name)
+	ShaderBuilder& ShaderBuilder::fromFragmentBinaryFile(const std::string_view& name)
 	{
 		auto bin_file = Fs::BinaryFile(GetBinaryShaderPath(name));
 		_fragCode = std::string(bin_file.content.data(), bin_file.content.size());

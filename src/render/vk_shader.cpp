@@ -34,11 +34,22 @@ namespace Render::Vk
 			.pColorAttachments    = &color_attachment_ref
 		};
 
+		vk::SubpassDependency subpass_dep = {
+			.srcSubpass    = vk::SubpassExternal,
+			.dstSubpass    = 0,
+			.srcStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+			.dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+			.srcAccessMask = vk::AccessFlagBits::eNone,
+			.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite
+		};
+
 		vk::RenderPassCreateInfo render_pass_info = {
 			.attachmentCount = 1,
 			.pAttachments    = &color_attachment,
 			.subpassCount    = 1,
-			.pSubpasses      = &subpass
+			.pSubpasses      = &subpass,
+			.dependencyCount = 1,
+			.pDependencies   = &subpass_dep
 		};
 
 		defaultRenderPass = device.createRenderPass(render_pass_info);

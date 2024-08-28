@@ -26,8 +26,8 @@ int main(int argc, char* argv[])
         .init(
             Render::ShaderBuilder()
                 .renderContext(render_ctx)
-                .fromVertexBinary("default.vert")
-                .fromFragmentBinary("default.frag")
+                .fromVertexBinaryFile("default.vert")
+                .fromFragmentBinaryFile("default.frag")
         );
 
     while (!game_window.shouldClose())

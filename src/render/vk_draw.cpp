@@ -14,20 +14,38 @@ namespace Render
 		// TODO: make Core::Scene const
 		// TODO: implement for RenderTargetType::eTexture
 		// TODO: check for initialization
-
 		auto& target_window = *reinterpret_cast<Render::Window*>(target);
-		auto& swap_extent = target_window.getVkSwapExtent();
-		auto& cmd_buffer = cmdBufferWrapper.primaryCmdBuffer;
 
-		auto current_frame = target_window.getVkFrame();
+		auto current_frame = target_window.getVkCurrentFrame();
+		auto& img_available = target_window.getVkImageAvailable(current_frame);
+		auto& render_finished = target_window.getVkRenderFinished(current_frame);
+		auto& in_flight = target_window.getVkInFlightFence(current_frame);
+		auto& cmd_buffer = cmdBufferWrapper.renderCmdBuffers[current_frame];
+
+		auto& swapchain = target_window.getVkSwapchain();
+		auto& swap_extent = target_window.getVkSwapExtent();
+
+		auto& device = getDevice();
+
+		// TODO: Research on whether doing this instead of waiting for the fence is actually 
+		// the right decision (returning might lead to more latency?)
+		if (device.getFenceStatus(in_flight) == vk::Result::eNotReady)
+			return;
+
+		device.resetFences(in_flight);
+
+		uint32_t img_idx;
+		device.acquireNextImageKHR(swapchain, UINT64_MAX, img_available, {}, &img_idx);
 
 		vk::CommandBufferBeginInfo begin_info = {};
+
+		cmd_buffer.reset();
 		cmd_buffer.begin(begin_info);
 
-		vk::ClearValue clear_value = { .color = { {{ 1.f, 0.f, 0.f, 1.f }} } };
+		vk::ClearValue clear_value = { .color = { {{ 1.f, 1.f, 1.f, 1.f }} } };
 		vk::RenderPassBeginInfo render_pass_begin_info = {
 			.renderPass  = getDefaultRenderPass(),
-			.framebuffer = target_window.getVkSwapFramebuffer(current_frame),
+			.framebuffer = target_window.getVkSwapFramebuffer(img_idx),
 			.renderArea = {
 				.offset = { 0, 0 },
 				.extent = swap_extent
@@ -70,6 +88,34 @@ namespace Render
 
 		cmd_buffer.endRenderPass();
 		cmd_buffer.end();
+	
+		vk::PipelineStageFlags wait_stages[] = {
+			vk::PipelineStageFlagBits::eColorAttachmentOutput
+		};
+
+		vk::SubmitInfo submit_info = {
+			.waitSemaphoreCount   = 1,
+			.pWaitSemaphores      = &img_available,
+			.pWaitDstStageMask    = wait_stages,
+			.commandBufferCount   = 1,
+			.pCommandBuffers      = &cmd_buffer,
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores    = &render_finished
+		};
+
+		getGraphicsQueue()
+			.submit(submit_info, in_flight);
+
+		vk::PresentInfoKHR present_info = {
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores    = &render_finished,
+			.swapchainCount     = 1,
+			.pSwapchains        = &swapchain,
+			.pImageIndices      = &img_idx
+		};
+
+		getPresentQueue()
+			.presentKHR(present_info);
 
 		target_window.endVkFrame();
 	}

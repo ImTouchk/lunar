@@ -129,6 +129,9 @@ namespace Render
 		
 		for (size_t i = 0; i < _vkSwapImgCount; i++)
 		{
+			device.destroyFence(_vkSwapImages[i].isInFlight);
+			device.destroySemaphore(_vkSwapImages[i].renderFinished);
+			device.destroySemaphore(_vkSwapImages[i].imageAvailable);
 			device.destroyFramebuffer(_vkSwapImages[i].fbuffer);
 			device.destroyImageView(_vkSwapImages[i].view);
 		}
@@ -152,7 +155,7 @@ namespace Render
 		}
 
 		_vkSurface = _surf;
-		_vkCurrentSwapIdx = 0;
+		_vkCurrentFrame = 0;
 
 		auto& phys_device = vk_ctx.getRenderingDevice();
 
@@ -269,6 +272,13 @@ namespace Render
 			};
 
 			_vkSwapImages[i].fbuffer = device.createFramebuffer(frame_buffer_info);
+
+			vk::SemaphoreCreateInfo semaphore_info = {};
+			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
+
+			_vkSwapImages[i].renderFinished = device.createSemaphore(semaphore_info);
+			_vkSwapImages[i].imageAvailable = device.createSemaphore(semaphore_info);
+			_vkSwapImages[i].isInFlight = device.createFence(fence_info);
 		}
 	}
 
@@ -295,18 +305,6 @@ namespace Render
 		};
 	}
 
-	size_t Window::getVkFrame() const
-	{
-		return _vkCurrentSwapIdx;
-	}
-
-	void Window::endVkFrame()
-	{
-		_vkCurrentSwapIdx++;
-		if (_vkCurrentSwapIdx >= _vkSwapImgCount)
-			_vkCurrentSwapIdx = 0;
-	}
-
 	vk::SurfaceKHR& Window::getVkSurface()
 	{
 		return _vkSurface;
@@ -328,9 +326,36 @@ namespace Render
 		return _vkSwapImages[idx].fbuffer;
 	}
 
+	vk::Semaphore& Window::getVkImageAvailable(size_t idx)
+	{
+		// TODO: bounds check
+		return _vkSwapImages[idx].imageAvailable;
+	}
+
+	vk::Semaphore& Window::getVkRenderFinished(size_t idx)
+	{
+		// TODO: bounds check
+		return _vkSwapImages[idx].renderFinished;;
+	}
+
+	vk::Fence& Window::getVkInFlightFence(size_t idx)
+	{
+		return _vkSwapImages[idx].isInFlight;
+	}
+
 	const vk::Extent2D& Window::getVkSwapExtent() const
 	{
 		return _vkSwapExtent;
+	}
+
+	size_t Window::getVkCurrentFrame() const
+	{
+		return _vkCurrentFrame;
+	}
+
+	void Window::endVkFrame()
+	{
+		_vkCurrentFrame = (_vkCurrentFrame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
 	}
 #endif
 }

@@ -26,8 +26,8 @@ namespace Render
 		~ShaderBuilder() = default;
 		
 		ShaderBuilder& renderContext(std::shared_ptr<RenderContext>& context);
-		ShaderBuilder& fromVertexBinary(const std::string_view& name);
-		ShaderBuilder& fromFragmentBinary(const std::string_view& name);
+		ShaderBuilder& fromVertexBinaryFile(const std::string_view& name);
+		ShaderBuilder& fromFragmentBinaryFile(const std::string_view& name);
 		ShaderBuilder& uniformVariable(const std::string_view& name, ShaderVariableValueT type);
 
 	private:

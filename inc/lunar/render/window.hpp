@@ -37,7 +37,12 @@ namespace Render
 		size_t getVkSwapImageCount();
 		vk::Framebuffer& getVkSwapFramebuffer(size_t idx);
 		const vk::Extent2D& getVkSwapExtent() const;
-		size_t getVkFrame() const;
+
+		vk::Semaphore& getVkImageAvailable(size_t idx);
+		vk::Semaphore& getVkRenderFinished(size_t idx);
+		vk::Fence& getVkInFlightFence(size_t idx);
+
+		size_t getVkCurrentFrame() const;
 		void endVkFrame();
 #		endif
 	protected:
@@ -62,10 +67,12 @@ namespace Render
 			vk::Image img;
 			vk::ImageView view;
 			vk::Framebuffer fbuffer;
+			vk::Semaphore imageAvailable;
+			vk::Semaphore renderFinished;
+			vk::Fence isInFlight;
 		} _vkSwapImages[5];
-
 		size_t _vkSwapImgCount;
-		size_t _vkCurrentSwapIdx;
+		size_t _vkCurrentFrame;
 #		endif
 	};
 }
