@@ -3,6 +3,7 @@
 #include <lunar/render/render_context.hpp>
 #include <lunar/render/render_target.hpp>
 #include <lunar/render/window.hpp>
+#include <lunar/debug.hpp>
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
@@ -15,6 +16,10 @@ namespace Render
 		// TODO: implement for RenderTargetType::eTexture
 		// TODO: check for initialization
 		auto& target_window = *reinterpret_cast<Render::Window*>(target);
+		if (target_window.isMinimized())
+		{
+			return;
+		}
 
 		auto current_frame = target_window.getVkCurrentFrame();
 		auto& img_available = target_window.getVkImageAvailable(current_frame);

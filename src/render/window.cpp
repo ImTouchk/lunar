@@ -15,6 +15,33 @@ namespace Render
 {
 	std::atomic<int> GlfwUsers = 0;
 
+	inline Window& Glfw_CastUserPtr(GLFWwindow* window)
+	{
+		return *reinterpret_cast<Window*>(
+			glfwGetWindowUserPointer(window)
+		);
+	}
+
+	void Glfw_FramebufferSizeCb(GLFWwindow* handle, int width, int height)
+	{
+		auto& window = Glfw_CastUserPtr(handle);
+#		ifdef LUNAR_VULKAN
+		auto& context = window._getVkContext();
+		window._vkDestroySwap();
+		window._vkInitSwap();
+		
+		auto& device = context.getDevice();
+		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			device.destroyFence(window._vkSwapImages[i].isInFlight);
+
+			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
+			window._vkSwapImages[i].isInFlight = device.createFence(fence_info);
+		}
+
+#		endif
+	}
+
 	Window::Window(std::shared_ptr<RenderContext> context, const Fs::ConfigFile& config)
 		: handle(nullptr),
 		renderCtx(context),
@@ -66,6 +93,9 @@ namespace Render
 		else
 			DEBUG_LOG("Window created successfully.");
 
+		glfwSetWindowUserPointer(handle, this);
+		glfwSetFramebufferSizeCallback(handle, Glfw_FramebufferSizeCb);
+
 #		ifdef LUNAR_VULKAN
 		_vkInitialize();
 #		endif
@@ -109,6 +139,14 @@ namespace Render
 		return glfwWindowShouldClose(handle);
 	}
 
+	bool Window::isMinimized() const
+	{
+		DEBUG_INIT_CHECK();
+		int w, h;
+		glfwGetFramebufferSize(handle, &w, &h);
+		return w == 0 || h == 0;
+	}
+
 	void Window::pollEvents()
 	{
 		glfwPollEvents();
@@ -120,23 +158,123 @@ namespace Render
 		return *reinterpret_cast<VulkanContext*>(renderCtx.get());
 	}
 
+	void Window::_vkInitSwap()
+	{
+		_vkUpdateSwapExtent();
+
+		auto& vk_ctx = _getVkContext();
+		auto& phys_device = vk_ctx.getRenderingDevice();
+		auto& device = vk_ctx.getDevice();
+
+		auto capabilities = phys_device.getSurfaceCapabilitiesKHR(_vkSurface);
+		auto image_count = (capabilities.maxImageCount != 0)
+			? std::clamp(capabilities.minImageCount + 1, capabilities.minImageCount, capabilities.maxImageCount)
+			: capabilities.minImageCount + 1;
+
+		vk::SwapchainCreateInfoKHR swap_info = {
+			.surface          = _vkSurface,
+			.minImageCount    = image_count,
+			.imageFormat      = _vkSurfaceFmt.format,
+			.imageColorSpace  = _vkSurfaceFmt.colorSpace,
+			.imageExtent      = _vkSwapExtent,
+			.imageArrayLayers = 1,
+			.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment,
+			.preTransform     = capabilities.currentTransform,
+			.compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+			.presentMode      = _vkPresentMode,
+			.clipped          = VK_TRUE,
+			.oldSwapchain     = VK_NULL_HANDLE // todo
+		};
+
+		if (vk_ctx.areQueuesSeparate())
+		{
+			auto indices = vk_ctx.getQueueFamilies();
+
+			swap_info.imageSharingMode = vk::SharingMode::eConcurrent;
+			swap_info.queueFamilyIndexCount = indices.size();
+			swap_info.pQueueFamilyIndices = indices.data();
+		}
+		else
+		{
+			swap_info.imageSharingMode = vk::SharingMode::eExclusive;
+		}
+
+		_vkSwapchain = device.createSwapchainKHR(swap_info);
+
+		auto images = device.getSwapchainImagesKHR(_vkSwapchain);
+		if (images.size() > 5)
+		{
+			DEBUG_ERROR("Too many swapchain images (max supported: 5 | existent: {})", images.size());
+		}
+
+		_vkSwapImgCount = images.size();
+		for (size_t i = 0; i < _vkSwapImgCount; i++)
+		{
+			vk::ImageViewCreateInfo view_info = {
+				.image    = images[i],
+				.viewType = vk::ImageViewType::e2D,
+				.format   = _vkSurfaceFmt.format,
+				.components = {
+					vk::ComponentSwizzle::eIdentity,
+					vk::ComponentSwizzle::eIdentity,
+					vk::ComponentSwizzle::eIdentity,
+					vk::ComponentSwizzle::eIdentity
+				},
+				.subresourceRange = {
+					.aspectMask     = vk::ImageAspectFlagBits::eColor,
+					.baseMipLevel   = 0,
+					.levelCount     = 1,
+					.baseArrayLayer = 0,
+					.layerCount     = 1
+				}
+			};
+
+			_vkSwapImages[i].img = images[i];
+			_vkSwapImages[i].view = device.createImageView(view_info);
+
+			vk::FramebufferCreateInfo frame_buffer_info = {
+				.renderPass      = vk_ctx.getDefaultRenderPass(),
+				.attachmentCount = 1,
+				.pAttachments    = &_vkSwapImages[i].view,
+				.width           = _vkSwapExtent.width,
+				.height          = _vkSwapExtent.height,
+				.layers          = 1
+			};
+
+			_vkSwapImages[i].fbuffer = device.createFramebuffer(frame_buffer_info);
+		}
+	}
+
+	void Window::_vkDestroySwap()
+	{
+		auto& device = _getVkContext()
+							.getDevice();
+
+		device.waitIdle();
+		for (size_t i = 0; i < _vkSwapImgCount; i++)
+		{
+			device.destroyFramebuffer(_vkSwapImages[i].fbuffer);
+			device.destroyImageView(_vkSwapImages[i].view);
+		}
+		device.destroySwapchainKHR(_vkSwapchain);
+	}
+
 	void Window::_vkDestroy()
 	{
 		auto& vk_ctx = _getVkContext();
 		auto& device = vk_ctx.getDevice();
 		auto& inst = vk_ctx.getInstance();
 		device.waitIdle();
+
+		_vkDestroySwap();
 		
-		for (size_t i = 0; i < _vkSwapImgCount; i++)
+		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			device.destroyFence(_vkSwapImages[i].isInFlight);
 			device.destroySemaphore(_vkSwapImages[i].renderFinished);
 			device.destroySemaphore(_vkSwapImages[i].imageAvailable);
-			device.destroyFramebuffer(_vkSwapImages[i].fbuffer);
-			device.destroyImageView(_vkSwapImages[i].view);
 		}
 
-		device.destroySwapchainKHR(_vkSwapchain);
 		inst.destroySurfaceKHR(_vkSurface);
 	}
 
@@ -193,86 +331,11 @@ namespace Render
 		if (!found_optimal)
 			_vkPresentMode = vk::PresentModeKHR::eImmediate;
 
-		_vkUpdateSwapExtent();
-
-		auto capabilities = phys_device.getSurfaceCapabilitiesKHR(_vkSurface);
-		auto image_count = (capabilities.maxImageCount != 0) 
-								? std::clamp(capabilities.minImageCount + 1, capabilities.minImageCount, capabilities.maxImageCount)
-								: capabilities.minImageCount + 1;
-
-		vk::SwapchainCreateInfoKHR swap_info = {
-			.surface          = _vkSurface,
-			.minImageCount    = image_count,
-			.imageFormat      = _vkSurfaceFmt.format,
-			.imageColorSpace  = _vkSurfaceFmt.colorSpace,
-			.imageExtent      = _vkSwapExtent,
-			.imageArrayLayers = 1,
-			.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment,
-			.preTransform     = capabilities.currentTransform,
-			.compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-			.presentMode      = _vkPresentMode,
-			.clipped          = VK_TRUE,
-			.oldSwapchain     = VK_NULL_HANDLE // todo
-		};
-
-		if (vk_ctx.areQueuesSeparate())
-		{
-			auto indices = vk_ctx.getQueueFamilies();
-
-			swap_info.imageSharingMode      = vk::SharingMode::eConcurrent;
-			swap_info.queueFamilyIndexCount = indices.size();
-			swap_info.pQueueFamilyIndices   = indices.data();
-		}
-		else
-		{
-			swap_info.imageSharingMode = vk::SharingMode::eExclusive;
-		}
+		_vkInitSwap();
 
 		auto& device = vk_ctx.getDevice();
-		_vkSwapchain = device.createSwapchainKHR(swap_info);
-		
-		auto images = device.getSwapchainImagesKHR(_vkSwapchain);
-		if (images.size() > 5)
+		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
 		{
-			DEBUG_ERROR("Too many swapchain images (max supported: 5 | existent: {})", images.size());
-		}
-
-		_vkSwapImgCount = images.size();
-		for (size_t i = 0; i < _vkSwapImgCount; i++)
-		{
-			vk::ImageViewCreateInfo view_info = {
-				.image      = images[i],
-				.viewType   = vk::ImageViewType::e2D,
-				.format     = _vkSurfaceFmt.format,
-				.components = {
-					vk::ComponentSwizzle::eIdentity,
-					vk::ComponentSwizzle::eIdentity,
-					vk::ComponentSwizzle::eIdentity,
-					vk::ComponentSwizzle::eIdentity
-				},
-				.subresourceRange = {
-					.aspectMask     = vk::ImageAspectFlagBits::eColor,
-					.baseMipLevel   = 0,
-					.levelCount     = 1,
-					.baseArrayLayer = 0,
-					.layerCount     = 1
-				}
-			};
-
-			_vkSwapImages[i].img = images[i];
-			_vkSwapImages[i].view = device.createImageView(view_info);
-
-			vk::FramebufferCreateInfo frame_buffer_info = {
-				.renderPass      = _getVkContext().getDefaultRenderPass(),
-				.attachmentCount = 1,
-				.pAttachments    = &_vkSwapImages[i].view,
-				.width           = _vkSwapExtent.width,
-				.height          = _vkSwapExtent.height,
-				.layers          = 1
-			};
-
-			_vkSwapImages[i].fbuffer = device.createFramebuffer(frame_buffer_info);
-
 			vk::SemaphoreCreateInfo semaphore_info = {};
 			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
 

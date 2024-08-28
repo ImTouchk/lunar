@@ -27,6 +27,7 @@ namespace Render
 
 		void close();
 		bool shouldClose() const;
+		bool isMinimized() const;
 		bool exists() const;
 
 		static void pollEvents();
@@ -54,7 +55,9 @@ namespace Render
 		VulkanContext& _getVkContext();
 
 		void _vkInitialize();
+		void _vkInitSwap();
 		void _vkDestroy();
+		void _vkDestroySwap();
 		void _vkUpdateSwapExtent();
 
 		vk::SurfaceKHR _vkSurface;
@@ -73,6 +76,8 @@ namespace Render
 		} _vkSwapImages[5];
 		size_t _vkSwapImgCount;
 		size_t _vkCurrentFrame;
+
+		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
 #		endif
 	};
 }
