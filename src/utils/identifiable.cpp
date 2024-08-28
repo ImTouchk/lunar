@@ -13,13 +13,13 @@ Identifiable::Identifiable()
 
 }
 
-int Identifiable::getId() const
+Identifiable::NativeType Identifiable::getId() const
 {
     return id;
 }
 
-int Identifiable::generateId()
+Identifiable::NativeType Identifiable::generateId()
 {
-    static std::atomic<int> counter = 0;
+    static std::atomic<Identifiable::NativeType> counter = 0;
     return ++counter;
 }
