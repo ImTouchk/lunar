@@ -19,7 +19,7 @@ namespace Render
 		eFloat4x4,
 	};
 
-	class LUNAR_API ShaderBuilder
+	struct LUNAR_API ShaderBuilder
 	{
 	public:
 		ShaderBuilder() = default;
@@ -57,6 +57,7 @@ namespace Render
 	{
 	public:
 		GraphicsShader(const ShaderBuilder& builder);
+		GraphicsShader();
 		~GraphicsShader();
 		
 		void init(const ShaderBuilder& builder);

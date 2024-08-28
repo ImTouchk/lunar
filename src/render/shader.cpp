@@ -58,12 +58,20 @@ namespace Render
 		_variableCount++;
 
 		// TODO: bounds check
+		return *this;
 	}
 
 	GraphicsShader::GraphicsShader(const ShaderBuilder& builder) 
-		: initialized(false)
+		: initialized(false),
+		Identifiable()
 	{
 		init(builder);
+	}
+
+	GraphicsShader::GraphicsShader()
+		: initialized(false),
+		Identifiable()
+	{
 	}
 
 	GraphicsShader::~GraphicsShader()
