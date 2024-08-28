@@ -276,7 +276,7 @@ namespace Render
 		};
 
 		vk::GraphicsPipelineCreateInfo pipeline_info = {
-			.stageCount          = 1,
+			.stageCount          = 2,
 			.pStages             = stage_infos,
 			.pVertexInputState   = &vert_input_info,
 			.pInputAssemblyState = &input_assembly_info,
