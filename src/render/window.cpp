@@ -13,6 +13,39 @@
 
 namespace Render
 {
+	WindowBuilder& WindowBuilder::width(int w)
+	{
+		_width = w;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::height(int h)
+	{
+		_height = h;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::fullscreen(bool value)
+	{
+		_fullscreen = value;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::renderContext(std::shared_ptr<RenderContext>& context)
+	{
+		_renderCtx = context;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::fromConfigFile(const Fs::Path& path)
+	{
+		auto config = Fs::ConfigFile(path);
+		_width = std::max(config.get<int>("width"), 800);
+		_height = std::max(config.get<int>("height"), 600);
+		_fullscreen = config.get<int>("fullscreen");
+		return *this;
+	}
+
 	std::atomic<int> GlfwUsers = 0;
 
 	inline Window& Glfw_CastUserPtr(GLFWwindow* window)
@@ -42,14 +75,14 @@ namespace Render
 #		endif
 	}
 
-	Window::Window(std::shared_ptr<RenderContext> context, const Fs::ConfigFile& config)
+	Window::Window(const WindowBuilder& builder)
 		: handle(nullptr),
-		renderCtx(context),
+		renderCtx(builder._renderCtx),
 		initialized(false),
 		RenderTarget(RenderTargetType::eWindow),
 		Identifiable()
 	{
-		init(context, config);
+		init(builder);
 	}
 
 	Window::~Window()
@@ -57,14 +90,10 @@ namespace Render
 		destroy();
 	}
 
-	void Window::init(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config)
+	void Window::init(const WindowBuilder& builder)
 	{
 		if (initialized)
 			return;
-
-		int width = config.get<int>("width");
-		int height = config.get<int>("height");
-		bool fullscreen = config.get<int>("fullscreen");
 
 		if (GlfwUsers == 0 && glfwInit() == GLFW_FALSE)
 			DEBUG_ERROR("Failed to initialize glfw.");
@@ -80,11 +109,11 @@ namespace Render
 #		endif
 
 		handle = glfwCreateWindow(
-			width, height,
+			builder._width, builder._height,
 			"Lunar Engine Window",
-			(fullscreen)
-			? glfwGetPrimaryMonitor()
-			: nullptr,
+			(builder._fullscreen)
+				? glfwGetPrimaryMonitor() // TODO: monitor selection
+				: nullptr,
 			nullptr
 		);
 
@@ -95,12 +124,12 @@ namespace Render
 
 		glfwSetWindowUserPointer(handle, this);
 		glfwSetFramebufferSizeCallback(handle, Glfw_FramebufferSizeCb);
+		
+		initialized = true;
 
 #		ifdef LUNAR_VULKAN
 		_vkInitialize();
 #		endif
-
-		initialized = true;
 	}
 
 	void Window::destroy()
@@ -120,6 +149,7 @@ namespace Render
 		}
 
 		initialized = false;
+		handle = nullptr;
 	}
 
 	void Window::close()

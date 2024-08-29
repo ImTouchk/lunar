@@ -12,9 +12,17 @@ int main(int argc, char* argv[])
 
     auto render_ctx = Render::createSharedContext();
     auto game_window = Render::Window(
-        render_ctx, 
-        Fs::baseDirectory()
-            .append("window.cfg")
+        Render::WindowBuilder()
+            .renderContext(render_ctx)
+            .fromConfigFile(Fs::baseDirectory().append("window.cfg"))
+    );
+
+    auto secondary_window = Render::Window(
+        Render::WindowBuilder()
+            .renderContext(render_ctx)
+            .fullscreen(false)
+            .width(1280)
+            .height(720)
     );
     
     auto& main_scene = Core::getActiveScene();
@@ -30,14 +38,34 @@ int main(int argc, char* argv[])
                 .fromFragmentBinaryFile("default.frag")
         );
 
-    while (!game_window.shouldClose())
+    while (game_window.exists() || secondary_window.exists())
     {
         Render::Window::pollEvents();
 
-        render_ctx->draw(main_scene, game_window);
+        if (game_window.exists())
+        {
+            if (game_window.shouldClose())
+            {
+                game_window.destroy();
+            }
+            else
+            {
+                render_ctx->draw(main_scene, game_window);
+            }
+        }
+
+        if (secondary_window.exists())
+        {
+            if (secondary_window.shouldClose())
+            {
+                secondary_window.destroy();
+            }
+            else
+            {
+                render_ctx->draw(main_scene, secondary_window);
+            }
+        }
     }
 
-    //shader.destroy();
-    game_window.close();
     return 1;
 }

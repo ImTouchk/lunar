@@ -16,13 +16,33 @@ namespace Render
 	class VulkanContext;
 #	endif
 
+	struct LUNAR_API WindowBuilder
+	{
+	public:
+		WindowBuilder() = default;
+		~WindowBuilder() = default;
+
+		WindowBuilder& width(int w);
+		WindowBuilder& height(int h);
+		WindowBuilder& fullscreen(bool value);
+		WindowBuilder& renderContext(std::shared_ptr<RenderContext>& context);
+		WindowBuilder& fromConfigFile(const Fs::Path& path);
+	private:
+		int _width, _height;
+		bool _fullscreen;
+		const char* _title;
+		std::shared_ptr<RenderContext> _renderCtx;
+
+		friend class Window;
+	};
+
 	class LUNAR_API Window : public Identifiable, public RenderTarget
 	{
 	public:
-		Window(std::shared_ptr<RenderContext> context, const Fs::ConfigFile& config);
+		Window(const WindowBuilder& builder);
 		~Window();
 
-		void init(std::shared_ptr<RenderContext>& context, const Fs::ConfigFile& config);
+		void init(const WindowBuilder& buidler);
 		void destroy();
 
 		void close();

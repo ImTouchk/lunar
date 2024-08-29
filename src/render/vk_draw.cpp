@@ -15,6 +15,7 @@ namespace Render
 		// TODO: make Core::Scene const
 		// TODO: implement for RenderTargetType::eTexture
 		// TODO: check for initialization
+
 		auto& target_window = *reinterpret_cast<Render::Window*>(target);
 		if (target_window.isMinimized())
 		{
@@ -32,10 +33,14 @@ namespace Render
 
 		auto& device = getDevice();
 
-		// TODO: Research on whether doing this instead of waiting for the fence is actually 
-		// the right decision (returning might lead to more latency?)
-		if (device.getFenceStatus(in_flight) == vk::Result::eNotReady)
-			return;
+		/* 
+			TODO: When rendering on multiple windows, weird sync issues
+			happen due to the reuse of only MAX_FRAMES_IN_FLIGHT (2) command buffers
+			for M windows with N frames in flight each
+			Need a better strategy for rendering
+		*/
+		device.waitForFences(in_flight, VK_TRUE, UINT64_MAX);
+
 
 		device.resetFences(in_flight);
 
