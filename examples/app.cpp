@@ -6,9 +6,27 @@
 #include <lunar/debug.hpp>
 #include <lunar/utils/argument_parser.hpp>
 
+#include <lunar/exp/utils/lexer.hpp>
+#include <lunar/file/file_tracker.hpp>
+
 int main(int argc, char* argv[])
 {
     auto args = Utils::ArgumentParser(argc, argv);
+
+    auto lexer = Utils::Exp::LexerBuilder()
+        .appendTextFile(Fs::baseDirectory().append("window.cfg"))
+        .create();
+
+    std::string_view a;
+    int b;
+    bool v;
+    lexer.parseLine("{:s} = {:d}", &a, &b);
+    lexer.parseLine("{:s} = {:d}", &a, &b);
+    lexer.parseLine("{:s} = {:b}", &a, &v);
+
+    DEBUG_LOG("{} {}", a, v);
+
+    return 1;
 
     auto render_ctx = Render::createSharedContext();
     auto game_window = Render::Window(

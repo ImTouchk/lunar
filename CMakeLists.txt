@@ -9,6 +9,7 @@ set(LUNAR_RENDER_BACKEND "VULKAN")
 set(LUNAR_RESOURCES_DIR ${CMAKE_CURRENT_LIST_DIR}/resources)
 set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
 set(LUNAR_RUNTIME_SHADER_BUILD OFF)
+set(LUNAR_EXPERIMENTAL ON)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -27,6 +28,7 @@ add_library(lunar SHARED
     "inc/lunar/file/text_file.hpp"
     "inc/lunar/file/json_file.hpp"
     "inc/lunar/file/config_file.hpp"
+    "inc/lunar/file/file_tracker.hpp"
 
     "inc/lunar/utils/lexer.hpp"
     "inc/lunar/utils/identifiable.hpp"
@@ -54,6 +56,7 @@ add_library(lunar SHARED
     "src/file/json_file.cpp"
     "src/file/config_file.cpp"
     "src/file/binary_file.cpp"
+    "src/file/file_tracker.cpp"
     "src/utils/lexer.cpp"
     "src/debug/log.cpp"
     "src/ui/stylesheet.cpp"
@@ -77,6 +80,13 @@ add_library(lunar SHARED
     "src/render/window.cpp"
     "src/render/shader.cpp"
 )
+
+if(${LUNAR_EXPERIMENTAL})
+    target_sources(lunar PRIVATE
+        "inc/lunar/exp/utils/lexer.hpp"
+        "src/exp/utils/lexer.cpp"
+    )
+endif()
 
 if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
     find_package(Vulkan REQUIRED)
