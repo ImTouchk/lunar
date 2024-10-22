@@ -11,7 +11,7 @@ set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
 set(LUNAR_RUNTIME_SHADER_BUILD OFF)
 set(LUNAR_EXPERIMENTAL ON)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -82,9 +82,13 @@ add_library(lunar SHARED
 )
 
 if(${LUNAR_EXPERIMENTAL})
+    message("-- lunar: Including experimental features")
     target_sources(lunar PRIVATE
         "inc/lunar/exp/utils/lexer.hpp"
         "src/exp/utils/lexer.cpp"
+        
+        "inc/lunar/exp/ui/dom.hpp"
+        "src/exp/ui/dom.cpp"
     )
 endif()
 

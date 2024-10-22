@@ -18,32 +18,112 @@ namespace Utils::Exp
 		return *this;
 	}
 
-	Lexer LexerBuilder::create()
+	LexerBuilder& LexerBuilder::enableErrorPrinting()
 	{
-		return Lexer(std::move(source));
+		flags = flags | LexerFlagBits::ePrintErrors;
+		return *this;
 	}
 
-	Lexer::Lexer(std::string&& source)
-		: source(source),
-		pointer(this->source.begin())
+	Lexer LexerBuilder::create()
 	{
+		return Lexer(std::move(source), flags);
+	}
+
+	Lexer::Lexer(std::string&& source, LexerFlagBits flags)
+		: source(source),
+		pointer(this->source.begin()),
+		flags(flags),
+		lastError(),
+		line(1)
+	{
+	}
+
+	size_t Lexer::getCursorLine() const
+	{
+		return line;
+	}
+
+	std::string_view Lexer::getSource() const
+	{
+		return source;
+	}
+
+	void Lexer::parseError(const std::string& error)
+	{
+		lastError = std::format("Parse error at source line {}: {}\n", line, error);
+		if (flags & LexerFlagBits::ePrintErrors)
+		{
+			DEBUG_WARN("{}", lastError);
+		}
+	}
+
+	bool Lexer::isCursorAtEnd() const
+	{
+		return pointer == source.end();
+	}
+
+	std::string::iterator Lexer::getCursor() const
+	{
+		return pointer;
+	}
+
+	Lexer& Lexer::setCursorPos(std::string::iterator pos)
+	{
+		pointer = pos;
+		return *this;
 	}
 
 	Lexer& Lexer::skipWhitespaces()
 	{
 		while (pointer != source.end() && isspace(*pointer))
+		{
+			if (*pointer == '\n')
+				line++;
+
 			pointer++;
+		}
 
 		return *this;
 	}
 
-	std::string_view Lexer::parseString()
+	std::string_view Lexer::parseIdentifier()
 	{
 		skipWhitespaces();
 
 		auto start = pointer;
 
-		while (pointer != source.end() && !isspace(*pointer))
+		while (
+			pointer != source.end() &&
+			(
+				isalpha(*pointer) || 
+				*pointer == '_' || 
+				(pointer != start && (
+					isalnum(*pointer) ||
+					*pointer == '-' ||
+					*pointer == '.'
+				))
+			)
+		)
+		{
+			pointer++;
+		}
+
+		return std::string_view(start, pointer);
+	}
+
+	std::string_view Lexer::parseString(char delimiter)
+	{
+		skipWhitespaces();
+
+		auto start = pointer;
+
+		while (
+			pointer != source.end() && 
+			(
+				(delimiter == ' ' && !isspace(*pointer)) ||
+				*pointer != delimiter
+			)
+		)
 		{
 			pointer++;
 		}
@@ -75,6 +155,13 @@ namespace Utils::Exp
 		auto result = std::from_chars(&(*start), &(*pointer), value);
 		if (result.ec != std::errc())
 		{
+			if (start == pointer)
+				parseError(std::format("Expected integer, found token '{}' instead", *pointer));
+			else if (result.ec == std::errc::invalid_argument)
+				parseError(std::format("Expected integer, found '{}' instead.", std::string_view(start, pointer)));
+			else if (result.ec == std::errc::result_out_of_range)
+				parseError(std::format("Integer '{}' out of range.", std::string_view(start, pointer)));
+
 			pointer = start;
 			return std::nullopt;
 		}
@@ -103,6 +190,13 @@ namespace Utils::Exp
 		auto result = std::from_chars(&(*start), &(*pointer), value);
 		if (result.ec != std::errc())
 		{
+			if (start == pointer)
+				parseError(std::format("Expected floating point number, found token '{}' instead", *pointer));
+			else if (result.ec == std::errc::invalid_argument)
+				parseError(std::format("Expected floating point number, found '{}' instead.", std::string_view(start, pointer)));
+			else if (result.ec == std::errc::result_out_of_range)
+				parseError(std::format("Floating point number '{}' out of range.", std::string_view(start, pointer)));
+
 			pointer = start;
 			return std::nullopt;
 		}
@@ -154,7 +248,7 @@ namespace Utils::Exp
 
 			if (pointer == source.end())
 			{
-				DEBUG_ERROR("End of string");
+				parseError(std::format("End of string, expected token '{}' instead", *it));
 				error_flag = true;
 				break;
 			}
@@ -167,7 +261,7 @@ namespace Utils::Exp
 					skipWhitespaces();
 				else if (*pointer != *it)
 				{
-					DEBUG_ERROR("Expected '{}', found '{}' instead", *it, *pointer);
+					parseError(std::format("Expected token '{}', found '{}' instead", *it, *pointer));
 					error_flag = true;
 					break;
 				}
@@ -182,7 +276,7 @@ namespace Utils::Exp
 
 				if (template_end == view.end())
 				{
-					DEBUG_ERROR("Invalid parse template string");
+					DEBUG_ASSERT(false); // invalid template string
 					error_flag = true;
 					break;
 				}
@@ -197,7 +291,6 @@ namespace Utils::Exp
 
 					if (!res.has_value())
 					{
-						DEBUG_ERROR("Failed to parse integer");
 						error_flag = true;
 						break;
 					}
@@ -211,7 +304,6 @@ namespace Utils::Exp
 
 					if (!res.has_value())
 					{
-						DEBUG_ERROR("Failed to parse floating point number");
 						error_flag = true;
 						break;
 					}
@@ -223,6 +315,17 @@ namespace Utils::Exp
 					std::string_view* string_ptr = va_arg(args, std::string_view*);
 					*string_ptr = parseString();
 				}
+				else if (template_type.compare("{:s_id}") == 0)
+				{
+					std::string_view* string_ptr = va_arg(args, std::string_view*);
+					*string_ptr = parseIdentifier();
+				}
+				else if (template_type.compare("{:s_delim}") == 0)
+				{
+					char delimiter = va_arg(args, char);
+					std::string_view* string_ptr = va_arg(args, std::string_view*);
+					*string_ptr = parseString(delimiter);
+				}
 				else if (template_type.compare("{:b}") == 0)
 				{
 					bool* bool_ptr = va_arg(args, bool*);
@@ -230,7 +333,6 @@ namespace Utils::Exp
 
 					if (!res.has_value())
 					{
-						DEBUG_ERROR("Failed to parse boolean value");
 						error_flag = true;
 						break;
 					}
@@ -239,7 +341,7 @@ namespace Utils::Exp
 				}
 				else
 				{
-					DEBUG_ERROR("Invalid parse template string");
+					DEBUG_ASSERT(false); // invalid template string
 					throw;
 				}
 			}
