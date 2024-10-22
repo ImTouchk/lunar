@@ -42,6 +42,17 @@ namespace Fs
 
 		return *this;
 	}
+
+	std::vector<Fs::Path> FileTracker::getChangedPaths() const
+	{
+		std::vector<Fs::Path> changed_files = {};
+
+		for (auto& file : list)
+			if (file.changedFlag)
+				changed_files.push_back(file.path);
+
+		return changed_files;
+	}
 	 
 	bool FileTracker::hasChanged(const Fs::Path& path)
 	{
