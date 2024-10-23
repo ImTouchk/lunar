@@ -92,8 +92,8 @@ namespace Render
 		for (const char* req_ext : req_instance_ext)
 		{
 			auto it = std::find_if(
-				available_ext.begin(),
-				available_ext.end(),
+				available_ext.begin(), 
+				available_ext.end(), 
 				[req_ext](vk::ExtensionProperties& ext) {
 					return strcmp(req_ext, ext.extensionName) == 0;
 				}
@@ -156,14 +156,14 @@ namespace Render
 
 		instance = vk::createInstance(instance_info);
 		loader = vk::DispatchLoaderDynamic(instance, vkGetInstanceProcAddr);
-
+		
 		if (debugging)
 			messenger = instance.createDebugUtilsMessengerEXT(debug_mess_info, nullptr, loader);
 
 		deletionStack.push([debugging, this]() {
-			if (debugging)
+			if(debugging)
 				instance.destroyDebugUtilsMessengerEXT(messenger, nullptr, loader);
-
+			
 			instance.destroy();
 		});
 
@@ -185,7 +185,7 @@ namespace Render
 			auto ext_set = std::set<std::string>(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end());
 			for (auto& ext : available_ext)
 				ext_set.erase(ext.extensionName);
-
+			
 			if (!ext_set.empty())
 				continue;
 
@@ -228,15 +228,15 @@ namespace Render
 		queueFamilies[1] = queue_families[1];
 
 		float queue_prio = 1.f;
-		vk::DeviceQueueCreateInfo queue_infos[2] =
+		vk::DeviceQueueCreateInfo queue_infos[2] = 
 		{
-			{.queueFamilyIndex = queueFamilies[0], .queueCount = 1, .pQueuePriorities = &queue_prio },
-			{.queueFamilyIndex = queueFamilies[1], .queueCount = 1, .pQueuePriorities = &queue_prio }
+			{ .queueFamilyIndex = queueFamilies[0], .queueCount = 1, .pQueuePriorities = &queue_prio },
+			{ .queueFamilyIndex = queueFamilies[1], .queueCount = 1, .pQueuePriorities = &queue_prio }
 		};
 
 		features12.pNext = &features13;
 
-		auto features = vk::PhysicalDeviceFeatures2{ .pNext = &features12 };
+		auto features = vk::PhysicalDeviceFeatures2 { .pNext = &features12 };
 		auto device_info = vk::DeviceCreateInfo
 		{
 			.pNext                   = &features,
@@ -256,7 +256,7 @@ namespace Render
 		deletionStack.push([this]() {
 			device.waitIdle();
 			device.destroy();
-			});
+		});
 
 		return true;
 	}
@@ -264,15 +264,15 @@ namespace Render
 	VulkanContext::VulkanContext
 	(
 		bool debugging,
-		uint32_t minimumVersion,
-		std::vector<const char*>& requiredDeviceExtensions,
-		vk::PhysicalDeviceVulkan12Features features12,
+		uint32_t minimumVersion, 
+		std::vector<const char*>& requiredDeviceExtensions, 
+		vk::PhysicalDeviceVulkan12Features features12, 
 		vk::PhysicalDeviceVulkan13Features features13
 	)
 	{
 		if (!createInstance(debugging, minimumVersion))
 			return;
-
+		
 		if (!createDevice(requiredDeviceExtensions, features12, features13))
 			return;
 
@@ -289,38 +289,38 @@ namespace Render
 		}
 	}
 
-	vk::Instance VulkanContext::getInstance()
-	{
-		return instance;
+	vk::Instance VulkanContext::getInstance() 
+	{ 
+		return instance; 
 	}
 
-	vk::PhysicalDevice VulkanContext::getRenderingDevice()
-	{
-		return physicalDevice;
+	vk::PhysicalDevice VulkanContext::getRenderingDevice() 
+	{ 
+		return physicalDevice; 
 	}
 
-	vk::Device VulkanContext::getDevice()
+	vk::Device VulkanContext::getDevice() 
 	{
-		return device;
+		return device; 
 	}
 
-	vk::Queue VulkanContext::getGraphicsQueue()
-	{
-		return graphicsQueue;
+	vk::Queue VulkanContext::getGraphicsQueue() 
+	{ 
+		return graphicsQueue; 
 	}
 
-	vk::Queue VulkanContext::getPresentQueue()
-	{
-		return presentQueue;
+	vk::Queue VulkanContext::getPresentQueue() 
+	{ 
+		return presentQueue; 
 	}
 
-	std::array<uint32_t, 2> VulkanContext::getQueueFamilies() const
-	{
-		return { queueFamilies[0], queueFamilies[1] };
+	std::array<uint32_t, 2> VulkanContext::getQueueFamilies() const 
+	{ 
+		return { queueFamilies[0], queueFamilies[1] }; 
 	}
 
-	bool VulkanContext::areQueuesSeparate() const
-	{
-		return queueFamilies[0] != queueFamilies[1];
+	bool VulkanContext::areQueuesSeparate() const 
+	{ 
+		return queueFamilies[0] != queueFamilies[1]; 
 	}
 }

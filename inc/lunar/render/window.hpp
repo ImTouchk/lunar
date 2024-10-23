@@ -16,33 +16,20 @@ namespace Render
 	class VulkanContext;
 #	endif
 
-	struct LUNAR_API WindowBuilder
-	{
-	public:
-		WindowBuilder() = default;
-		~WindowBuilder() = default;
-
-		WindowBuilder& width(int w);
-		WindowBuilder& height(int h);
-		WindowBuilder& fullscreen(bool value);
-		WindowBuilder& renderContext(std::shared_ptr<RenderContext>& context);
-		WindowBuilder& fromConfigFile(const Fs::Path& path);
-	private:
-		int _width, _height;
-		bool _fullscreen;
-		const char* _title;
-		std::shared_ptr<RenderContext> _renderCtx;
-
-		friend class Window;
-	};
-
 	class LUNAR_API Window : public Identifiable, public RenderTarget
 	{
 	public:
-		Window(const WindowBuilder& builder);
+		Window(
+			int width,
+			int height,
+			bool fullscreen,
+			const char* title,
+			std::shared_ptr<RenderContext> context
+		);
+
 		~Window();
 
-		void init(const WindowBuilder& buidler);
+		void init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context);
 		void destroy();
 
 		void close();
@@ -56,7 +43,6 @@ namespace Render
 		vk::SurfaceKHR& getVkSurface();
 		vk::SwapchainKHR& getVkSwapchain();
 		size_t getVkSwapImageCount();
-		vk::Framebuffer& getVkSwapFramebuffer(size_t idx);
 		const vk::Extent2D& getVkSwapExtent() const;
 
 		vk::Semaphore& getVkImageAvailable(size_t idx);
@@ -89,7 +75,6 @@ namespace Render
 		{
 			vk::Image img;
 			vk::ImageView view;
-			vk::Framebuffer fbuffer;
 			vk::Semaphore imageAvailable;
 			vk::Semaphore renderFinished;
 			vk::Fence isInFlight;
@@ -99,5 +84,24 @@ namespace Render
 
 		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
 #		endif
+	};
+
+	struct LUNAR_API WindowBuilder
+	{
+	public:
+		WindowBuilder& setWidth(int width);
+		WindowBuilder& setHeight(int height);
+		WindowBuilder& setFullscreen(bool value = true);
+		WindowBuilder& setTitle(const std::string_view& title);
+		WindowBuilder& setRenderContext(std::shared_ptr<RenderContext>& context);
+		WindowBuilder& setDefaultRenderContext();
+		WindowBuilder& loadFromConfigFile(const Fs::Path& path);
+		Window create();
+
+	private:
+		int w = 800, h = 600;
+		bool fs = false;
+		std::string_view title = "lunar";
+		std::shared_ptr<RenderContext> renderContext = nullptr;
 	};
 }
