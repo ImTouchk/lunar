@@ -65,6 +65,7 @@ namespace Render
 		void _vkDestroy();
 		void _vkDestroySwap();
 		void _vkUpdateSwapExtent();
+		void _vkHandleResize(int width, int height);
 
 		vk::SurfaceKHR _vkSurface;
 		vk::SurfaceFormatKHR _vkSurfaceFmt;
