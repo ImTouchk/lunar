@@ -102,6 +102,7 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
         "src/render/vk_draw.cpp"
         "src/render/vk_base.cpp"
         "src/render/vk_shader.cpp"
+        "src/render/vk_window.cpp"
         "inc/lunar/render/internal/render_vk.hpp"
     )
     target_compile_definitions(lunar PRIVATE
