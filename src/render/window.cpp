@@ -10,40 +10,64 @@
 #include <GLFW/glfw3.h>
 #include <atomic>
 
-
 namespace Render
 {
-	WindowBuilder& WindowBuilder::width(int w)
+	WindowBuilder& WindowBuilder::setWidth(int width)
 	{
-		_width = w;
+		w = width;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::height(int h)
+	WindowBuilder& WindowBuilder::setHeight(int height)
 	{
-		_height = h;
+		h = height;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::fullscreen(bool value)
+	WindowBuilder& WindowBuilder::setFullscreen(bool value)
 	{
-		_fullscreen = value;
+		fs = value;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::renderContext(std::shared_ptr<RenderContext>& context)
+	WindowBuilder& WindowBuilder::setTitle(const std::string_view& title)
 	{
-		_renderCtx = context;
+		this->title = title;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::fromConfigFile(const Fs::Path& path)
+	WindowBuilder& WindowBuilder::setRenderContext(std::shared_ptr<RenderContext>& context)
 	{
-		auto config = Fs::ConfigFile(path);
-		_width = std::max(config.get<int>("width"), 800);
-		_height = std::max(config.get<int>("height"), 600);
-		_fullscreen = config.get<int>("fullscreen");
+		renderContext = context;
 		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::setDefaultRenderContext()
+	{
+#		ifdef LUNAR_VULKAN
+		vk::PhysicalDeviceVulkan12Features features12 = {};
+		features12.bufferDeviceAddress = true;
+		features12.descriptorIndexing = true;
+
+		vk::PhysicalDeviceVulkan13Features features13 = {};
+		features13.dynamicRendering = true;
+		features13.synchronization2 = true;
+
+		renderContext = Render::VulkanContextBuilder()
+			.setMinimumVersion(VK_VERSION_1_3)
+			.setRequiredFeatures12(features12)
+			.setRequiredFeatures13(features13)
+			.enableDebugging(LUNAR_DEBUG_BUILD)
+			.create();
+#		else
+		throw;
+#		endif
+		return *this;
+	}
+
+	Window WindowBuilder::create()
+	{
+		return Window(w, h, fs, title.data(), renderContext);
 	}
 
 	std::atomic<int> GlfwUsers = 0;
@@ -63,8 +87,8 @@ namespace Render
 		window._vkDestroySwap();
 		window._vkInitSwap();
 		
-		auto& device = context.getDevice();
-		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
+		auto device = context.getDevice();
+		for (size_t i = 0; i < 2; i++)
 		{
 			device.destroyFence(window._vkSwapImages[i].isInFlight);
 
@@ -75,14 +99,19 @@ namespace Render
 #		endif
 	}
 
-	Window::Window(const WindowBuilder& builder)
-		: handle(nullptr),
-		renderCtx(builder._renderCtx),
+	Window::Window(
+		int width,
+		int height,
+		bool fullscreen,
+		const char* title,
+		std::shared_ptr<RenderContext> context
+	) : handle(nullptr),
+		renderCtx(context),
 		initialized(false),
 		RenderTarget(RenderTargetType::eWindow),
 		Identifiable()
 	{
-		init(builder);
+		init(width, height, fullscreen, title, renderCtx);
 	}
 
 	Window::~Window()
@@ -90,7 +119,7 @@ namespace Render
 		destroy();
 	}
 
-	void Window::init(const WindowBuilder& builder)
+	void Window::init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context)
 	{
 		if (initialized)
 			return;
@@ -109,9 +138,9 @@ namespace Render
 #		endif
 
 		handle = glfwCreateWindow(
-			builder._width, builder._height,
-			"Lunar Engine Window",
-			(builder._fullscreen)
+			width, height,
+			title,
+			(fullscreen)
 				? glfwGetPrimaryMonitor() // TODO: monitor selection
 				: nullptr,
 			nullptr
@@ -193,8 +222,8 @@ namespace Render
 		_vkUpdateSwapExtent();
 
 		auto& vk_ctx = _getVkContext();
-		auto& phys_device = vk_ctx.getRenderingDevice();
-		auto& device = vk_ctx.getDevice();
+		auto phys_device = vk_ctx.getRenderingDevice();
+		auto device = vk_ctx.getDevice();
 
 		auto capabilities = phys_device.getSurfaceCapabilitiesKHR(_vkSurface);
 		auto image_count = (capabilities.maxImageCount != 0)
@@ -261,29 +290,17 @@ namespace Render
 
 			_vkSwapImages[i].img = images[i];
 			_vkSwapImages[i].view = device.createImageView(view_info);
-
-			vk::FramebufferCreateInfo frame_buffer_info = {
-				.renderPass      = vk_ctx.getDefaultRenderPass(),
-				.attachmentCount = 1,
-				.pAttachments    = &_vkSwapImages[i].view,
-				.width           = _vkSwapExtent.width,
-				.height          = _vkSwapExtent.height,
-				.layers          = 1
-			};
-
-			_vkSwapImages[i].fbuffer = device.createFramebuffer(frame_buffer_info);
 		}
 	}
 
 	void Window::_vkDestroySwap()
 	{
-		auto& device = _getVkContext()
+		auto device = _getVkContext()
 							.getDevice();
 
 		device.waitIdle();
 		for (size_t i = 0; i < _vkSwapImgCount; i++)
 		{
-			device.destroyFramebuffer(_vkSwapImages[i].fbuffer);
 			device.destroyImageView(_vkSwapImages[i].view);
 		}
 		device.destroySwapchainKHR(_vkSwapchain);
@@ -292,13 +309,14 @@ namespace Render
 	void Window::_vkDestroy()
 	{
 		auto& vk_ctx = _getVkContext();
-		auto& device = vk_ctx.getDevice();
-		auto& inst = vk_ctx.getInstance();
+		auto device = vk_ctx.getDevice();
+		auto inst = vk_ctx.getInstance();
 		device.waitIdle();
 
 		_vkDestroySwap();
 		
-		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
+		constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			device.destroyFence(_vkSwapImages[i].isInFlight);
 			device.destroySemaphore(_vkSwapImages[i].renderFinished);
@@ -325,7 +343,7 @@ namespace Render
 		_vkSurface = _surf;
 		_vkCurrentFrame = 0;
 
-		auto& phys_device = vk_ctx.getRenderingDevice();
+		auto phys_device = vk_ctx.getRenderingDevice();
 
 		auto surface_formats = phys_device.getSurfaceFormatsKHR(_vkSurface);
 		// TODO: size 0 check
@@ -363,8 +381,9 @@ namespace Render
 
 		_vkInitSwap();
 
-		auto& device = vk_ctx.getDevice();
-		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
+		auto device = vk_ctx.getDevice();
+		constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			vk::SemaphoreCreateInfo semaphore_info = {};
 			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
@@ -413,12 +432,6 @@ namespace Render
 		return _vkSwapImgCount;
 	}
 
-	vk::Framebuffer& Window::getVkSwapFramebuffer(size_t idx)
-	{
-		// TODO: bounds check
-		return _vkSwapImages[idx].fbuffer;
-	}
-
 	vk::Semaphore& Window::getVkImageAvailable(size_t idx)
 	{
 		// TODO: bounds check
@@ -448,7 +461,7 @@ namespace Render
 
 	void Window::endVkFrame()
 	{
-		_vkCurrentFrame = (_vkCurrentFrame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
+		_vkCurrentFrame = (_vkCurrentFrame + 1) % 2;
 	}
 #endif
 }

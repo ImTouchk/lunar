@@ -71,12 +71,14 @@ add_library(lunar SHARED
     "src/script/vm_utils.cpp"
 
     "inc/lunar/render/mesh.hpp"
+    "inc/lunar/render/image.hpp"
     "inc/lunar/render/window.hpp"
     "inc/lunar/render/shader.hpp"
     "inc/lunar/render/render_context.hpp"
     "inc/lunar/render/render_components.hpp"
     "src/render/render_components.cpp"
-    "src/render/render_context.cpp"
+    
+    "src/render/image.cpp"
     "src/render/window.cpp"
     "src/render/shader.cpp"
 )

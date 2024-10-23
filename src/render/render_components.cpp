@@ -2,29 +2,29 @@
 
 namespace Render
 {
-	MeshRenderer::MeshRenderer(const ShaderBuilder& shaderBuilder)
-		: shader(shaderBuilder)
-	{
+	//MeshRenderer::MeshRenderer(const ShaderBuilder& shaderBuilder)
+	//	: shader(shaderBuilder)
+	//{
 
-	}
+	//}
 
-	GraphicsShader& MeshRenderer::getShader()
-	{
-		return shader;
-	}
+	//GraphicsShader& MeshRenderer::getShader()
+	//{
+	//	return shader;
+	//}
 
-	const char* MeshRenderer::getType()
-	{
-		return "core.meshRenderer";
-	}
+	//const char* MeshRenderer::getType()
+	//{
+	//	return "core.meshRenderer";
+	//}
 
-	bool MeshRenderer::isUpdateable()
-	{
-		return false;
-	}
+	//bool MeshRenderer::isUpdateable()
+	//{
+	//	return false;
+	//}
 
-	void MeshRenderer::update()
-	{
+	//void MeshRenderer::update()
+	//{
 
-	}
+	//}
 }

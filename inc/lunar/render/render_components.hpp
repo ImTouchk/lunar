@@ -5,19 +5,19 @@
 
 namespace Render
 {
-	class LUNAR_API MeshRenderer : public Core::Component
-	{
-	public:
-		MeshRenderer(const ShaderBuilder& shaderBuilder);
-		MeshRenderer() = default;
+	//class LUNAR_API MeshRenderer : public Core::Component
+	//{
+	//public:
+	//	MeshRenderer(const ShaderBuilder& shaderBuilder);
+	//	MeshRenderer() = default;
 
-		const char* getType() override;
-		bool isUpdateable() override;
-		void update() override;
+	//	const char* getType() override;
+	//	bool isUpdateable() override;
+	//	void update() override;
 
-		GraphicsShader& getShader();
+	//	GraphicsShader& getShader();
 
-	private:
-		GraphicsShader shader;
-	};
+	//private:
+	//	GraphicsShader shader;
+	//};
 }

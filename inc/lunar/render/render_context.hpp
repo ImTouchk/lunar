@@ -22,6 +22,4 @@ namespace Render
 			draw(scene, reinterpret_cast<RenderTarget*>(&target));
 		}
 	};
-
-	LUNAR_API std::shared_ptr<RenderContext> createSharedContext();
 }
