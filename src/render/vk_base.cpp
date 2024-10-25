@@ -221,7 +221,7 @@ namespace Render
 #			endif
 		}
 
-		if (queueFamilies[0] == -1 || queueFamilies[1] == -1)
+		if (queue_families[0] == -1 || queue_families[1] == -1 || queue_families[2] == -1)
 			return false;
 
 		queueFamilies[0] = queue_families[0];
@@ -252,12 +252,38 @@ namespace Render
 
 		graphicsQueue = device.getQueue(queueFamilies[0], 0);
 		presentQueue = device.getQueue(queueFamilies[1], 0);
+		//transferQueue = device.getQueue(queueFamilies[2], 0);
 
-		deletionStack.push([this]() {
-			device.waitIdle();
-			device.destroy();
-			});
+		deletionStack.push([this]() { device.destroy(); });
 
+		return true;
+	}
+
+	VulkanCommandPool VulkanContext::createCommandPool()
+	{
+		auto pool_info = vk::CommandPoolCreateInfo
+		{
+			.flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+			.queueFamilyIndex = getQueueIndex(VulkanQueueType::eGraphics)
+		};
+
+		auto cmd_pool = device.createCommandPool(pool_info);
+		return VulkanCommandPool(*this, cmd_pool);
+	}
+
+	bool VulkanContext::createMainCommandPool()
+	{
+		auto pool_info = vk::CommandPoolCreateInfo
+		{
+			.flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+			.queueFamilyIndex = getQueueIndex(VulkanQueueType::eGraphics)
+		};
+
+		mainCmdPool = device.createCommandPool(pool_info);
+		if (mainCmdPool == VK_NULL_HANDLE)
+			return false;
+
+		deletionStack.push([this]() { device.destroyCommandPool(mainCmdPool); });
 		return true;
 	}
 
@@ -276,12 +302,25 @@ namespace Render
 		if (!createDevice(requiredDeviceExtensions, features12, features13))
 			return;
 
+		if (!createMainCommandPool())
+			return;
+
 		DEBUG_LOG("Ok");
 	}
 
 	VulkanContext::~VulkanContext()
 	{
 		DEBUG_LOG("Bye");
+
+		if (!deletionStack.empty() || !deletionQueue.empty())
+			device.waitIdle();
+		
+		while (!deletionQueue.empty())
+		{
+			deletionQueue.front()();
+			deletionQueue.pop();
+		}
+
 		while (!deletionStack.empty())
 		{
 			deletionStack.top()();
@@ -322,5 +361,98 @@ namespace Render
 	bool VulkanContext::areQueuesSeparate() const
 	{
 		return queueFamilies[0] != queueFamilies[1];
+	}
+
+	void VulkanContext::init() {}
+	void VulkanContext::destroy() {}
+
+	vk::Queue VulkanContext::getQueue(VulkanQueueType queue)
+	{
+		switch (queue)
+		{
+		case VulkanQueueType::eGraphics: return graphicsQueue;
+		case VulkanQueueType::ePresent: return presentQueue;
+		}
+	}
+
+	uint32_t VulkanContext::getQueueIndex(VulkanQueueType queue)
+	{
+		return queueFamilies[static_cast<size_t>(queue)];
+	}
+
+	VulkanCommandPool::VulkanCommandPool(VulkanContext& context, vk::CommandPool pool)
+		: value(pool),
+		context(&context)
+	{
+	}
+
+	VulkanCommandPool::VulkanCommandPool()
+		: value(VK_NULL_HANDLE),
+		context(nullptr)
+	{
+	}
+
+	VulkanCommandPool::VulkanCommandPool(VulkanCommandPool&& other)
+		: value(other.value),
+		context(other.context)
+	{
+		other.value = VK_NULL_HANDLE;
+		other.context = nullptr;
+	}
+
+	VulkanCommandPool& VulkanCommandPool::operator=(VulkanCommandPool&& other)
+	{
+		if (this != &other)
+		{
+			value = other.value;
+			context = other.context;
+
+			other.value = VK_NULL_HANDLE;
+			other.context = nullptr;
+		}
+
+		return *this;
+	}
+
+	vk::CommandBuffer VulkanCommandPool::allocateBuffer(vk::CommandBufferLevel level)
+	{
+		vk::CommandBufferAllocateInfo allocate_info =
+		{
+			.commandPool        = value,
+			.level              = level,
+			.commandBufferCount = 1
+		};
+
+		auto cmd_buffer = context->getDevice().allocateCommandBuffers(allocate_info).at(0);
+
+		return cmd_buffer;
+	}
+
+	VulkanCommandPool::~VulkanCommandPool()
+	{
+		if (value == VK_NULL_HANDLE)
+			return;
+
+		context->deletionQueue.push([pool = value, device = context->device]() {
+			device.destroyCommandPool(pool);
+		});
+	}
+
+	std::shared_ptr<RenderContext> CreateDefaultContext()
+	{
+		vk::PhysicalDeviceVulkan12Features features12 = {};
+		features12.bufferDeviceAddress = true;
+		features12.descriptorIndexing = true;
+
+		vk::PhysicalDeviceVulkan13Features features13 = {};
+		features13.dynamicRendering = true;
+		features13.synchronization2 = true;
+
+		return VulkanContextBuilder()
+			.setMinimumVersion(VK_VERSION_1_3)
+			.setRequiredFeatures12(features12)
+			.setRequiredFeatures13(features13)
+			.enableDebugging(LUNAR_DEBUG_BUILD)
+			.create();
 	}
 }

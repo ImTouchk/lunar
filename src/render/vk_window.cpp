@@ -7,6 +7,7 @@
 
 namespace Render
 {
+
 	VulkanContext& Window::_getVkContext()
 	{
 		return *reinterpret_cast<VulkanContext*>(renderCtx.get());
@@ -42,18 +43,18 @@ namespace Render
 			: capabilities.minImageCount + 1;
 
 		vk::SwapchainCreateInfoKHR swap_info = {
-			.surface = _vkSurface,
-			.minImageCount = image_count,
-			.imageFormat = _vkSurfaceFmt.format,
-			.imageColorSpace = _vkSurfaceFmt.colorSpace,
-			.imageExtent = _vkSwapExtent,
+			.surface          = _vkSurface,
+			.minImageCount    = image_count,
+			.imageFormat      = _vkSurfaceFmt.format,
+			.imageColorSpace  = _vkSurfaceFmt.colorSpace,
+			.imageExtent      = _vkSwapExtent,
 			.imageArrayLayers = 1,
-			.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
-			.preTransform = capabilities.currentTransform,
-			.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-			.presentMode = _vkPresentMode,
-			.clipped = VK_TRUE,
-			.oldSwapchain = VK_NULL_HANDLE // todo
+			.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
+			.preTransform     = capabilities.currentTransform,
+			.compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+			.presentMode      = _vkPresentMode,
+			.clipped          = VK_TRUE,
+			.oldSwapchain     = VK_NULL_HANDLE // todo
 		};
 
 		if (vk_ctx.areQueuesSeparate())
@@ -81,9 +82,9 @@ namespace Render
 		for (size_t i = 0; i < _vkSwapImgCount; i++)
 		{
 			vk::ImageViewCreateInfo view_info = {
-				.image = images[i],
-				.viewType = vk::ImageViewType::e2D,
-				.format = _vkSurfaceFmt.format,
+				.image      = images[i],
+				.viewType   = vk::ImageViewType::e2D,
+				.format     = _vkSurfaceFmt.format,
 				.components = {
 					vk::ComponentSwizzle::eIdentity,
 					vk::ComponentSwizzle::eIdentity,
@@ -91,11 +92,11 @@ namespace Render
 					vk::ComponentSwizzle::eIdentity
 				},
 				.subresourceRange = {
-					.aspectMask = vk::ImageAspectFlagBits::eColor,
-					.baseMipLevel = 0,
-					.levelCount = 1,
+					.aspectMask     = vk::ImageAspectFlagBits::eColor,
+					.baseMipLevel   = 0,
+					.levelCount     = vk::RemainingMipLevels,
 					.baseArrayLayer = 0,
-					.layerCount = 1
+					.layerCount     = vk::RemainingArrayLayers
 				}
 			};
 
@@ -126,9 +127,9 @@ namespace Render
 
 		_vkDestroySwap();
 
-		constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < FRAME_OVERLAP; i++)
 		{
+			
 			device.destroyFence(_vkSwapImages[i].isInFlight);
 			device.destroySemaphore(_vkSwapImages[i].renderFinished);
 			device.destroySemaphore(_vkSwapImages[i].imageAvailable);
@@ -193,8 +194,10 @@ namespace Render
 		_vkInitSwap();
 
 		auto device = vk_ctx.getDevice();
-		constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		
+		_vkCommandPool = vk_ctx.createCommandPool();
+
+		for (size_t i = 0; i < FRAME_OVERLAP; i++)
 		{
 			vk::SemaphoreCreateInfo semaphore_info = {};
 			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
@@ -202,6 +205,7 @@ namespace Render
 			_vkSwapImages[i].renderFinished = device.createSemaphore(semaphore_info);
 			_vkSwapImages[i].imageAvailable = device.createSemaphore(semaphore_info);
 			_vkSwapImages[i].isInFlight = device.createFence(fence_info);
+			_vkSwapImages[i].cmdBuffer = _vkCommandPool.allocateBuffer(vk::CommandBufferLevel::ePrimary);
 		}
 	}
 
@@ -260,6 +264,16 @@ namespace Render
 		return _vkSwapImages[idx].isInFlight;
 	}
 
+	vk::CommandBuffer& Window::getVkCommandBuffer(size_t idx)
+	{
+		return _vkSwapImages[idx].cmdBuffer;
+	}
+
+	vk::Image& Window::getVkSwapImage(size_t idx)
+	{
+		return _vkSwapImages[idx].img;
+	}
+
 	const vk::Extent2D& Window::getVkSwapExtent() const
 	{
 		return _vkSwapExtent;
@@ -272,6 +286,6 @@ namespace Render
 
 	void Window::endVkFrame()
 	{
-		_vkCurrentFrame = (_vkCurrentFrame + 1) % 2;
+		_vkCurrentFrame = (_vkCurrentFrame + 1) % FRAME_OVERLAP;
 	}
 }
