@@ -92,6 +92,7 @@ if(${LUNAR_EXPERIMENTAL})
         "inc/lunar/exp/ui/dom.hpp"
         "src/exp/ui/dom.cpp"
     )
+    target_compile_definitions(lunar PUBLIC LUNAR_EXPERIMENTAL)
 endif()
 
 if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
