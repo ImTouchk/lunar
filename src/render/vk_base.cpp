@@ -449,7 +449,7 @@ namespace Render
 		features13.synchronization2 = true;
 
 		return VulkanContextBuilder()
-			.setMinimumVersion(VK_VERSION_1_3)
+			.setMinimumVersion(VK_API_VERSION_1_3)
 			.setRequiredFeatures12(features12)
 			.setRequiredFeatures13(features13)
 			.enableDebugging(LUNAR_DEBUG_BUILD)
