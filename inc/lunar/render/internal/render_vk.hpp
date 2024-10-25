@@ -1,5 +1,6 @@
 #pragma once
 #include <lunar/render/render_context.hpp>
+#include <lunar/utils/stopwatch.hpp>
 #include <lunar/core/scene.hpp>
 #include <lunar/api.hpp>
 #include <vulkan/vulkan.hpp>
@@ -50,6 +51,7 @@ namespace Render
 		void init() override;
 		void destroy() override;
 		void draw(Core::Scene& scene, RenderTarget* target) override;
+		void flush();
 
 		VulkanCommandPool createCommandPool();
 
@@ -88,6 +90,8 @@ namespace Render
 		uint32_t queueFamilies[2];
 
 		vk::CommandPool mainCmdPool;
+
+		Utils::Stopwatch stopwatch;
 
 		friend class VulkanCommandPool;
 	};

@@ -295,6 +295,7 @@ namespace Render
 		vk::PhysicalDeviceVulkan12Features features12,
 		vk::PhysicalDeviceVulkan13Features features13
 	)
+		: stopwatch(false)
 	{
 		if (!createInstance(debugging, minimumVersion))
 			return;
@@ -321,6 +322,15 @@ namespace Render
 			deletionQueue.pop();
 		}
 
+		while (!deletionStack.empty())
+		{
+			deletionStack.top()();
+			deletionStack.pop();
+		}
+	}
+
+	void VulkanContext::flush()
+	{
 		while (!deletionStack.empty())
 		{
 			deletionStack.top()();
