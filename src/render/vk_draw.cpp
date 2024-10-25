@@ -10,6 +10,153 @@
 
 namespace Render
 {
+	void TransitionImage
+	(
+		vk::CommandBuffer cmd, 
+		vk::Image image, 
+		vk::ImageLayout currentLayout, 
+		vk::ImageLayout newLayout
+	)
+	{
+		vk::ImageAspectFlags aspect_mask = (newLayout == vk::ImageLayout::eDepthAttachmentOptimal)
+												? vk::ImageAspectFlagBits::eDepth
+												: vk::ImageAspectFlagBits::eColor;
+
+		auto image_barrier = vk::ImageMemoryBarrier2
+		{
+			.srcStageMask     = vk::PipelineStageFlagBits2::eAllCommands,
+			.srcAccessMask    = vk::AccessFlagBits2::eMemoryWrite,
+			.dstStageMask     = vk::PipelineStageFlagBits2::eAllCommands,
+			.dstAccessMask    = vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead,
+			.oldLayout        = currentLayout,
+			.newLayout        = newLayout,
+			.image            = image,
+			.subresourceRange = 
+			{ 
+				.aspectMask     = aspect_mask,
+				.baseMipLevel   = 0,
+				.levelCount     = vk::RemainingMipLevels,
+				.baseArrayLayer = 0,
+				.layerCount     = vk::RemainingArrayLayers
+			}
+		};
+
+		auto dep_info = vk::DependencyInfo
+		{
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers    = &image_barrier
+		};
+
+		cmd.pipelineBarrier2(dep_info);
+	}
+
+	void VulkanContext::draw(Core::Scene& scene, RenderTarget* target)
+	{
+		DEBUG_ASSERT(target->getType() == RenderTargetType::eWindow);
+		auto& target_window = *static_cast<Render::Window*>(target);
+
+		if (target_window.isMinimized())
+			return;
+
+		auto device = getDevice();
+		auto current_frame = target_window.getVkCurrentFrame();
+		auto& cmd_buffer = target_window.getVkCommandBuffer(current_frame);
+		auto& image_available = target_window.getVkImageAvailable(current_frame);
+		auto& render_finished = target_window.getVkRenderFinished(current_frame);
+		auto& in_flight = target_window.getVkInFlightFence(current_frame);
+		auto& swapchain = target_window.getVkSwapchain();
+		//auto queue_idx = getQueueIndex(VulkanQueueType::eTransfer);
+
+		vk::Result result;
+		result = device.waitForFences(in_flight, VK_TRUE, UINT64_MAX);
+		if (result != vk::Result::eSuccess)
+		{
+			DEBUG_ERROR("{}", static_cast<uint32_t>(result));
+			return;
+		}
+
+		device.resetFences(in_flight);
+
+		uint32_t img_idx;
+		result = device.acquireNextImageKHR(swapchain, UINT64_MAX, image_available, {}, &img_idx);
+		if (result != vk::Result::eSuccess)
+		{
+			DEBUG_ERROR("{}", static_cast<uint32_t>(result));
+			return;
+		}
+
+		auto& swap_image = target_window.getVkSwapImage(img_idx);
+
+		auto cmd_begin_info = vk::CommandBufferBeginInfo{ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
+		cmd_buffer.reset();
+		cmd_buffer.begin(cmd_begin_info);
+
+		TransitionImage(cmd_buffer, swap_image, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+
+		auto clear_value = vk::ClearColorValue{ {{ 1.f, 1.f, 1.f, 1.f }} };
+		auto clear_range = vk::ImageSubresourceRange
+		{
+			.aspectMask     = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel   = 0,
+			.levelCount     = vk::RemainingMipLevels,
+			.baseArrayLayer = 0,
+			.layerCount     = vk::RemainingArrayLayers
+		};
+
+		cmd_buffer.clearColorImage(swap_image, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
+
+		TransitionImage(cmd_buffer, swap_image, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
+
+		cmd_buffer.end();
+
+		auto cmd_submit_info = vk::CommandBufferSubmitInfo
+		{
+			.commandBuffer = cmd_buffer,
+			.deviceMask    = 0
+		};
+
+		auto wait_semaphore = vk::SemaphoreSubmitInfo
+		{
+			.semaphore   = image_available,
+			.value       = 1,
+			.stageMask   = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+			.deviceIndex = 0,
+		};
+
+		auto signal_semaphore = vk::SemaphoreSubmitInfo
+		{
+			.semaphore   = render_finished,
+			.value       = 1,
+			.stageMask   = vk::PipelineStageFlagBits2::eAllCommands,
+			.deviceIndex = 0,
+		};
+
+		auto submit_info = vk::SubmitInfo2
+		{
+			.waitSemaphoreInfoCount   = 1,
+			.pWaitSemaphoreInfos      = &wait_semaphore,
+			.commandBufferInfoCount   = 1,
+			.pCommandBufferInfos      = &cmd_submit_info,
+			.signalSemaphoreInfoCount = 1,
+			.pSignalSemaphoreInfos    = &signal_semaphore,
+		};
+
+		graphicsQueue.submit2(submit_info, in_flight, loader);
+
+		auto present_info = vk::PresentInfoKHR
+		{
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores    = &render_finished,
+			.swapchainCount     = 1,
+			.pSwapchains        = &swapchain,
+			.pImageIndices      = &img_idx,
+		};
+
+		presentQueue.presentKHR(present_info, loader);
+
+		target_window.endVkFrame();
+	}
+
 	//namespace Vk
 	//{
 	//	void TransitionImage(vk::CommandBuffer cmd, vk::Image image, vk::ImageLayout current, vk::ImageLayout newLayout)
