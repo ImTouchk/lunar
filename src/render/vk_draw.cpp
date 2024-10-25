@@ -52,6 +52,8 @@ namespace Render
 
 	void VulkanContext::draw(Core::Scene& scene, RenderTarget* target)
 	{
+		stopwatch.reset();
+
 		DEBUG_ASSERT(target->getType() == RenderTargetType::eWindow);
 		auto& target_window = *static_cast<Render::Window*>(target);
 
@@ -155,6 +157,9 @@ namespace Render
 		presentQueue.presentKHR(present_info, loader);
 
 		target_window.endVkFrame();
+
+		// TODO: improve this code
+		flush();
 	}
 
 	//namespace Vk

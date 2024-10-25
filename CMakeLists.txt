@@ -31,6 +31,7 @@ add_library(lunar SHARED
     "inc/lunar/file/file_tracker.hpp"
 
     "inc/lunar/utils/lexer.hpp"
+    "inc/lunar/utils/stopwatch.hpp"
     "inc/lunar/utils/identifiable.hpp"
     "inc/lunar/debug/log.hpp"
     "inc/lunar/debug/assert.hpp"
@@ -49,6 +50,7 @@ add_library(lunar SHARED
 
     "inc/lunar/api.hpp"
 
+    "src/utils/stopwatch.cpp"
     "src/utils/argument_parser.cpp"
     "src/utils/identifiable.cpp"
     "src/file/filesystem.cpp"
