@@ -3,11 +3,38 @@
 #include <lunar/core/scene.hpp>
 #include <lunar/api.hpp>
 #include <vulkan/vulkan.hpp>
+#include <queue>
 #include <stack>
 #include <array>
 
 namespace Render
 {
+	class VulkanContext;
+
+	enum class LUNAR_API VulkanQueueType : size_t
+	{
+		eGraphics = 0,
+		ePresent = 1,
+		eTransfer = 2
+	};
+
+	class LUNAR_API VulkanCommandPool
+	{
+	public:
+		VulkanCommandPool(VulkanContext& context, vk::CommandPool pool);
+		VulkanCommandPool();
+		~VulkanCommandPool();
+
+		VulkanCommandPool(VulkanCommandPool&&);
+		VulkanCommandPool& operator=(VulkanCommandPool&&);
+
+		[[nodiscard]] vk::CommandBuffer allocateBuffer(vk::CommandBufferLevel level);
+
+		vk::CommandPool value;
+	private:
+		VulkanContext* context;
+	};
+
 	class LUNAR_API VulkanContext : public RenderContext
 	{
 	public:
@@ -18,11 +45,13 @@ namespace Render
 			vk::PhysicalDeviceVulkan12Features features12,
 			vk::PhysicalDeviceVulkan13Features features13
 		);
-		~VulkanContext() override;
+		virtual ~VulkanContext();
 
-		void init() override {}
-		void destroy() override {}
-		void draw(Core::Scene& scene, RenderTarget* target) override {}
+		void init() override;
+		void destroy() override;
+		void draw(Core::Scene& scene, RenderTarget* target) override;
+
+		VulkanCommandPool createCommandPool();
 
 		vk::Instance getInstance();
 		vk::PhysicalDevice getRenderingDevice();
@@ -31,6 +60,8 @@ namespace Render
 		vk::Queue getGraphicsQueue();
 		vk::Queue getPresentQueue();
 		std::array<uint32_t, 2> getQueueFamilies() const;
+		uint32_t getQueueIndex(VulkanQueueType queue);
+		vk::Queue getQueue(VulkanQueueType queue);
 		bool areQueuesSeparate() const;
 
 	private:
@@ -40,7 +71,9 @@ namespace Render
 			vk::PhysicalDeviceVulkan12Features features12,
 			vk::PhysicalDeviceVulkan13Features features13
 		);
+		bool createMainCommandPool();
 
+		std::queue<std::function<void()>> deletionQueue;
 		std::stack<std::function<void()>> deletionStack;
 
 		vk::Instance instance;
@@ -51,7 +84,12 @@ namespace Render
 		vk::Device device;
 		vk::Queue graphicsQueue;
 		vk::Queue presentQueue;
+		vk::Queue transferQueue;
 		uint32_t queueFamilies[2];
+
+		vk::CommandPool mainCmdPool;
+
+		friend class VulkanCommandPool;
 	};
 
 	struct LUNAR_API VulkanContextBuilder

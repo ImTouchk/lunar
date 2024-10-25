@@ -7,13 +7,14 @@
 #include <lunar/api.hpp>
 
 #ifdef LUNAR_VULKAN
+#	include <lunar/render/internal/render_vk.hpp>
 #	include <vulkan/vulkan.hpp>
 #endif
 
 namespace Render
 {
 #	ifdef LUNAR_VULKAN
-	class VulkanContext;
+	constexpr size_t FRAME_OVERLAP = 2;
 #	endif
 
 	class LUNAR_API Window : public Identifiable, public RenderTarget
@@ -45,9 +46,12 @@ namespace Render
 		size_t getVkSwapImageCount();
 		const vk::Extent2D& getVkSwapExtent() const;
 
+		vk::Image& getVkSwapImage(size_t idx);
 		vk::Semaphore& getVkImageAvailable(size_t idx);
 		vk::Semaphore& getVkRenderFinished(size_t idx);
 		vk::Fence& getVkInFlightFence(size_t idx);
+		vk::CommandBuffer& getVkCommandBuffer(size_t idx);
+
 
 		size_t getVkCurrentFrame() const;
 		void endVkFrame();
@@ -79,9 +83,11 @@ namespace Render
 			vk::Semaphore imageAvailable;
 			vk::Semaphore renderFinished;
 			vk::Fence isInFlight;
+			vk::CommandBuffer cmdBuffer;
 		} _vkSwapImages[5];
 		size_t _vkSwapImgCount;
 		size_t _vkCurrentFrame;
+		VulkanCommandPool _vkCommandPool;
 
 		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
 #		endif
@@ -92,6 +98,7 @@ namespace Render
 	public:
 		WindowBuilder& setWidth(int width);
 		WindowBuilder& setHeight(int height);
+		WindowBuilder& setSize(int width, int height);
 		WindowBuilder& setFullscreen(bool value = true);
 		WindowBuilder& setTitle(const std::string_view& title);
 		WindowBuilder& setRenderContext(std::shared_ptr<RenderContext>& context);

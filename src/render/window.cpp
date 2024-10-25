@@ -24,6 +24,13 @@ namespace Render
 		return *this;
 	}
 
+	WindowBuilder& WindowBuilder::setSize(int width, int height)
+	{
+		w = width;
+		h = height;
+		return *this;
+	}
+
 	WindowBuilder& WindowBuilder::setFullscreen(bool value)
 	{
 		fs = value;
@@ -44,24 +51,7 @@ namespace Render
 
 	WindowBuilder& WindowBuilder::setDefaultRenderContext()
 	{
-#		ifdef LUNAR_VULKAN
-		vk::PhysicalDeviceVulkan12Features features12 = {};
-		features12.bufferDeviceAddress = true;
-		features12.descriptorIndexing = true;
-
-		vk::PhysicalDeviceVulkan13Features features13 = {};
-		features13.dynamicRendering = true;
-		features13.synchronization2 = true;
-
-		renderContext = Render::VulkanContextBuilder()
-			.setMinimumVersion(VK_VERSION_1_3)
-			.setRequiredFeatures12(features12)
-			.setRequiredFeatures13(features13)
-			.enableDebugging(LUNAR_DEBUG_BUILD)
-			.create();
-#		else
-		throw;
-#		endif
+		renderContext = CreateDefaultContext();
 		return *this;
 	}
 

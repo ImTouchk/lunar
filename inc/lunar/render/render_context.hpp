@@ -19,7 +19,9 @@ namespace Render
 		template<typename T> requires std::derived_from<T, RenderTarget>
 		inline void draw(Core::Scene& scene, T& target)
 		{
-			draw(scene, reinterpret_cast<RenderTarget*>(&target));
+			draw(scene, &target);
 		}
 	};
+
+	LUNAR_API std::shared_ptr<RenderContext> CreateDefaultContext();
 }
