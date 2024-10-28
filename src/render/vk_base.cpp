@@ -310,6 +310,7 @@ namespace Render
 		vk::SemaphoreCreateInfo semaphore_info = {};
 		drawFinished = device.createSemaphore(semaphore_info);
 
+		deletionStack.push([this]() { device.destroySemaphore(drawFinished); });
 		return true;
 	}
 
