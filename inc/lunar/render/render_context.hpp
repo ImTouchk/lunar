@@ -14,13 +14,13 @@ namespace Render
 
 		virtual void init() = 0;
 		virtual void destroy() = 0;
-		virtual void draw(Core::Scene& scene, RenderTarget* target) = 0;
+		virtual void render(Core::Scene& scene) = 0;
+		virtual void output(RenderTarget* target) = 0;
+
+		//virtual void draw(Core::Scene& scene, RenderTarget* target) = 0;
 
 		template<typename T> requires std::derived_from<T, RenderTarget>
-		inline void draw(Core::Scene& scene, T& target)
-		{
-			draw(scene, &target);
-		}
+		inline void output(T& target) { output(&target); }
 	};
 
 	LUNAR_API std::shared_ptr<RenderContext> CreateDefaultContext();

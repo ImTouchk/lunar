@@ -19,14 +19,14 @@ namespace Render
 		_vkDestroySwap();
 		_vkInitSwap();
 
-		auto device = context.getDevice();
-		for (size_t i = 0; i < 2; i++)
-		{
-			device.destroyFence(_vkSwapImages[i].isInFlight);
+		//auto device = context.getDevice();
+		//for (size_t i = 0; i < 2; i++)
+		//{
+		//	device.destroyFence(_vkSwapImages[i].isInFlight);
 
-			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
-			_vkSwapImages[i].isInFlight = device.createFence(fence_info);
-		}
+		//	vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
+		//	_vkSwapImages[i].isInFlight = device.createFence(fence_info);
+		//}
 	}
 
 	void Window::_vkInitSwap()
@@ -129,9 +129,7 @@ namespace Render
 
 		for (size_t i = 0; i < FRAME_OVERLAP; i++)
 		{
-			
-			device.destroyFence(_vkSwapImages[i].isInFlight);
-			device.destroySemaphore(_vkSwapImages[i].renderFinished);
+			device.destroySemaphore(_vkSwapImages[i].imagePresentable);
 			device.destroySemaphore(_vkSwapImages[i].imageAvailable);
 		}
 
@@ -202,9 +200,8 @@ namespace Render
 			vk::SemaphoreCreateInfo semaphore_info = {};
 			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
 
-			_vkSwapImages[i].renderFinished = device.createSemaphore(semaphore_info);
+			_vkSwapImages[i].imagePresentable = device.createSemaphore(semaphore_info);
 			_vkSwapImages[i].imageAvailable = device.createSemaphore(semaphore_info);
-			_vkSwapImages[i].isInFlight = device.createFence(fence_info);
 			_vkSwapImages[i].cmdBuffer = _vkCommandPool.allocateBuffer(vk::CommandBufferLevel::ePrimary);
 		}
 	}
@@ -242,6 +239,11 @@ namespace Render
 		return _vkSwapchain;
 	}
 
+	vk::Extent2D& Window::getVkSwapExtent()
+	{
+		return _vkSwapExtent;
+	}
+
 	size_t Window::getVkSwapImageCount()
 	{
 		return _vkSwapImgCount;
@@ -253,18 +255,13 @@ namespace Render
 		return _vkSwapImages[idx].imageAvailable;
 	}
 
-	vk::Semaphore& Window::getVkRenderFinished(size_t idx)
+	vk::Semaphore& Window::getVkImagePresentable(size_t idx)
 	{
 		// TODO: bounds check
-		return _vkSwapImages[idx].renderFinished;;
+		return _vkSwapImages[idx].imagePresentable;;
 	}
 
-	vk::Fence& Window::getVkInFlightFence(size_t idx)
-	{
-		return _vkSwapImages[idx].isInFlight;
-	}
-
-	vk::CommandBuffer& Window::getVkCommandBuffer(size_t idx)
+	VulkanCommandBuffer& Window::getVkCommandBuffer(size_t idx)
 	{
 		return _vkSwapImages[idx].cmdBuffer;
 	}
