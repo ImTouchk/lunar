@@ -5,9 +5,11 @@
 #include <lunar/api.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vk_mem_alloc.h>
+#include <variant>
 #include <queue>
 #include <stack>
 #include <array>
+#include <span>
 
 namespace Render
 {
@@ -20,6 +22,21 @@ namespace Render
 		eTransfer = 2
 	};
 
+	struct LUNAR_API VulkanSemaphoreSubmit
+	{
+		using SubmitValue = std::variant<vk::Semaphore, vk::SemaphoreSubmitInfo>;
+
+		VulkanSemaphoreSubmit(const std::initializer_list<SubmitValue>& semaphores);
+		VulkanSemaphoreSubmit() = default;
+		~VulkanSemaphoreSubmit() = default;
+
+		[[nodiscard]] uint32_t size() const;
+		[[nodiscard]] const vk::SemaphoreSubmitInfo* data() const;
+
+		std::vector<vk::SemaphoreSubmitInfo>* operator->();
+		std::vector<vk::SemaphoreSubmitInfo> value = { };
+	};
+
 	class LUNAR_API VulkanCommandBuffer
 	{
 	public:
@@ -30,13 +47,8 @@ namespace Render
 		void begin();
 
 		void submit(
-			const std::initializer_list<vk::SemaphoreSubmitInfo>& waitSubmitInfos,
-			const std::initializer_list<vk::SemaphoreSubmitInfo>& signalSubmitInfos
-		);
-
-		void submit(
-			const std::initializer_list<vk::Semaphore>& waitSemaphores,
-			const std::initializer_list<vk::Semaphore>& signalSemaphores
+			const VulkanSemaphoreSubmit& waitSemaphores, 
+			const VulkanSemaphoreSubmit& signalSemaphores
 		);
 
 		void destroy();
@@ -45,6 +57,8 @@ namespace Render
 		VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) noexcept;
 
 		[[nodiscard]] operator vk::CommandBuffer& ();
+		[[nodiscard]] vk::CommandBuffer* operator->();
+
 
 		vk::CommandBuffer value;
 		vk::Fence ready;
@@ -100,6 +114,54 @@ namespace Render
 		VulkanContext* context;
 	};
 
+	struct LUNAR_API VulkanDescriptorLayoutBuilder
+	{
+	public:
+		VulkanDescriptorLayoutBuilder() = default;
+		~VulkanDescriptorLayoutBuilder() = default;
+
+		VulkanDescriptorLayoutBuilder& clear();
+		VulkanDescriptorLayoutBuilder& useVulkanContext(VulkanContext& context);
+		VulkanDescriptorLayoutBuilder& addShaderStageFlag(vk::ShaderStageFlagBits flag);
+		VulkanDescriptorLayoutBuilder& addLayoutCreateFlag(vk::DescriptorSetLayoutCreateFlagBits flag);
+		VulkanDescriptorLayoutBuilder& addBinding(uint32_t binding, vk::DescriptorType type);
+		VulkanDescriptorLayoutBuilder& setNext(void* pNext);
+		[[nodiscard]] vk::DescriptorSetLayout build();
+	
+	private:
+		VulkanContext* context = nullptr;
+		void* pNext = nullptr;
+		vk::ShaderStageFlags stageFlags = {};
+		vk::DescriptorSetLayoutCreateFlags createFlags = {};
+		std::vector<vk::DescriptorSetLayoutBinding> bindings;
+	};
+
+	class LUNAR_API VulkanDescriptorAllocator
+	{
+	public:
+		struct PoolSizeRatio
+		{
+			vk::DescriptorType type;
+			float ratio;
+		};
+
+		VulkanDescriptorAllocator(VulkanContext& context, uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
+		VulkanDescriptorAllocator();
+		~VulkanDescriptorAllocator();
+
+		VulkanDescriptorAllocator(VulkanDescriptorAllocator&&) noexcept;
+		VulkanDescriptorAllocator& operator=(VulkanDescriptorAllocator&&) noexcept;
+
+		void destroy();
+		void clearDescriptors();
+		[[nodiscard]] vk::DescriptorSet allocate(vk::DescriptorSetLayout layout);
+
+		vk::DescriptorPool pool;
+
+	private:
+		VulkanContext* context;
+	};
+
 	class LUNAR_API VulkanContext : public RenderContext
 	{
 	public:
@@ -145,6 +207,7 @@ namespace Render
 		);
 		bool createMainCommandPool();
 		bool createDrawImage();
+		bool createPipelines();
 
 		std::queue<std::function<void()>> deletionQueue;
 		std::stack<std::function<void()>> deletionStack;
@@ -162,17 +225,24 @@ namespace Render
 
 		VulkanCommandPool mainCmdPool;
 		VulkanCommandBuffer mainCmdBuffer;
+		VulkanDescriptorAllocator mainDescriptorAllocator;
 		VmaAllocator allocator;
 
 		vk::Semaphore drawFinished;
 		VulkanImage drawImage;
 		vk::Extent2D drawExtent;
+		vk::DescriptorSet drawImageDescriptors;
+		vk::DescriptorSetLayout drawImageDescriptorLayout;
+
+		vk::Pipeline gradientPipeline;
+		vk::PipelineLayout gradientPipelineLayout;
 
 		Utils::Stopwatch stopwatch;
 
 		friend class VulkanImage;
 		friend class VulkanCommandPool;
 		friend class VulkanCommandBuffer;
+		friend class VulkanDescriptorAllocator;
 	};
 
 	struct LUNAR_API VulkanContextBuilder

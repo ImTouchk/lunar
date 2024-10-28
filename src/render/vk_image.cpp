@@ -80,16 +80,11 @@ namespace Render
 	void VulkanImage::destroy()
 	{
 		DEBUG_ASSERT(handle != VK_NULL_HANDLE);
-		context->deletionQueue.push([
-			image = handle,
-			view = view,
-			allocation = allocation,
-			allocator = context->allocator,
-			device = context->device
-		]() {
-			device.destroyImageView(view);
-			vmaDestroyImage(allocator, image, allocation);
-		});
+		context->device.destroyImageView(view);
+		vmaDestroyImage(context->allocator, handle, allocation);
+		view = VK_NULL_HANDLE;
+		handle = VK_NULL_HANDLE;
+		allocation = VK_NULL_HANDLE;
 	}
 
 	VulkanImage VulkanContext::createImage
