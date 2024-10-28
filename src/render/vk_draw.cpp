@@ -139,7 +139,7 @@ namespace Render
 		cmd_buffer.begin();
 
 		uint32_t img_idx;
-		device.acquireNextImageKHR(swapchain, UINT64_MAX, image_available, {}, &img_idx);
+		std::ignore = device.acquireNextImageKHR(swapchain, UINT64_MAX, image_available, {}, &img_idx);
 		
 		auto& swap_image = target_window.getVkSwapImage(img_idx);
 
@@ -158,7 +158,7 @@ namespace Render
 			.pImageIndices      = &img_idx,
 		};
 
-		presentQueue.presentKHR(present_info, loader);
+		std::ignore = presentQueue.presentKHR(present_info);
 
 		target_window.endVkFrame();
 	}

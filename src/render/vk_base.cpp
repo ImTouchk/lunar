@@ -222,7 +222,7 @@ namespace Render
 #			endif
 		}
 
-		if (queue_families[0] == -1 || queue_families[1] == -1 || queue_families[2] == -1)
+		if (queue_families[0] == -1 || queue_families[1] == -1)
 			return false;
 
 		queueFamilies[0] = queue_families[0];
@@ -371,27 +371,27 @@ namespace Render
 		}
 	}
 
-	vk::Instance VulkanContext::getInstance()
+	vk::Instance& VulkanContext::getInstance()
 	{
 		return instance;
 	}
 
-	vk::PhysicalDevice VulkanContext::getRenderingDevice()
+	vk::PhysicalDevice& VulkanContext::getRenderingDevice()
 	{
 		return physicalDevice;
 	}
 
-	vk::Device VulkanContext::getDevice()
+	vk::Device& VulkanContext::getDevice()
 	{
 		return device;
 	}
 
-	vk::Queue VulkanContext::getGraphicsQueue()
+	vk::Queue& VulkanContext::getGraphicsQueue()
 	{
 		return graphicsQueue;
 	}
 
-	vk::Queue VulkanContext::getPresentQueue()
+	vk::Queue& VulkanContext::getPresentQueue()
 	{
 		return presentQueue;
 	}
@@ -409,12 +409,13 @@ namespace Render
 	void VulkanContext::init() {}
 	void VulkanContext::destroy() {}
 
-	vk::Queue VulkanContext::getQueue(VulkanQueueType queue)
+	vk::Queue& VulkanContext::getQueue(VulkanQueueType queue)
 	{
 		switch (queue)
 		{
 		case VulkanQueueType::eGraphics: return graphicsQueue;
 		case VulkanQueueType::ePresent: return presentQueue;
+		default: throw;
 		}
 	}
 
@@ -496,7 +497,8 @@ namespace Render
 	VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext& context, vk::CommandBuffer buffer, vk::Fence fence)
 		: value(buffer),
 		ready(fence),
-		context(&context)
+		context(&context),
+		state(0)
 	{
 	}
 
@@ -526,7 +528,7 @@ namespace Render
 			return;
 
 		context->deletionQueue.push([fence = ready, device = context->device]() {
-			device.waitForFences(fence, VK_TRUE, UINT64_MAX);
+			std::ignore = device.waitForFences(fence, VK_TRUE, UINT64_MAX);
 			device.destroyFence(fence);
 		});
 	}
@@ -534,7 +536,7 @@ namespace Render
 	void VulkanCommandBuffer::destroy()
 	{
 		context->deletionQueue.push([fence = ready, device = context->device]() {
-			device.waitForFences(fence, VK_TRUE, UINT64_MAX);
+			std::ignore = device.waitForFences(fence, VK_TRUE, UINT64_MAX);
 			device.destroyFence(fence);
 		});
 
@@ -585,6 +587,36 @@ namespace Render
 		value.begin(cmd_begin_info);
 
 		state = 1;
+	}
+
+	void VulkanCommandBuffer::submit
+	(
+		const std::initializer_list<vk::SemaphoreSubmitInfo>& waitSubmitInfos,
+		const std::initializer_list<vk::SemaphoreSubmitInfo>& signalSubmitInfos
+	)
+	{
+		DEBUG_ASSERT(value != VK_NULL_HANDLE && state == 1);
+
+		value.end();
+
+		auto cmd_submit_info = vk::CommandBufferSubmitInfo
+		{
+			.commandBuffer = value,
+			.deviceMask = 0
+		};
+
+		auto submit_info = vk::SubmitInfo2
+		{
+			.waitSemaphoreInfoCount   = static_cast<uint32_t>(waitSubmitInfos.size()),
+			.pWaitSemaphoreInfos      = waitSubmitInfos.begin(),
+			.commandBufferInfoCount   = 1,
+			.pCommandBufferInfos      = &cmd_submit_info,
+			.signalSemaphoreInfoCount = static_cast<uint32_t>(signalSubmitInfos.size()),
+			.pSignalSemaphoreInfos    = signalSubmitInfos.begin(),
+		};
+
+		context->graphicsQueue.submit2(submit_info, ready);
+		state = 0;
 	}
 
 	void VulkanCommandBuffer::submit

@@ -28,6 +28,12 @@ namespace Render
 		~VulkanCommandBuffer();
 
 		void begin();
+
+		void submit(
+			const std::initializer_list<vk::SemaphoreSubmitInfo>& waitSubmitInfos,
+			const std::initializer_list<vk::SemaphoreSubmitInfo>& signalSubmitInfos
+		);
+
 		void submit(
 			const std::initializer_list<vk::Semaphore>& waitSemaphores,
 			const std::initializer_list<vk::Semaphore>& signalSemaphores
@@ -119,15 +125,15 @@ namespace Render
 		VulkanCommandPool createCommandPool();
 		VulkanImage createImage(vk::Format format, vk::Extent3D extent, vk::ImageUsageFlags flags);
 
-		vk::Instance getInstance();
-		vk::PhysicalDevice getRenderingDevice();
-		vk::Device getDevice();
+		vk::Instance& getInstance();
+		vk::PhysicalDevice& getRenderingDevice();
+		vk::Device& getDevice();
 
-		vk::Queue getGraphicsQueue();
-		vk::Queue getPresentQueue();
+		vk::Queue& getGraphicsQueue();
+		vk::Queue& getPresentQueue();
 		std::array<uint32_t, 2> getQueueFamilies() const;
 		uint32_t getQueueIndex(VulkanQueueType queue);
-		vk::Queue getQueue(VulkanQueueType queue);
+		vk::Queue& getQueue(VulkanQueueType queue);
 		bool areQueuesSeparate() const;
 
 	private:
