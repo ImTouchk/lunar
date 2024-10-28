@@ -105,7 +105,7 @@ namespace Render
 
 		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
 
-		auto clear_value = vk::ClearColorValue{ {{ 1.f, 0.f, 1.f, 1.f }} };
+		auto clear_value = vk::ClearColorValue{ {{ 1.f, 1.f, 1.f, 1.f }} };
 		auto clear_range = vk::ImageSubresourceRange
 		{
 			.aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -115,7 +115,11 @@ namespace Render
 			.layerCount = vk::RemainingArrayLayers
 		};
 
-		mainCmdBuffer.value.clearColorImage(drawImage.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
+		mainCmdBuffer->clearColorImage(drawImage.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
+		
+		mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eCompute, gradientPipeline);
+		mainCmdBuffer->bindDescriptorSets(vk::PipelineBindPoint::eCompute, gradientPipelineLayout, 0, drawImageDescriptors, {});
+		mainCmdBuffer->dispatch(std::ceil(drawExtent.width / 16.0), std::ceil(drawExtent.height / 16.0), 1);
 
 		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
 
