@@ -4,6 +4,7 @@
 #include <lunar/core/scene.hpp>
 #include <lunar/api.hpp>
 #include <vulkan/vulkan.hpp>
+#include <vk_mem_alloc.h>
 #include <queue>
 #include <stack>
 #include <array>
@@ -19,6 +20,33 @@ namespace Render
 		eTransfer = 2
 	};
 
+	class LUNAR_API VulkanCommandBuffer
+	{
+	public:
+		VulkanCommandBuffer(VulkanContext& context, vk::CommandBuffer buffer, vk::Fence fence);
+		VulkanCommandBuffer();
+		~VulkanCommandBuffer();
+
+		void begin();
+		void submit(
+			const std::initializer_list<vk::Semaphore>& waitSemaphores,
+			const std::initializer_list<vk::Semaphore>& signalSemaphores
+		);
+
+		void destroy();
+
+		VulkanCommandBuffer(VulkanCommandBuffer&&) noexcept;
+		VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) noexcept;
+
+		[[nodiscard]] operator vk::CommandBuffer& ();
+
+		vk::CommandBuffer value;
+		vk::Fence ready;
+	private:
+		VulkanContext* context;
+		int state;
+	};
+
 	class LUNAR_API VulkanCommandPool
 	{
 	public:
@@ -26,12 +54,42 @@ namespace Render
 		VulkanCommandPool();
 		~VulkanCommandPool();
 
-		VulkanCommandPool(VulkanCommandPool&&);
-		VulkanCommandPool& operator=(VulkanCommandPool&&);
+		VulkanCommandPool(VulkanCommandPool&&) noexcept;
+		VulkanCommandPool& operator=(VulkanCommandPool&&) noexcept;
 
-		[[nodiscard]] vk::CommandBuffer allocateBuffer(vk::CommandBufferLevel level);
+		[[nodiscard]] VulkanCommandBuffer allocateBuffer(vk::CommandBufferLevel level);
+
+		void destroy();
 
 		vk::CommandPool value;
+	private:
+		VulkanContext* context;
+	};
+
+	class LUNAR_API VulkanImage
+	{
+	public:
+		VulkanImage(
+			VulkanContext& context,
+			vk::Image image,
+			vk::ImageView view,
+			VmaAllocation allocation,
+			vk::Extent3D extent,
+			vk::Format format
+		);
+		VulkanImage();
+		~VulkanImage();
+
+		void destroy();
+
+		VulkanImage(VulkanImage&&) noexcept;
+		VulkanImage& operator=(VulkanImage&&) noexcept;
+
+		vk::Image handle;
+		vk::ImageView view;
+		VmaAllocation allocation;
+		vk::Extent3D extent;
+		vk::Format format;
 	private:
 		VulkanContext* context;
 	};
@@ -50,10 +108,16 @@ namespace Render
 
 		void init() override;
 		void destroy() override;
-		void draw(Core::Scene& scene, RenderTarget* target) override;
+
+		void render(Core::Scene& scene) override;
+		void output(RenderTarget* target) override;
+
+		//void render(Core::Scene& scene);
+		//void draw(Core::Scene& scene, RenderTarget* target) override;
 		void flush();
 
 		VulkanCommandPool createCommandPool();
+		VulkanImage createImage(vk::Format format, vk::Extent3D extent, vk::ImageUsageFlags flags);
 
 		vk::Instance getInstance();
 		vk::PhysicalDevice getRenderingDevice();
@@ -74,6 +138,7 @@ namespace Render
 			vk::PhysicalDeviceVulkan13Features features13
 		);
 		bool createMainCommandPool();
+		bool createDrawImage();
 
 		std::queue<std::function<void()>> deletionQueue;
 		std::stack<std::function<void()>> deletionStack;
@@ -89,11 +154,19 @@ namespace Render
 		vk::Queue transferQueue;
 		uint32_t queueFamilies[2];
 
-		vk::CommandPool mainCmdPool;
+		VulkanCommandPool mainCmdPool;
+		VulkanCommandBuffer mainCmdBuffer;
+		VmaAllocator allocator;
+
+		vk::Semaphore drawFinished;
+		VulkanImage drawImage;
+		vk::Extent2D drawExtent;
 
 		Utils::Stopwatch stopwatch;
 
+		friend class VulkanImage;
 		friend class VulkanCommandPool;
+		friend class VulkanCommandBuffer;
 	};
 
 	struct LUNAR_API VulkanContextBuilder

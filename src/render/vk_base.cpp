@@ -4,6 +4,7 @@
 #endif
 
 #define GLFW_INCLUDE_NONE
+#define VMA_IMPLEMENTATION
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
@@ -254,7 +255,22 @@ namespace Render
 		presentQueue = device.getQueue(queueFamilies[1], 0);
 		//transferQueue = device.getQueue(queueFamilies[2], 0);
 
-		deletionStack.push([this]() { device.destroy(); });
+		auto allocator_info = VmaAllocatorCreateInfo
+		{
+			.flags          = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+			.physicalDevice = physicalDevice,
+			.device         = device,
+			.instance       = instance
+		};
+
+		vmaCreateAllocator(&allocator_info, &allocator);
+		if (!allocator)
+			return false;
+
+		deletionStack.push([this]() { 
+			vmaDestroyAllocator(allocator);
+			device.destroy(); 
+		});
 
 		return true;
 	}
@@ -273,17 +289,27 @@ namespace Render
 
 	bool VulkanContext::createMainCommandPool()
 	{
-		auto pool_info = vk::CommandPoolCreateInfo
-		{
-			.flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-			.queueFamilyIndex = getQueueIndex(VulkanQueueType::eGraphics)
-		};
+		mainCmdPool = createCommandPool();
+		mainCmdBuffer = mainCmdPool.allocateBuffer(vk::CommandBufferLevel::ePrimary);
+		return true;
+	}
 
-		mainCmdPool = device.createCommandPool(pool_info);
-		if (mainCmdPool == VK_NULL_HANDLE)
+	bool VulkanContext::createDrawImage()
+	{
+		auto draw_img_extent = vk::Extent3D{ 1920, 1080, 1 };
+		auto draw_img_format = vk::Format::eR16G16B16A16Sfloat;
+		auto draw_img_usage = vk::ImageUsageFlagBits::eColorAttachment |
+								vk::ImageUsageFlagBits::eStorage |
+								vk::ImageUsageFlagBits::eTransferSrc |
+								vk::ImageUsageFlagBits::eTransferDst;
+
+		drawImage = createImage(draw_img_format, draw_img_extent, draw_img_usage);
+		if (drawImage.handle == VK_NULL_HANDLE)
 			return false;
 
-		deletionStack.push([this]() { device.destroyCommandPool(mainCmdPool); });
+		vk::SemaphoreCreateInfo semaphore_info = {};
+		drawFinished = device.createSemaphore(semaphore_info);
+
 		return true;
 	}
 
@@ -306,6 +332,9 @@ namespace Render
 		if (!createMainCommandPool())
 			return;
 
+		if (!createDrawImage())
+			return;
+
 		DEBUG_LOG("Ok");
 	}
 
@@ -313,9 +342,12 @@ namespace Render
 	{
 		DEBUG_LOG("Bye");
 
-		if (!deletionStack.empty() || !deletionQueue.empty())
-			device.waitIdle();
-		
+		device.waitIdle();
+		drawImage.destroy();
+		mainCmdBuffer.destroy();
+		mainCmdPool.destroy();
+
+
 		while (!deletionQueue.empty())
 		{
 			deletionQueue.front()();
@@ -331,10 +363,10 @@ namespace Render
 
 	void VulkanContext::flush()
 	{
-		while (!deletionStack.empty())
+		while (!deletionQueue.empty())
 		{
-			deletionStack.top()();
-			deletionStack.pop();
+			deletionQueue.front()();
+			deletionQueue.pop();
 		}
 	}
 
@@ -402,7 +434,7 @@ namespace Render
 	{
 	}
 
-	VulkanCommandPool::VulkanCommandPool(VulkanCommandPool&& other)
+	VulkanCommandPool::VulkanCommandPool(VulkanCommandPool&& other) noexcept
 		: value(other.value),
 		context(other.context)
 	{
@@ -410,7 +442,7 @@ namespace Render
 		other.context = nullptr;
 	}
 
-	VulkanCommandPool& VulkanCommandPool::operator=(VulkanCommandPool&& other)
+	VulkanCommandPool& VulkanCommandPool::operator=(VulkanCommandPool&& other) noexcept
 	{
 		if (this != &other)
 		{
@@ -424,18 +456,20 @@ namespace Render
 		return *this;
 	}
 
-	vk::CommandBuffer VulkanCommandPool::allocateBuffer(vk::CommandBufferLevel level)
+	VulkanCommandBuffer VulkanCommandPool::allocateBuffer(vk::CommandBufferLevel level)
 	{
-		vk::CommandBufferAllocateInfo allocate_info =
+		auto allocate_info = vk::CommandBufferAllocateInfo
 		{
 			.commandPool        = value,
 			.level              = level,
 			.commandBufferCount = 1
 		};
 
-		auto cmd_buffer = context->getDevice().allocateCommandBuffers(allocate_info).at(0);
-
-		return cmd_buffer;
+		auto fence_create_info = vk::FenceCreateInfo { .flags = vk::FenceCreateFlagBits::eSignaled };
+		
+		auto cmd_buffer = context->device.allocateCommandBuffers(allocate_info).at(0);
+		auto fence = context->device.createFence(fence_create_info);
+		return VulkanCommandBuffer(*context, cmd_buffer, fence);
 	}
 
 	VulkanCommandPool::~VulkanCommandPool()
@@ -446,6 +480,166 @@ namespace Render
 		context->deletionQueue.push([pool = value, device = context->device]() {
 			device.destroyCommandPool(pool);
 		});
+	}
+
+	void VulkanCommandPool::destroy()
+	{
+		context->deletionQueue.push([pool = value, device = context->device]() {
+			device.destroyCommandPool(pool);
+		});
+		
+		value = VK_NULL_HANDLE;
+		context = nullptr;
+	}
+	
+	VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext& context, vk::CommandBuffer buffer, vk::Fence fence)
+		: value(buffer),
+		ready(fence),
+		context(&context)
+	{
+	}
+
+	VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept
+		: value(other.value),
+		ready(other.ready),
+		context(other.context),
+		state(other.state)
+	{
+		other.value = VK_NULL_HANDLE;
+		other.ready = VK_NULL_HANDLE;
+		other.context = nullptr;
+		other.state = 0;
+	}
+
+	VulkanCommandBuffer::VulkanCommandBuffer()
+		: value(VK_NULL_HANDLE),
+		ready(VK_NULL_HANDLE),
+		context(nullptr),
+		state(0)
+	{
+	}
+
+	VulkanCommandBuffer::~VulkanCommandBuffer()
+	{
+		if (value == VK_NULL_HANDLE)
+			return;
+
+		context->deletionQueue.push([fence = ready, device = context->device]() {
+			device.waitForFences(fence, VK_TRUE, UINT64_MAX);
+			device.destroyFence(fence);
+		});
+	}
+
+	void VulkanCommandBuffer::destroy()
+	{
+		context->deletionQueue.push([fence = ready, device = context->device]() {
+			device.waitForFences(fence, VK_TRUE, UINT64_MAX);
+			device.destroyFence(fence);
+		});
+
+		value = VK_NULL_HANDLE;
+		ready = VK_NULL_HANDLE;
+		context = nullptr;
+		state = 0;
+	}
+
+	VulkanCommandBuffer::operator vk::CommandBuffer& ()
+	{
+		return value;
+	}
+
+	VulkanCommandBuffer& VulkanCommandBuffer::operator=(VulkanCommandBuffer&& other) noexcept
+	{
+		if (this != &other)
+		{
+			value = other.value;
+			ready = other.ready;
+			context = other.context;
+			state = other.state;
+			other.value = VK_NULL_HANDLE;
+			other.ready = VK_NULL_HANDLE;
+			other.context = nullptr;
+			other.state = 0;
+		}
+
+		return *this;
+	}
+
+	void VulkanCommandBuffer::begin()
+	{
+		DEBUG_ASSERT(value != VK_NULL_HANDLE && state != 1);
+		vk::Result result;
+		result = context->device.waitForFences(ready, VK_TRUE, UINT64_MAX);
+		if (result != vk::Result::eSuccess)
+		{
+			DEBUG_ERROR("device.waitForFences() failed: {}", static_cast<uint32_t>(result));
+			throw;
+		}
+
+		context->device.resetFences(ready);
+		
+		auto cmd_begin_info = vk::CommandBufferBeginInfo{ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
+
+		value.reset();
+		value.begin(cmd_begin_info);
+
+		state = 1;
+	}
+
+	void VulkanCommandBuffer::submit
+	(
+		const std::initializer_list<vk::Semaphore>& waitSemaphores,
+		const std::initializer_list<vk::Semaphore>& signalSemaphores
+	)
+	{
+		DEBUG_ASSERT(value != VK_NULL_HANDLE && state == 1);
+		
+		value.end();
+
+		auto semaphore_infos = std::make_unique<vk::SemaphoreSubmitInfo[]>(waitSemaphores.size() + signalSemaphores.size());
+		for (size_t i = 0; i < waitSemaphores.size(); i++)
+		{
+			vk::Semaphore semaphore = *(waitSemaphores.begin() + i);
+			auto& semaphore_info = *(semaphore_infos.get() + i);
+			semaphore_info = vk::SemaphoreSubmitInfo
+			{
+				.semaphore   = semaphore,
+				.value       = 1,
+				.stageMask   = vk::PipelineStageFlagBits2::eAllCommands,
+				.deviceIndex = 0
+			};
+		}
+		for (size_t i = waitSemaphores.size(); i < waitSemaphores.size() + signalSemaphores.size(); i++)
+		{
+			vk::Semaphore semaphore = *(signalSemaphores.begin() + i - waitSemaphores.size());
+			auto& semaphore_info = *(semaphore_infos.get() + i);
+			semaphore_info = vk::SemaphoreSubmitInfo
+			{
+				.semaphore   = semaphore,
+				.value       = 1,
+				.stageMask   = vk::PipelineStageFlagBits2::eAllCommands,
+				.deviceIndex = 0
+			};
+		}
+		
+		auto cmd_submit_info = vk::CommandBufferSubmitInfo
+		{
+			.commandBuffer = value,
+			.deviceMask    = 0
+		};
+
+		auto submit_info = vk::SubmitInfo2
+		{
+			.waitSemaphoreInfoCount   = static_cast<uint32_t>(waitSemaphores.size()),
+			.pWaitSemaphoreInfos      = semaphore_infos.get(),
+			.commandBufferInfoCount   = 1,
+			.pCommandBufferInfos      = &cmd_submit_info,
+			.signalSemaphoreInfoCount = static_cast<uint32_t>(signalSemaphores.size()),
+			.pSignalSemaphoreInfos    = semaphore_infos.get() + waitSemaphores.size(),
+		};
+
+		context->graphicsQueue.submit2(submit_info, ready);
+		state = 0;
 	}
 
 	std::shared_ptr<RenderContext> CreateDefaultContext()
