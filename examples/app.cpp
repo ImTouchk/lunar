@@ -26,18 +26,18 @@ int main(int argc, char* argv[])
         .setSize(1280, 720)
         .create();
 
-    auto secondary_window = Render::WindowBuilder()
-        .setRenderContext(render_ctx)
-        .setSize(800, 600)
-        .create();
+    //auto secondary_window = Render::WindowBuilder()
+    //    .setRenderContext(render_ctx)
+    //    .setSize(800, 600)
+    //    .create();
 
     auto scene = Core::Scene(Fs::dataDirectory().append("main_scene.json"));
 
     while (!game_window.shouldClose())
     {
         Render::Window::pollEvents();
-        render_ctx->draw(scene, &game_window);
-        render_ctx->draw(scene, &secondary_window);
+        render_ctx->render(scene);
+        render_ctx->output(&game_window);
     }
 
     return 1;
