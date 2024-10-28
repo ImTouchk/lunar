@@ -98,12 +98,15 @@ if(${LUNAR_EXPERIMENTAL})
 endif()
 
 if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
+    FetchContent_Declare(vma GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git)
+    FetchContent_MakeAvailable(vma)
     find_package(Vulkan REQUIRED)
 
     message("-- lunar: Using Vulkan backend")
     target_sources(lunar PRIVATE
         "src/render/vk_draw.cpp"
         "src/render/vk_base.cpp"
+        "src/render/vk_image.cpp"
         "src/render/vk_shader.cpp"
         "src/render/vk_window.cpp"
         "inc/lunar/render/internal/render_vk.hpp"
@@ -114,8 +117,8 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
         LUNAR_RUNTIME_SHADER_BUILD=${LUNAR_RUNTIME_SHADER_BUILD}
     )
     target_compile_definitions(lunar PUBLIC LUNAR_VULKAN)
-    target_include_directories(lunar SYSTEM INTERFACE Vulkan::Vulkan)
-    target_link_libraries(lunar PUBLIC Vulkan::Vulkan)
+    target_include_directories(lunar SYSTEM INTERFACE Vulkan::Vulkan VulkanMemoryAllocator)
+    target_link_libraries(lunar PUBLIC Vulkan::Vulkan VulkanMemoryAllocator)
 
     if(NOT ${LUNAR_RUNTIME_SHADER_BUILD})
         message("-- lunar: Compiling Vulkan shaders at build time")
