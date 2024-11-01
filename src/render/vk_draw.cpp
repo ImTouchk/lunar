@@ -108,21 +108,73 @@ namespace Render
 		auto clear_value = vk::ClearColorValue{ {{ 1.f, 1.f, 1.f, 1.f }} };
 		auto clear_range = vk::ImageSubresourceRange
 		{
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.baseMipLevel = 0,
-			.levelCount = vk::RemainingMipLevels,
+			.aspectMask     = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel   = 0,
+			.levelCount     = vk::RemainingMipLevels,
 			.baseArrayLayer = 0,
-			.layerCount = vk::RemainingArrayLayers
+			.layerCount     = vk::RemainingArrayLayers
 		};
 
 		mainCmdBuffer->clearColorImage(drawImage.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
 		
 		mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eCompute, gradientPipeline);
 		mainCmdBuffer->bindDescriptorSets(vk::PipelineBindPoint::eCompute, gradientPipelineLayout, 0, drawImageDescriptors, {});
-		mainCmdBuffer->dispatch(std::ceil(drawExtent.width / 16.0), std::ceil(drawExtent.height / 16.0), 1);
 
-		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
+		glm::vec4 push_constants[4];
+		push_constants[0] = glm::vec4(1, 0, 0, 1);
+		push_constants[1] = glm::vec4(0, 0, 1, 1);
 
+		mainCmdBuffer->pushConstants(gradientPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(glm::vec4) * 4, push_constants);
+		mainCmdBuffer->dispatch(std::ceil(drawExtent.width / 16), std::ceil(drawExtent.height / 16), 1);
+
+		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
+
+		auto color_attachment = vk::RenderingAttachmentInfo
+		{
+			.imageView   = drawImage.view,
+			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.loadOp      = vk::AttachmentLoadOp::eLoad,
+			.storeOp     = vk::AttachmentStoreOp::eStore,
+		};
+
+		auto render_info = vk::RenderingInfo
+		{
+			.renderArea =
+			{
+				.offset = { 0, 0 },
+				.extent = drawExtent,
+			},
+			.layerCount           = 1,
+			.colorAttachmentCount = 1,
+			.pColorAttachments    = &color_attachment,
+		};
+
+		mainCmdBuffer->beginRendering(render_info);
+
+		auto viewport = vk::Viewport
+		{
+			.x      = 0,
+			.y      = 0,
+			.width  = (float)drawExtent.width,
+			.height = (float)drawExtent.height
+		};
+
+		auto scissor = vk::Rect2D
+		{
+			.offset = { 0, 0 },
+			.extent = { drawExtent.width, drawExtent.height }
+		};
+
+		mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, trianglePipeline);
+		mainCmdBuffer->setViewport(0, viewport);
+		mainCmdBuffer->setScissor(0, scissor);
+		mainCmdBuffer->draw(3, 1, 0, 0);
+
+
+		mainCmdBuffer->endRendering();
+
+		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
+			
 		mainCmdBuffer.submit({  }, { drawFinished });
 	}
 
@@ -149,7 +201,7 @@ namespace Render
 
 		TransitionImage(cmd_buffer, swap_image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 		CopyImageToImage(cmd_buffer, drawImage.handle, swap_image, drawExtent, target_window.getVkSwapExtent());
-		TransitionImage(cmd_buffer, swap_image, vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+		TransitionImage(cmd_buffer, swap_image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
 		cmd_buffer.submit({ image_available, drawFinished }, { image_presentable });
 

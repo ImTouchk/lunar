@@ -162,6 +162,39 @@ namespace Render
 		VulkanContext* context;
 	};
 
+	struct LUNAR_API VulkanPipelineBuilder
+	{
+	public:
+		VulkanPipelineBuilder() = default;
+		~VulkanPipelineBuilder() = default;
+
+		VulkanPipelineBuilder& useVulkanContext(VulkanContext* ctx);
+		VulkanPipelineBuilder& setVertexShader(const Fs::Path& path);
+		VulkanPipelineBuilder& setFragmentShader(const Fs::Path& path);
+		VulkanPipelineBuilder& setInputTopology(vk::PrimitiveTopology topology);
+		VulkanPipelineBuilder& setPolygonMode(vk::PolygonMode mode);
+		VulkanPipelineBuilder& setCullMode(vk::CullModeFlags cullMode, vk::FrontFace frontFace);
+		VulkanPipelineBuilder& noMultisampling();
+		VulkanPipelineBuilder& disableBlending();
+		VulkanPipelineBuilder& setColorAttachmentFormat(vk::Format format);
+		VulkanPipelineBuilder& setDepthFormat(vk::Format format);
+		VulkanPipelineBuilder& disableDepthTesting();
+		VulkanPipelineBuilder& useLayout(vk::PipelineLayout layout);
+		vk::Pipeline create();
+
+	private:
+		VulkanContext* context = nullptr;
+		std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = {};
+		vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
+		vk::PipelineRasterizationStateCreateInfo rasterizationState = {};
+		vk::PipelineColorBlendAttachmentState colorBlendAttachment = {};
+		vk::PipelineMultisampleStateCreateInfo multisampleState = {};
+		vk::PipelineLayout pipelineLayout = {};
+		vk::PipelineDepthStencilStateCreateInfo depthStencilState = {};
+		vk::PipelineRenderingCreateInfo renderInfo = {};
+		vk::Format colorAttachmentFormat = {};
+	};
+
 	class LUNAR_API VulkanContext : public RenderContext
 	{
 	public:
@@ -237,12 +270,16 @@ namespace Render
 		vk::Pipeline gradientPipeline;
 		vk::PipelineLayout gradientPipelineLayout;
 
+		vk::Pipeline trianglePipeline;
+		vk::PipelineLayout trianglePipelineLayout;
+
 		Utils::Stopwatch stopwatch;
 
 		friend class VulkanImage;
 		friend class VulkanCommandPool;
 		friend class VulkanCommandBuffer;
 		friend class VulkanDescriptorAllocator;
+		friend struct VulkanPipelineBuilder;
 	};
 
 	struct LUNAR_API VulkanContextBuilder
