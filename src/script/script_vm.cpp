@@ -1,13 +1,103 @@
 #include <lunar/script/script_vm.hpp>
 #include <lunar/script/script_api.hpp>
 #include <lunar/file/filesystem.hpp>
-#include <lunar/debug/log.hpp>
+#include <lunar/debug.hpp>
 #include <format>
 #include <memory>
 #include <vector>
 
 namespace Script
 {
+	VirtualMachineBuilder& VirtualMachineBuilder::loadPackage(const Fs::Path& path)
+	{
+		packages.push_back(path);
+		return *this;
+	}
+
+	VirtualMachineBuilder& VirtualMachineBuilder::setPackageLoader(const std::string_view& name)
+	{
+		// TODO: validations
+		packageLoader = name;
+		return *this;
+	}
+
+	VirtualMachineBuilder& VirtualMachineBuilder::useNativePackageLoader()
+	{
+		packageLoader = "";
+		return *this;
+	}
+
+	VirtualMachineBuilder& VirtualMachineBuilder::useDynamicPackageLoader()
+	{
+		packageLoader = "dev.lunar.ScriptLoader";
+		return *this;
+	}
+
+	VirtualMachineBuilder& VirtualMachineBuilder::enableVerbose(bool value)
+	{
+		verbose = value;
+		return *this;
+	}
+
+	VirtualMachine VirtualMachineBuilder::create()
+	{
+		// TODO: validations
+
+		std::string class_path = "-Djava.class.path=";
+		for (size_t i = 0; i < packages.size(); i++)
+		{
+			if (i != 0)
+				class_path.append(";");
+
+			class_path.append(packages[i].string());
+		}
+
+		auto launch_options = std::vector<std::string> { class_path };
+
+		if (!packageLoader.empty())
+			launch_options.push_back(std::format("-Djava.system.class.loader={}", packageLoader));
+
+		if (verbose)
+			launch_options.push_back("-verbose:class");
+
+		return VirtualMachine(launch_options);
+	}
+
+	VirtualMachine::VirtualMachine(std::vector<std::string>& launchOptions)
+		: env(nullptr),
+		jvm(nullptr)
+	{
+		std::unique_ptr<JavaVMOption[]> option_list = std::make_unique<JavaVMOption[]>(launchOptions.size());
+		for (size_t i = 0; i < launchOptions.size(); i++)
+			option_list[i] = { .optionString = launchOptions[i].data() };
+
+		JavaVMInitArgs vm_args = {
+			.version            = JNI_VERSION_1_8,
+			.nOptions           = static_cast<jint>(launchOptions.size()),
+			.options            = option_list.get(),
+			.ignoreUnrecognized = false
+		};
+
+		jint result;
+		result = JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
+		if (result != JNI_OK)
+			DEBUG_ERROR("Failed to create scripting VM: {}", result);
+		else
+			DEBUG_LOG("Scripting VM created.");
+	}
+
+	VirtualMachine::VirtualMachine()
+		: env(nullptr),
+		jvm(nullptr)
+	{
+	}
+
+	JNIEnv* VirtualMachine::getJniEnv()
+	{
+		DEBUG_ASSERT(env != nullptr);
+		return env;
+	}
+
 	VmWrapper& getVmFromEnv(JNIEnv* env)
 	{
 		// TODO
