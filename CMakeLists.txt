@@ -166,6 +166,11 @@ target_compile_definitions(lunar PUBLIC
     LUNAR_VER_PATCH=${lunar_VERSION_PATCH}
 )
 
+if(MSVC)
+    target_compile_options(lunar PUBLIC /Zc:preprocessor)
+    message("-- lunar: Detected MSVC compiler")
+endif()
+
 if(${LUNAR_BUNDLE_RESOURCES})
     add_custom_target(lunar_bundler 
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}
