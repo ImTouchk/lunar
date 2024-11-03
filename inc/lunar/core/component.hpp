@@ -19,8 +19,6 @@ namespace Core
 	public:
         Component() = default;
 
-		virtual size_t getTypeHash();
-		virtual const char* getType() = 0;
 		virtual bool isUpdateable() = 0;
 		virtual void update() = 0;
 
@@ -35,8 +33,6 @@ namespace Core
 		ScriptComponent();
 		~ScriptComponent();
 
-		size_t getTypeHash() override;
-		const char* getType() override;
 		bool isUpdateable() override;
 		void update() override;
 
@@ -57,8 +53,10 @@ namespace Core
 		glm::dvec3 rotation;
 		glm::dvec3 scale;
 
-		const char* getType() override;
 		bool isUpdateable() override;
 		void update() override;
 	};
+
+	template<typename T>
+	concept IsDerivedComponent = std::derived_from<T, Component> && !std::is_same_v<T, Component>;
 }

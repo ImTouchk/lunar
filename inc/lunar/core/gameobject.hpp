@@ -2,6 +2,7 @@
 #include <lunar/core/component.hpp>
 #include <lunar/file/json_file.hpp>
 #include <lunar/utils/identifiable.hpp>
+#include <lunar/debug.hpp>
 #include <lunar/api.hpp>
 #include <concepts>
 #include <string>
@@ -30,20 +31,24 @@ namespace Core
 		Scene* getParentScene();
 
 		void addComponent(Component* constructed);
-		Component* getComponent(const char* name);
 
-		template <typename T, class... Val> 
-			requires std::derived_from<T, Component>
-		T& addComponent(Val&&... ctor_values)
+		template<typename T> requires IsDerivedComponent<T>
+		T* getComponent()
 		{
-			T* new_component = new T(std::forward<Val>(ctor_values)...);
+			return static_cast<T*>(getComponent(typeid(T)));
+		}
+
+		template <typename T, class... _Valty> requires IsDerivedComponent<T>
+		T& addComponent(_Valty&&... ctor_values)
+		{
+			DEBUG_ASSERT(getComponent<T>() == nullptr, "There can exist only one component of type <T> on a single gameobject.");
+			T* new_component = new T(std::forward<_Valty>(ctor_values)...);
 			components.push_back(new_component);
 			return *new_component;
 		}
 		
-
 	private:
-		friend class Scene;
+		Component* getComponent(const std::type_info& ty);
 
         std::string name;
 		size_t nameHash;
@@ -53,5 +58,7 @@ namespace Core
 		
 		Scene* scene;
 		Identifiable::NativeType parent;	
+		
+		friend class Scene;
 	};
 }

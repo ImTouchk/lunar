@@ -3,16 +3,6 @@
 
 namespace Core
 {
-	size_t Component::getTypeHash()
-	{
-		return std::hash<std::string>{}(getType());
-	}
-
-	const char* TransformComponent::getType()
-	{
-		return "core.transformComponent";
-	}
-
 	bool TransformComponent::isUpdateable()
 	{
 		return false;
@@ -61,17 +51,6 @@ namespace Core
 	const std::string& ScriptComponent::getScriptName() const
 	{
 		return scriptName;
-	}
-
-	const char* ScriptComponent::getType()
-	{
-		return "core.scriptComponent";
-	}
-
-	size_t ScriptComponent::getTypeHash()
-	{
-		static size_t hash = std::hash<std::string>{}(getType());
-		return hash;
 	}
 
 	bool ScriptComponent::isUpdateable()

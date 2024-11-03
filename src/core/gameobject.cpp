@@ -48,14 +48,13 @@ namespace Core
 		components.push_back(constructed);
 	}
 
-	Component* GameObject::getComponent(const char* name)
+	Component* GameObject::getComponent(const std::type_info& ty)
 	{
-		//size_t name_hash = std::hash<std::string>{}(name);
-		//for (auto& component : components)
-		//{
-		//	if (component.get()->getTypeHash() == name_hash)
-		//		return component.get();
-		//}
+		size_t name_hash = std::hash<std::string>{}(name);
+		for (Component* component : components)
+			if (typeid(*component).hash_code() == ty.hash_code())
+				return component;
+
 		return nullptr;
 	}
 
