@@ -364,7 +364,6 @@ namespace Render
 		vk::PhysicalDeviceVulkan12Features features12,
 		vk::PhysicalDeviceVulkan13Features features13
 	)
-		: stopwatch(false)
 	{
 		if (!createInstance(debugging, minimumVersion))
 			return;
@@ -376,9 +375,6 @@ namespace Render
 			return;
 
 		if (!createDrawImage())
-			return;
-
-		if (!createPipelines())
 			return;
 
 		DEBUG_LOG("Ok");
@@ -629,7 +625,8 @@ namespace Render
 	void VulkanCommandBuffer::submit
 	(
 		const VulkanSemaphoreSubmit& waitSemaphores,
-		const VulkanSemaphoreSubmit& signalSemaphores
+		const VulkanSemaphoreSubmit& signalSemaphores,
+		bool waitForFinish
 	)
 	{
 		DEBUG_ASSERT(value != VK_NULL_HANDLE && state == 1);
@@ -653,6 +650,10 @@ namespace Render
 		};
 
 		context->graphicsQueue.submit2(submit_info, ready);
+
+		if (waitForFinish)
+			context->device.waitForFences(ready, VK_TRUE, UINT64_MAX);
+
 		state = 0;
 	}
 
@@ -691,6 +692,13 @@ namespace Render
 	std::vector<vk::SemaphoreSubmitInfo>* VulkanSemaphoreSubmit::operator->()
 	{
 		return &value;
+	}
+
+	void VulkanContext::immediateSubmit(const std::function<void(vk::CommandBuffer)>& command, bool waitForFinish)
+	{
+		mainCmdBuffer.begin();
+		command(mainCmdBuffer);
+		mainCmdBuffer.submit({}, {}, waitForFinish);
 	}
 
 	std::shared_ptr<RenderContext> CreateDefaultContext()

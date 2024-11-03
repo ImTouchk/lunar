@@ -80,6 +80,46 @@ namespace Render
 		return *this;
 	}
 
+	VulkanPipelineBuilder& VulkanPipelineBuilder::additiveBlending()
+	{
+		colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR |
+			vk::ColorComponentFlagBits::eG |
+			vk::ColorComponentFlagBits::eB |
+			vk::ColorComponentFlagBits::eA;
+
+		colorBlendAttachment.blendEnable = vk::True;
+		
+		colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+		colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOne;
+		colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
+
+		colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+		colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+		colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
+
+		return *this;
+	}
+
+	VulkanPipelineBuilder& VulkanPipelineBuilder::alphaBlending()
+	{
+		colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR |
+			vk::ColorComponentFlagBits::eG |
+			vk::ColorComponentFlagBits::eB |
+			vk::ColorComponentFlagBits::eA;
+
+		colorBlendAttachment.blendEnable = vk::True;
+		
+		colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+		colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
+		colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
+
+		colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+		colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+		colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
+
+		return *this;
+	}
+
 	VulkanPipelineBuilder& VulkanPipelineBuilder::disableBlending()
 	{
 		colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | 
@@ -334,68 +374,5 @@ namespace Render
 		};
 
 		return context->device.allocateDescriptorSets(allocate_info).at(0);
-	}
-
-	bool VulkanContext::createPipelines()
-	{
-		auto push_constant = vk::PushConstantRange
-		{
-			.stageFlags = vk::ShaderStageFlagBits::eCompute,
-			.offset     = 0,
-			.size       = sizeof(glm::vec4) * 4,
-		};
-
-		auto layout_info = vk::PipelineLayoutCreateInfo
-		{
-			.setLayoutCount         = 1,
-			.pSetLayouts            = &drawImageDescriptorLayout,
-			.pushConstantRangeCount = 1,
-			.pPushConstantRanges    = &push_constant
-		};
-
-		gradientPipelineLayout = device.createPipelineLayout(layout_info);
-
-		auto shader_mod = LoadShaderModule(device, Fs::dataDirectory().append("shader-bin/gradient.comp.spv"));
-		auto stage_info = vk::PipelineShaderStageCreateInfo
-		{
-			.stage  = vk::ShaderStageFlagBits::eCompute,
-			.module = shader_mod,
-			.pName  = "main"
-		};
-
-		auto compute_info = vk::ComputePipelineCreateInfo
-		{
-			.stage  = stage_info,
-			.layout = gradientPipelineLayout,
-		};
-
-		gradientPipeline = device.createComputePipeline(VK_NULL_HANDLE, compute_info).value;
-		device.destroyShaderModule(shader_mod);
-
-		trianglePipelineLayout = device.createPipelineLayout({});
-		trianglePipeline = VulkanPipelineBuilder()
-			.useVulkanContext(this)
-			.useLayout(trianglePipelineLayout)
-			.setVertexShader(Fs::dataDirectory().append("shader-bin/default.vert.spv"))
-			.setFragmentShader(Fs::dataDirectory().append("shader-bin/default.frag.spv"))
-			.setInputTopology(vk::PrimitiveTopology::eTriangleList)
-			.setPolygonMode(vk::PolygonMode::eFill)
-			.setCullMode(vk::CullModeFlagBits::eNone, vk::FrontFace::eClockwise)
-			.setColorAttachmentFormat(drawImage.format)
-			.setDepthFormat(vk::Format::eUndefined)
-			.noMultisampling()
-			.disableBlending()
-			.disableDepthTesting()
-			.create();
-
-		deletionStack.push([this]() {
-			device.destroyPipelineLayout(trianglePipelineLayout);
-			device.destroyPipeline(trianglePipeline);
-
-			device.destroyPipelineLayout(gradientPipelineLayout);
-			device.destroyPipeline(gradientPipeline);
-		});
-
-		return true;
 	}
 }
