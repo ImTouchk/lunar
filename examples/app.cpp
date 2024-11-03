@@ -12,6 +12,21 @@
 #include <lunar/exp/ui/dom.hpp>
 #include <lunar/file/file_tracker.hpp>
 
+class TestComp : public Core::Component
+{
+public:
+    TestComp(float x, float y) : x(x), y(y) {}
+
+    bool isUpdateable() override { return true; }
+
+    void update() override {
+        const auto& ty = typeid(this);
+        DEBUG_LOG("{} (hash: {}): {}, {}", ty.name(), ty.hash_code(), x, y);
+    }
+
+    float x, y;
+};
+
 int main(int argc, char* argv[])
 {
     auto args = Utils::ArgumentParser(argc, argv);
@@ -23,10 +38,21 @@ int main(int argc, char* argv[])
 
     auto scene = Core::SceneBuilder()
         .useDefaultComponentParsers()
+        .useComponentParser("testComp", [](const nlohmann::json& json) -> Core::Component* {
+            return new TestComp(json["x"], json["y"]);
+        })
         .fromJsonFile(Fs::dataDirectory().append("main_scene.json"))
         .create();
 
-    DEBUG_LOG("{}", scene.get()->getName());
+    scene->getGameObject("Skibidi Toilet")
+        .addComponent<TestComp>(1.f, 1.f)
+        .update();
+
+    scene->getGameObject("Test Object")
+        .getComponent<TestComp>()
+            ->update();
+
+    DEBUG_LOG("{}", scene->getName());
 
     auto render_ctx = Render::CreateDefaultContext();
 
