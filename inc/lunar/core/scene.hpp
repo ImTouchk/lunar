@@ -29,10 +29,11 @@ namespace Core
 
         size_t getNameHash() const;
         const std::string& getName() const;
+
         GameObject& getGameObject(const char* name);
         GameObject& getGameObject(Identifiable::NativeType id);
-
 		std::vector<GameObject>& getGameObjects();
+		GameObject& createGameObject(const std::string_view& name, GameObject* parent = nullptr);
 
 	private:
 		size_t nameHash = SIZE_MAX;
@@ -67,7 +68,6 @@ namespace Core
 		);
 
 		std::string name = "Untitled Scene";
-		std::vector<GameObject> objects = {};
 		std::shared_ptr<Script::VirtualMachine> scriptingVm = nullptr;
 		std::unordered_map<std::string, ComponentJsonParser> componentParsers = {};
 		Fs::Path jsonFile = "";

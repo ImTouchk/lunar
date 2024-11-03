@@ -43,11 +43,11 @@ namespace Core
 		GameObject* parent
 	)
 	{
-		const std::string_view name = json.contains("name")
+		const std::string name = json.contains("name")
 			? json["name"]
 			: "GameObject";
 
-		auto& game_object = objects.emplace_back(name, scene, parent);
+		auto& game_object = scene->createGameObject(name, parent);
 
 		if (json.contains("components"))
 		{
@@ -62,6 +62,12 @@ namespace Core
 				}
 
 				Component* parsed_component = componentParsers[component_type](component);
+				if (parsed_component == nullptr)
+				{
+					DEBUG_WARN("Component of type '{}' was parsed but result was NULL. Skipping...", component_type);
+					continue;
+				}
+
 				game_object.addComponent(parsed_component);
 				DEBUG_LOG("Parsed component of type '{}'...", component_type);
 			}
@@ -92,13 +98,13 @@ namespace Core
 		auto& game_objects = json["gameObjects"];
 		for (auto& [key, game_object] : game_objects.items())
 			parseGameObject(game_object, scene.get());
-		
+
 		return scene;
 	}
 
 	Scene::Scene
 	(
-		const std::string& name, 
+		const std::string& name,
 		std::shared_ptr<Script::VirtualMachine>& scriptingVm
 	) : name(name),
 		nameHash(std::hash<std::string>{}(name)),
@@ -108,15 +114,20 @@ namespace Core
 
 	}
 
-    const std::string& Scene::getName() const
-    {
-        return name;
-    }
+	const std::string& Scene::getName() const
+	{
+		return name;
+	}
 
-    size_t Scene::getNameHash() const
-    {
-        return nameHash;
-    }
+	size_t Scene::getNameHash() const
+	{
+		return nameHash;
+	}
+
+	GameObject& Scene::createGameObject(const std::string_view& name, GameObject* parent)
+	{
+		return objects.emplace_back(name, this, parent);
+	}
 
     GameObject& Scene::getGameObject(Identifiable::NativeType id)
     {
