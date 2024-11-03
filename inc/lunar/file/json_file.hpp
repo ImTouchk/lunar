@@ -8,6 +8,9 @@ namespace Fs
 	class LUNAR_API JsonFile : public Resource
 	{
 	public:
+		JsonFile(const Path& path);
+		JsonFile() = default;
+
 		bool fromFile(const Path& path) override;
 		void toFile(const Path& path) override;
 
