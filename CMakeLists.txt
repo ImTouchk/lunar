@@ -76,6 +76,7 @@ add_library(lunar SHARED
     "inc/lunar/render/image.hpp"
     "inc/lunar/render/window.hpp"
     "inc/lunar/render/shader.hpp"
+    "inc/lunar/render/common.hpp"
     "inc/lunar/render/render_context.hpp"
     "inc/lunar/render/render_components.hpp"
     "src/render/render_components.cpp"
@@ -109,6 +110,7 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
         "src/render/vk_image.cpp"
         "src/render/vk_shader.cpp"
         "src/render/vk_window.cpp"
+        "src/render/vk_buffer.cpp"
         "inc/lunar/render/internal/render_vk.hpp"
     )
     target_compile_definitions(lunar PRIVATE

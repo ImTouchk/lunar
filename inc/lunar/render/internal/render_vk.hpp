@@ -1,5 +1,6 @@
 #pragma once
 #include <lunar/render/render_context.hpp>
+#include <lunar/render/common.hpp>
 #include <lunar/utils/stopwatch.hpp>
 #include <lunar/core/scene.hpp>
 #include <lunar/api.hpp>
@@ -48,7 +49,8 @@ namespace Render
 
 		void submit(
 			const VulkanSemaphoreSubmit& waitSemaphores, 
-			const VulkanSemaphoreSubmit& signalSemaphores
+			const VulkanSemaphoreSubmit& signalSemaphores,
+			bool waitForFinish = false
 		);
 
 		void destroy();
@@ -176,6 +178,8 @@ namespace Render
 		VulkanPipelineBuilder& setCullMode(vk::CullModeFlags cullMode, vk::FrontFace frontFace);
 		VulkanPipelineBuilder& noMultisampling();
 		VulkanPipelineBuilder& disableBlending();
+		VulkanPipelineBuilder& additiveBlending();
+		VulkanPipelineBuilder& alphaBlending();
 		VulkanPipelineBuilder& setColorAttachmentFormat(vk::Format format);
 		VulkanPipelineBuilder& setDepthFormat(vk::Format format);
 		VulkanPipelineBuilder& disableDepthTesting();
@@ -193,6 +197,40 @@ namespace Render
 		vk::PipelineDepthStencilStateCreateInfo depthStencilState = {};
 		vk::PipelineRenderingCreateInfo renderInfo = {};
 		vk::Format colorAttachmentFormat = {};
+	};
+
+	class LUNAR_API VulkanBuffer
+	{
+	public:
+		VulkanBuffer(
+			VulkanContext* context,
+			vk::Buffer buffer,
+			VmaAllocation allocation,
+			VmaAllocationInfo info
+		);
+		VulkanBuffer() = default;
+		~VulkanBuffer();
+
+
+		VulkanBuffer(const VulkanBuffer&) = delete;
+		VulkanBuffer& operator=(const VulkanBuffer&) = delete;
+		VulkanBuffer(VulkanBuffer&&) noexcept;
+		VulkanBuffer& operator=(VulkanBuffer&&) noexcept;
+
+
+		vk::Buffer handle = VK_NULL_HANDLE;
+		VmaAllocation allocation = VK_NULL_HANDLE;
+		VmaAllocationInfo info = {};
+	private:
+		VulkanContext* context = nullptr;
+	};
+
+	class LUNAR_API VulkanMesh
+	{
+	public:
+		VulkanBuffer indexBuffer;
+		VulkanBuffer vertexBuffer;
+		vk::DeviceAddress vertexBufferAddr;
 	};
 
 	class LUNAR_API VulkanContext : public RenderContext
@@ -219,6 +257,9 @@ namespace Render
 
 		VulkanCommandPool createCommandPool();
 		VulkanImage createImage(vk::Format format, vk::Extent3D extent, vk::ImageUsageFlags flags);
+		VulkanBuffer createBuffer(size_t allocationSize, vk::BufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage);
+		VulkanMesh uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+		void immediateSubmit(const std::function<void(vk::CommandBuffer)>&, bool waitForFinish = false);
 
 		vk::Instance& getInstance();
 		vk::PhysicalDevice& getRenderingDevice();
@@ -240,7 +281,6 @@ namespace Render
 		);
 		bool createMainCommandPool();
 		bool createDrawImage();
-		bool createPipelines();
 
 		std::queue<std::function<void()>> deletionQueue;
 		std::stack<std::function<void()>> deletionStack;
@@ -267,15 +307,8 @@ namespace Render
 		vk::DescriptorSet drawImageDescriptors;
 		vk::DescriptorSetLayout drawImageDescriptorLayout;
 
-		vk::Pipeline gradientPipeline;
-		vk::PipelineLayout gradientPipelineLayout;
-
-		vk::Pipeline trianglePipeline;
-		vk::PipelineLayout trianglePipelineLayout;
-
-		Utils::Stopwatch stopwatch;
-
 		friend class VulkanImage;
+		friend class VulkanBuffer;
 		friend class VulkanCommandPool;
 		friend class VulkanCommandBuffer;
 		friend class VulkanDescriptorAllocator;

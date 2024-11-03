@@ -116,16 +116,6 @@ namespace Render
 		};
 
 		mainCmdBuffer->clearColorImage(drawImage.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
-		
-		mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eCompute, gradientPipeline);
-		mainCmdBuffer->bindDescriptorSets(vk::PipelineBindPoint::eCompute, gradientPipelineLayout, 0, drawImageDescriptors, {});
-
-		glm::vec4 push_constants[4];
-		push_constants[0] = glm::vec4(1, 0, 0, 1);
-		push_constants[1] = glm::vec4(0, 0, 1, 1);
-
-		mainCmdBuffer->pushConstants(gradientPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(glm::vec4) * 4, push_constants);
-		mainCmdBuffer->dispatch(std::ceil(drawExtent.width / 16), std::ceil(drawExtent.height / 16), 1);
 
 		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
 
@@ -165,11 +155,11 @@ namespace Render
 			.extent = { drawExtent.width, drawExtent.height }
 		};
 
-		mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, trianglePipeline);
 		mainCmdBuffer->setViewport(0, viewport);
 		mainCmdBuffer->setScissor(0, scissor);
-		mainCmdBuffer->draw(3, 1, 0, 0);
-
+		
+		//mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, trianglePipeline);
+		//mainCmdBuffer->draw(3, 1, 0, 0);
 
 		mainCmdBuffer->endRendering();
 
