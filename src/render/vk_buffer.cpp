@@ -33,8 +33,7 @@ namespace Render
 		if (handle == VK_NULL_HANDLE)
 			return;
 
-		context->device.destroyBuffer(handle);
-		vmaDestroyBuffer(context->allocator, handle, allocation);
+		destroy();
 	}
 
 	VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& other) noexcept
@@ -54,12 +53,26 @@ namespace Render
 		return *this;
 	}
 
+	void VulkanBuffer::destroy()
+	{
+		DEBUG_ASSERT(handle != VK_NULL_HANDLE, "VulkanBuffer object not initialized");
+		
+		vmaDestroyBuffer(context->allocator, handle, allocation);
+
+		context = nullptr;
+		handle = VK_NULL_HANDLE;
+		allocation = VK_NULL_HANDLE;
+		info = {};
+	}
+
 	VulkanBuffer VulkanContext::createBuffer(size_t allocationSize, vk::BufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage)
 	{
-		auto buffer_info = vk::BufferCreateInfo
+		auto buffer_info = VkBufferCreateInfo
 		{
-			.size = allocationSize,
-			.usage = usageFlags,
+			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			.pNext = nullptr,
+			.size  = allocationSize,
+			.usage = static_cast<VkBufferUsageFlags>(usageFlags)
 		};
 
 		auto allocation_info = VmaAllocationCreateInfo
@@ -74,7 +87,7 @@ namespace Render
 		VkResult result;
 		result = vmaCreateBuffer(
 			allocator,
-			&buffer_info.operator const VkBufferCreateInfo & (),
+			&buffer_info,
 			&allocation_info,
 			&_buffer,
 			&_alloc,
@@ -150,5 +163,10 @@ namespace Render
 			.vertexBuffer     = std::move(vertex_buffer),
 			.vertexBufferAddr = vertex_buffer_addr,
 		};
+	}
+
+	VulkanBuffer::operator vk::Buffer& ()
+	{
+		return handle;
 	}
 }
