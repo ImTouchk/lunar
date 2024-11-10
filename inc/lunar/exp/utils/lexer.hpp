@@ -1,6 +1,9 @@
 #pragma once
 #include <lunar/api.hpp>
 #include <lunar/file/text_file.hpp>
+#include <unordered_map>
+#include <functional>
+
 #include <string_view>
 #include <string>
 
@@ -28,6 +31,14 @@ namespace Utils::Exp
 	class LUNAR_API Lexer
 	{
 	public:
+		using ParseHandler = std::function<void()>;
+		struct TokenResolver
+		{
+			const char* name;
+			ParseHandler resolver;
+		};
+		using TokenDictionary = std::vector<TokenResolver>;
+
 		Lexer(std::string&& source, LexerFlagBits flags);
 		~Lexer() = default;
 
@@ -45,6 +56,7 @@ namespace Utils::Exp
 		[[nodiscard]] std::string_view parseIdentifier();
 		[[nodiscard]] bool parse(const char* string, ...);
 		[[nodiscard]] bool parseLine(const char* string, ...);
+		[[nodiscard]] bool parseFromDictionary(const TokenDictionary& dictionary);
 		
 	private:
 		void parseError(const std::string& error);

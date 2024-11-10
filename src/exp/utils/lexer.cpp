@@ -204,6 +204,31 @@ namespace Utils::Exp
 			return value;
 	}
 
+	bool Lexer::parseFromDictionary(const Lexer::TokenDictionary& dictionary)
+	{
+		for (auto& token : dictionary)
+		{
+			auto start = pointer;
+
+			if (!parse(token.name))
+				continue;
+
+			if (
+				pointer != source.end() &&
+				(isalnum(*pointer) && !isspace(*pointer)) // this is the biggest piece of shit i've ever written and i'm not proud of it
+			)
+			{
+				pointer = start;
+				continue;
+			}
+			
+			token.resolver();
+			return true;
+		}
+
+		return false;
+	}
+
 	bool Lexer::parse(const char* string, ...)
 	{
 		bool res;
@@ -258,7 +283,9 @@ namespace Utils::Exp
 			if (*it != '{' || next == view.end() || *next != ':')
 			{
 				if (*it == ' ')
+				{
 					skipWhitespaces();
+				}
 				else if (*pointer != *it)
 				{
 					parseError(std::format("Expected token '{}', found '{}' instead", *it, *pointer));
