@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
-project(lunar VERSION 0.1.8)
+project(lunar VERSION 0.1.9)
 
 message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar_VERSION_PATCH}")
 
@@ -81,6 +81,16 @@ add_library(lunar SHARED
     "inc/lunar/render/render_components.hpp"
     "src/render/render_components.cpp"
     
+    "inc/lunar/render/terra.hpp"
+    "inc/lunar/render/terra/token.hpp"
+    "inc/lunar/render/terra/expression.hpp"
+    "inc/lunar/render/terra/statement.hpp"
+    "inc/lunar/render/terra/parser.hpp"
+    "inc/lunar/render/terra/transpiler.hpp"
+    "src/render/terra/scanner.cpp"
+    "src/render/terra/parser.cpp"
+    "src/render/terra/transpiler.cpp"
+
     "src/render/image.cpp"
     "src/render/window.cpp"
     "src/render/shader.cpp"
