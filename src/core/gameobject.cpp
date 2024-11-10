@@ -9,7 +9,7 @@ namespace Core
 {
 	GameObject::GameObject(const std::string_view& name, Scene* scene, GameObject* parent) 
 		: name(name),
-		nameHash(std::hash<std::string>{}(this->name)),
+		nameHash(Lunar::imp::fnv1a_hash(this->name)),
 		components(),
 		transform(),
 		scene(scene),
@@ -50,7 +50,6 @@ namespace Core
 
 	Component* GameObject::getComponent(const std::type_info& ty)
 	{
-		size_t name_hash = std::hash<std::string>{}(name);
 		for (Component* component : components)
 			if (typeid(*component).hash_code() == ty.hash_code())
 				return component;

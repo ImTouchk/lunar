@@ -94,16 +94,34 @@ namespace Render
 		cmd.blitImage2(blit_info);
 	}
 
-	void VulkanContext::render(Core::Scene& scene)
+	void VulkanContext::draw(Core::Scene& scene, RenderTarget* target)
 	{
-		mainCmdBuffer.begin();
+		if(target->getType() != RenderTargetType::eWindow)
+			return; // TODO
 
-		drawExtent = {
-			.width  = drawImage.extent.width,
-			.height = drawImage.extent.height
+		auto& target_window = *static_cast<Render::Window*>(target);
+		if(target_window.isMinimized())
+			return;
+
+		auto current_frame = target_window.getVkCurrentFrame();
+		auto& frame_data = target_window.getVkFrameData(current_frame);
+		auto& swapchain = target_window.getVkSwapchain();
+		auto& command_buffer = frame_data.commandBuffer;
+
+		command_buffer.begin();
+
+		uint32_t img_idx;
+		std::ignore = device.acquireNextImageKHR(swapchain, UINT64_MAX, frame_data.swapchain.imageAvailable, {}, &img_idx);
+		
+		auto& swap_image = frame_data.swapchain.image;
+		auto& draw_image = frame_data.internal;
+
+		draw_image.extent = {
+			.width = draw_image.image.extent.width,
+			.height = draw_image.image.extent.height
 		};
 
-		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+		TransitionImage(command_buffer, draw_image.image.handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
 
 		auto clear_value = vk::ClearColorValue{ {{ 1.f, 1.f, 1.f, 1.f }} };
 		auto clear_range = vk::ImageSubresourceRange
@@ -115,13 +133,13 @@ namespace Render
 			.layerCount     = vk::RemainingArrayLayers
 		};
 
-		mainCmdBuffer->clearColorImage(drawImage.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
+		command_buffer->clearColorImage(draw_image.image.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
 
-		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
+		TransitionImage(command_buffer, draw_image.image.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
 
 		auto color_attachment = vk::RenderingAttachmentInfo
 		{
-			.imageView   = drawImage.view,
+			.imageView   = draw_image.image.view,
 			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 			.loadOp      = vk::AttachmentLoadOp::eLoad,
 			.storeOp     = vk::AttachmentStoreOp::eStore,
@@ -132,73 +150,49 @@ namespace Render
 			.renderArea =
 			{
 				.offset = { 0, 0 },
-				.extent = drawExtent,
+				.extent = draw_image.extent,
 			},
 			.layerCount           = 1,
 			.colorAttachmentCount = 1,
 			.pColorAttachments    = &color_attachment,
 		};
 
-		mainCmdBuffer->beginRendering(render_info);
+		command_buffer->beginRendering(render_info);
 
 		auto viewport = vk::Viewport
 		{
 			.x      = 0,
 			.y      = 0,
-			.width  = (float)drawExtent.width,
-			.height = (float)drawExtent.height
+			.width  = (float)draw_image.extent.width,
+			.height = (float)draw_image.extent.height
 		};
 
 		auto scissor = vk::Rect2D
 		{
 			.offset = { 0, 0 },
-			.extent = { drawExtent.width, drawExtent.height }
+			.extent = { draw_image.extent.width, draw_image.extent.height }
 		};
 
-		mainCmdBuffer->setViewport(0, viewport);
-		mainCmdBuffer->setScissor(0, scissor);
+		command_buffer->setViewport(0, viewport);
+		command_buffer->setScissor(0, scissor);
 		
 		//mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, trianglePipeline);
 		//mainCmdBuffer->draw(3, 1, 0, 0);
 
-		mainCmdBuffer->endRendering();
+		command_buffer->endRendering();
 
-		TransitionImage(mainCmdBuffer, drawImage.handle, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
-			
-		mainCmdBuffer.submit({  }, { drawFinished });
-	}
+		TransitionImage(command_buffer, draw_image.image.handle, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
 
-	void VulkanContext::output(RenderTarget* target)
-	{
-		DEBUG_ASSERT(target->getType() == RenderTargetType::eWindow);
-		auto& target_window = *static_cast<Render::Window*>(target);
+		TransitionImage(command_buffer, swap_image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+		CopyImageToImage(command_buffer, draw_image.image.handle, swap_image, draw_image.extent, target_window.getVkSwapExtent());
+		TransitionImage(command_buffer, swap_image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-		if (target_window.isMinimized())
-			return;
-
-		auto current_frame = target_window.getVkCurrentFrame();
-		auto& cmd_buffer = target_window.getVkCommandBuffer(current_frame);
-		auto& image_available = target_window.getVkImageAvailable(current_frame);
-		auto& image_presentable = target_window.getVkImagePresentable(current_frame);
-		auto& swapchain = target_window.getVkSwapchain();
-
-		cmd_buffer.begin();
-
-		uint32_t img_idx;
-		std::ignore = device.acquireNextImageKHR(swapchain, UINT64_MAX, image_available, {}, &img_idx);
-		
-		auto& swap_image = target_window.getVkSwapImage(img_idx);
-
-		TransitionImage(cmd_buffer, swap_image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-		CopyImageToImage(cmd_buffer, drawImage.handle, swap_image, drawExtent, target_window.getVkSwapExtent());
-		TransitionImage(cmd_buffer, swap_image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
-
-		cmd_buffer.submit({ image_available, drawFinished }, { image_presentable });
+		command_buffer.submit({ frame_data.swapchain.imageAvailable }, { frame_data.internal.renderFinished });
 
 		auto present_info = vk::PresentInfoKHR
 		{
 			.waitSemaphoreCount = 1,
-			.pWaitSemaphores    = &image_presentable,
+			.pWaitSemaphores    = &frame_data.internal.renderFinished,
 			.swapchainCount     = 1,
 			.pSwapchains        = &swapchain,
 			.pImageIndices      = &img_idx,

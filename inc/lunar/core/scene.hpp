@@ -30,12 +30,13 @@ namespace Core
         size_t getNameHash() const;
         const std::string& getName() const;
 
-        GameObject& getGameObject(const char* name);
+		GameObject& getGameObject(const std::string_view& name);
         GameObject& getGameObject(Identifiable::NativeType id);
 		std::vector<GameObject>& getGameObjects();
 		GameObject& createGameObject(const std::string_view& name, GameObject* parent = nullptr);
 
 	private:
+
 		size_t nameHash = SIZE_MAX;
 		std::string name = "Untitled Scene";
 		std::vector<GameObject> objects = {};
@@ -49,11 +50,21 @@ namespace Core
 		SceneBuilder() = default;
 		~SceneBuilder() = default;
 		
-		SceneBuilder& useDefaultComponentParsers();
-		SceneBuilder& useComponentParser(
+		SceneBuilder& useCoreSerializers();
+		SceneBuilder& useCustomClassSerializer(
 			const std::string& componentName,
 			const ComponentJsonParser& parser
 		);
+
+		template<typename T> requires IsDerivedComponent<T> && IsJsonSerializable<T>
+		SceneBuilder& useClassSerializer(const std::string& componentName) 
+		{
+			return useCustomClassSerializer(componentName, [](const nlohmann::json& json) -> Component* {
+				T* component = new T(T::Deserialize(json));
+				return component;
+			});
+		}
+
 		SceneBuilder& fromJsonFile(const Fs::Path& path);
 
 		SceneBuilder& setName(const std::string_view& name);

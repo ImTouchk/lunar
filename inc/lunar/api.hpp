@@ -42,3 +42,16 @@
 // TODO: add possibility to enable/disable this flag
 #define LUNAR_JVM_VERBOSE 0
 
+namespace Lunar::imp
+{
+	constexpr LUNAR_API size_t fnv1a_hash(const std::string_view& str)
+	{
+		size_t hash = 0xcbf29ce484222325;
+		for (char c : str)
+		{
+			hash ^= static_cast<size_t>(c);
+			hash *= 0x100000001b3;
+		}
+		return hash;
+	}
+}

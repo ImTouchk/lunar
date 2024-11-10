@@ -12,4 +12,14 @@ namespace Render
 		float uv_y;
 		glm::vec4 color;
 	};
+
+	struct LUNAR_API UniformBufferData
+	{
+		glm::mat4 view;
+		glm::mat4 projection;
+		glm::mat4 viewproj;
+		glm::vec4 ambientColor;
+		glm::vec4 sunlightDir;
+		glm::vec4 sunlightCol;
+	};
 }
