@@ -299,63 +299,6 @@ namespace Render
 		return true;
 	}
 
-	bool VulkanContext::createDrawImage()
-	{
-		auto draw_img_extent = vk::Extent3D{ 1920, 1080, 1 };
-		auto draw_img_format = vk::Format::eR16G16B16A16Sfloat;
-		auto draw_img_usage = vk::ImageUsageFlagBits::eColorAttachment |
-								vk::ImageUsageFlagBits::eStorage |
-								vk::ImageUsageFlagBits::eTransferSrc |
-								vk::ImageUsageFlagBits::eTransferDst;
-
-		drawImage = createImage(draw_img_format, draw_img_extent, draw_img_usage);
-		if (drawImage.handle == VK_NULL_HANDLE)
-			return false;
-
-		vk::SemaphoreCreateInfo semaphore_info = {};
-		drawFinished = device.createSemaphore(semaphore_info);
-
-		auto sizes = std::vector<VulkanDescriptorAllocator::PoolSizeRatio>
-		{
-			{ vk::DescriptorType::eStorageImage, 1 }
-		};
-
-		mainDescriptorAllocator = VulkanDescriptorAllocator(*this, 10, sizes);
-
-		drawImageDescriptorLayout = VulkanDescriptorLayoutBuilder()
-			.useVulkanContext(*this)
-			.addBinding(0, vk::DescriptorType::eStorageImage)
-			.addShaderStageFlag(vk::ShaderStageFlagBits::eCompute)
-			.build();
-
-		drawImageDescriptors = mainDescriptorAllocator.allocate(drawImageDescriptorLayout);
-
-		auto image_info = vk::DescriptorImageInfo
-		{
-			.imageView   = drawImage.view,
-			.imageLayout = vk::ImageLayout::eGeneral,
-		};
-
-		auto draw_image_write = vk::WriteDescriptorSet
-		{
-			.dstSet          = drawImageDescriptors,
-			.dstBinding      = 0,
-			.descriptorCount = 1,
-			.descriptorType  = vk::DescriptorType::eStorageImage,
-			.pImageInfo      = &image_info,
-		};
-
-		device.updateDescriptorSets(draw_image_write, {});
-
-		deletionStack.push([this]() { 
-			drawImage.destroy();
-			mainDescriptorAllocator.destroy();
-			device.destroyDescriptorSetLayout(drawImageDescriptorLayout);
-			device.destroySemaphore(drawFinished); 
-		});
-		return true;
-	}
-
 	VulkanContext::VulkanContext
 	(
 		bool debugging,
@@ -372,9 +315,6 @@ namespace Render
 			return;
 
 		if (!createMainCommandPool())
-			return;
-
-		if (!createDrawImage())
 			return;
 
 		DEBUG_LOG("Ok");

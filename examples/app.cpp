@@ -12,6 +12,31 @@
 #include <lunar/exp/ui/dom.hpp>
 #include <lunar/file/file_tracker.hpp>
 
+class Test2Comp : public Core::Component
+{
+public:
+    Test2Comp(std::string str) : name(str) {}
+
+    bool isUpdateable() override { return true; }
+    void update() override {
+        DEBUG_LOG("{}", name);
+    }
+
+    static Test2Comp Deserialize(const nlohmann::json& json)
+    {
+        return Test2Comp(json["name"]);
+    }
+
+    static nlohmann::json Serialize(const Test2Comp& comp)
+    {
+        auto json_object = nlohmann::json();
+        json_object["name"] = comp.name;
+        return json_object;
+    }
+
+    std::string name;
+};
+
 class TestComp : public Core::Component
 {
 public:
@@ -22,6 +47,19 @@ public:
     void update() override {
         const auto& ty = typeid(this);
         DEBUG_LOG("{} (hash: {}): {}, {}", ty.name(), ty.hash_code(), x, y);
+    }
+
+    static TestComp Deserialize(const nlohmann::json& json)
+    {
+        return TestComp(json["x"], json["y"]);
+    }
+
+    static nlohmann::json Serialize(const TestComp& object)
+    {
+        auto json_object = nlohmann::json();
+        json_object["x"] = object.x;
+        json_object["y"] = object.y;
+        return json_object;
     }
 
     float x, y;
@@ -37,12 +75,18 @@ int main(int argc, char* argv[])
     DEBUG_LOG("\n{}", dom.toPrettyString());
 
     auto scene = Core::SceneBuilder()
-        .useDefaultComponentParsers()
-        .useComponentParser("testComp", [](const nlohmann::json& json) -> Core::Component* {
-            return new TestComp(json["x"], json["y"]);
-        })
+        .useCoreSerializers()
+        .useClassSerializer<TestComp>("testComp")
+        .useClassSerializer<Test2Comp>("test2Comp")
         .fromJsonFile(Fs::dataDirectory().append("main_scene.json"))
         .create();
+
+    scene->getGameObject("Skibidi Toilet")
+        .addComponent<Test2Comp>("big boss");
+
+    scene->getGameObject("Skibidi Toilet")
+        .getComponent<Test2Comp>()
+            ->update();
 
     scene->getGameObject("Skibidi Toilet")
         .addComponent<TestComp>(1.f, 1.f)
@@ -70,14 +114,11 @@ int main(int argc, char* argv[])
         //.useNativePackageLoader()
         //.enableVerbose()
         //.create();
-    
-
 
     while (!game_window.shouldClose())
     {
         Render::Window::pollEvents();
-        render_ctx->render(*scene.get());
-        render_ctx->output(game_window);
+        render_ctx->draw(scene, game_window);
         //render_ctx->output(&secondary_window);
     }
 

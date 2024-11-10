@@ -15,16 +15,16 @@ namespace Core
 		return *this;
 	}
 
-	SceneBuilder& SceneBuilder::useDefaultComponentParsers()
+	SceneBuilder& SceneBuilder::useCoreSerializers()
 	{
-		useComponentParser("core.scriptComponent", [](const nlohmann::json&) -> Component* {
+		useCustomClassSerializer("core.scriptComponent", [](const nlohmann::json&) -> Component* {
 			DEBUG_LOG("Hello, world!");
 			return nullptr;
 		});
 		return *this;
 	}
 
-	SceneBuilder& SceneBuilder::useComponentParser(const std::string& name, const ComponentJsonParser& parser)
+	SceneBuilder& SceneBuilder::useCustomClassSerializer(const std::string& name, const ComponentJsonParser& parser)
 	{
 		componentParsers[name] = parser;
 		return *this;
@@ -141,12 +141,12 @@ namespace Core
         throw;
     }
 
-    GameObject& Scene::getGameObject(const char* name)
+    GameObject& Scene::getGameObject(const std::string_view& name)
     {
-		auto hash = std::hash<std::string>{}(name);
+		size_t name_hash = Lunar::imp::fnv1a_hash(name);
 		for (auto& game_object : objects)
 		{
-			if (game_object.getNameHash() == hash)
+			if (game_object.getNameHash() == name_hash)
 				return game_object;
 		}
 

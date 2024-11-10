@@ -15,6 +15,32 @@ namespace Render
 {
 #	ifdef LUNAR_VULKAN
 	constexpr size_t FRAME_OVERLAP = 2;
+
+	struct VulkanFrameData
+	{
+		struct
+		{
+			vk::Image image;
+			vk::ImageView view;
+			vk::Semaphore imageAvailable;
+		} swapchain;
+
+		struct
+		{
+			VulkanImage image;
+			vk::Extent2D extent;
+			vk::Semaphore renderFinished;
+		} internal;
+
+		struct
+		{
+			vk::DescriptorSetLayout descriptorLayout;
+			vk::DescriptorSet descriptorSet;
+			VulkanBuffer buffer;
+		} uniformBuffer;
+
+		VulkanCommandBuffer commandBuffer;
+	};
 #	endif
 
 	class LUNAR_API Window : public Identifiable, public RenderTarget
@@ -43,6 +69,7 @@ namespace Render
 #		ifdef LUNAR_VULKAN
 		vk::SurfaceKHR& getVkSurface();
 		vk::SwapchainKHR& getVkSwapchain();
+		VulkanFrameData& getVkFrameData(size_t idx);
 		size_t getVkSwapImageCount();
 		const vk::Extent2D& getVkSwapExtent() const;
 
@@ -62,6 +89,19 @@ namespace Render
 		bool initialized;
 
 #		ifdef LUNAR_VULKAN
+		vk::SurfaceKHR _vkSurface;
+		vk::SurfaceFormatKHR _vkSurfaceFmt;
+		vk::PresentModeKHR _vkPresentMode;
+		
+		vk::SwapchainKHR _vkSwapchain;
+		vk::Extent2D _vkSwapExtent;
+		size_t _vkSwapImgCount;
+
+		VulkanFrameData _vkFrameData[FRAME_OVERLAP];
+		VulkanCommandPool _vkCommandPool;
+		VulkanGrowableDescriptorAllocator _vkDescriptorAlloc;
+		size_t _vkCurrentFrame;
+
 		VulkanContext& _getVkContext();
 
 		void _vkInitialize();
@@ -70,23 +110,6 @@ namespace Render
 		void _vkDestroySwap();
 		void _vkUpdateSwapExtent();
 		void _vkHandleResize(int width, int height);
-
-		vk::SurfaceKHR _vkSurface;
-		vk::SurfaceFormatKHR _vkSurfaceFmt;
-		vk::PresentModeKHR _vkPresentMode;
-		vk::SwapchainKHR _vkSwapchain;
-		vk::Extent2D _vkSwapExtent;
-		struct
-		{
-			vk::Image img;
-			vk::ImageView view;
-			vk::Semaphore imageAvailable;
-			vk::Semaphore imagePresentable;
-			VulkanCommandBuffer cmdBuffer;
-		} _vkSwapImages[5];
-		size_t _vkSwapImgCount;
-		size_t _vkCurrentFrame;
-		VulkanCommandPool _vkCommandPool;
 
 		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
 #		endif

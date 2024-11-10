@@ -40,7 +40,7 @@ namespace Core
 
 		template <typename T, class... _Valty> requires IsDerivedComponent<T>
 		T& addComponent(_Valty&&... ctor_values)
-		{
+		{	
 			DEBUG_ASSERT(getComponent<T>() == nullptr, "There can exist only one component of type <T> on a single gameobject.");
 			T* new_component = new T(std::forward<_Valty>(ctor_values)...);
 			components.push_back(new_component);

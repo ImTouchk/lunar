@@ -251,7 +251,7 @@ namespace Render
 		return *this;
 	}
 
-	VulkanDescriptorLayoutBuilder& VulkanDescriptorLayoutBuilder::addShaderStageFlag(vk::ShaderStageFlagBits flag)
+	VulkanDescriptorLayoutBuilder& VulkanDescriptorLayoutBuilder::addShaderStageFlag(vk::ShaderStageFlags flag)
 	{
 		stageFlags |= flag;
 		return *this;
@@ -374,5 +374,243 @@ namespace Render
 		};
 
 		return context->device.allocateDescriptorSets(allocate_info).at(0);
+	}
+
+	vk::DescriptorSet VulkanGrowableDescriptorAllocator::allocate(vk::DescriptorSetLayout layout)
+	{
+		DEBUG_ASSERT(context != nullptr, "VulkanGrowableDescriptorAllocator not initialised");
+		
+		auto pool = getPool();
+		auto allocate_info = vk::DescriptorSetAllocateInfo
+		{
+			.descriptorPool     = pool,
+			.descriptorSetCount = 1,
+			.pSetLayouts        = &layout,
+		};
+
+		auto res = context->device.allocateDescriptorSets(allocate_info);
+		if (res.empty())
+		{
+			fullPools.push_back(pool);
+			
+			pool = getPool();
+			allocate_info.descriptorPool = pool;
+			res = context->device.allocateDescriptorSets(allocate_info);
+			if (res.empty())
+			{
+				DEBUG_ERROR("vk::DescriptorSet creation failed");
+				return VK_NULL_HANDLE;
+			}
+		}
+
+		readyPools.push_back(pool);
+		return res.at(0);
+	}
+
+	VulkanGrowableDescriptorAllocator::VulkanGrowableDescriptorAllocator
+	(
+		VulkanContext* context,
+		uint32_t initialSets,
+		std::span<PoolSizeRatio> poolRatios
+	) : context(context),
+		ratios(poolRatios.begin(), poolRatios.end()),
+		setsPerPool(initialSets)
+	{
+		auto pool = createPool(setsPerPool, poolRatios);
+		setsPerPool *= 1.5;
+		readyPools.push_back(pool);
+	}
+
+	VulkanGrowableDescriptorAllocator::VulkanGrowableDescriptorAllocator(VulkanGrowableDescriptorAllocator&& other) noexcept
+		: context(other.context),
+		ratios(std::move(other.ratios)),
+		readyPools(std::move(other.readyPools)),
+		fullPools(std::move(other.fullPools)),
+		setsPerPool(other.setsPerPool)
+	{
+		other.context = nullptr;
+		other.ratios = {};
+		other.readyPools = {};
+		other.fullPools = {};
+		other.setsPerPool = 0;
+	}
+
+	VulkanGrowableDescriptorAllocator::~VulkanGrowableDescriptorAllocator()
+	{
+		if(context != nullptr)
+			destroy();
+	}
+
+	VulkanGrowableDescriptorAllocator& VulkanGrowableDescriptorAllocator::operator=(VulkanGrowableDescriptorAllocator&& other) noexcept
+	{
+		if (this != &other)
+		{
+			context = other.context;
+			ratios = std::move(other.ratios);
+			readyPools = std::move(other.readyPools);
+			fullPools = std::move(other.fullPools);
+			setsPerPool = other.setsPerPool;
+
+			other.context = nullptr;
+			other.ratios = {};
+			other.readyPools = {};
+			other.fullPools = {};
+			other.setsPerPool = 0;
+		}
+
+		return *this;
+	}
+
+	void VulkanGrowableDescriptorAllocator::clearPools()
+	{
+		DEBUG_ASSERT(context != nullptr, "VulkanGrowableDescriptorAllocator not initialised");
+
+		for (auto& pool : readyPools)
+			context->device.resetDescriptorPool(pool);
+
+		for (auto& pool : fullPools)
+			context->device.resetDescriptorPool(pool);
+	}
+
+	void VulkanGrowableDescriptorAllocator::destroy()
+	{
+		DEBUG_ASSERT(context != nullptr, "VulkanGrowableDescriptorAllocator not initialised");
+
+		for (auto& pool : readyPools)
+			context->device.destroyDescriptorPool(pool);
+
+		for (auto& pool : fullPools)
+			context->device.destroyDescriptorPool(pool);
+
+		readyPools.clear();
+		fullPools.clear();
+		ratios.clear();
+
+		context = nullptr;
+		setsPerPool = 0;
+	}
+
+	vk::DescriptorPool VulkanGrowableDescriptorAllocator::getPool()
+	{
+		if (readyPools.size() != 0)
+		{
+			auto new_pool = readyPools.back();
+			readyPools.pop_back();
+			return new_pool;
+		}
+		else
+		{
+			auto new_pool = createPool(setsPerPool, ratios);
+			setsPerPool *= 1.5;
+			if (setsPerPool > 4092)
+				setsPerPool = 4092;
+			return new_pool;
+		}
+	}
+
+	vk::DescriptorPool VulkanGrowableDescriptorAllocator::createPool(uint32_t setCount, std::span<PoolSizeRatio> poolRatios)
+	{
+		auto pool_sizes = std::vector<vk::DescriptorPoolSize>{};
+		for (auto& ratio : poolRatios)
+		{
+			pool_sizes.push_back(vk::DescriptorPoolSize
+			{
+				.type            = ratio.type,
+				.descriptorCount = static_cast<uint32_t>(ratio.ratio * setCount)
+			});
+		}
+
+		auto pool_info = vk::DescriptorPoolCreateInfo
+		{
+			.maxSets       = setCount,
+			.poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
+			.pPoolSizes    = pool_sizes.data()
+		};
+
+		auto res = context->device.createDescriptorPool(pool_info);
+		if (!res)
+		{
+			DEBUG_ERROR("Failed to create vk::DescriptorPool object");
+			return VK_NULL_HANDLE;
+		}
+
+		return res;
+	}
+
+	VulkanDescriptorWriter& VulkanDescriptorWriter::writeBuffer
+	(
+		int binding, 
+		vk::Buffer buffer, 
+		size_t size, 
+		size_t offset, 
+		vk::DescriptorType type
+	)
+	{
+		auto& info = bufferInfos.emplace_back(vk::DescriptorBufferInfo
+		{
+			.buffer = buffer,
+			.offset = offset,
+			.range  = size
+		});
+
+		auto write = vk::WriteDescriptorSet
+		{
+			.dstSet          = VK_NULL_HANDLE,
+			.dstBinding      = static_cast<uint32_t>(binding),
+			.descriptorCount = 1,
+			.descriptorType  = type,
+			.pBufferInfo     = &info
+		};
+
+		writes.push_back(write);
+		return *this;
+	}
+
+	VulkanDescriptorWriter& VulkanDescriptorWriter::writeImage
+	(
+		int binding, 
+		vk::ImageView view, 
+		vk::Sampler sampler, 
+		vk::ImageLayout layout, 
+		vk::DescriptorType type
+	)
+	{
+		auto& info = imageInfos.emplace_back(vk::DescriptorImageInfo
+		{
+			.sampler     = sampler,
+			.imageView   = view,
+			.imageLayout = layout
+		});
+
+		auto write = vk::WriteDescriptorSet
+		{ 
+			.dstSet          = VK_NULL_HANDLE,
+			.dstBinding      = static_cast<uint32_t>(binding),
+			.descriptorCount = 1,
+			.descriptorType  = type,
+			.pImageInfo      = &info
+		};
+
+		writes.push_back(write);
+		return *this;
+	}
+
+	VulkanDescriptorWriter& VulkanDescriptorWriter::clear()
+	{
+		imageInfos.clear();
+		bufferInfos.clear();
+		writes.clear();
+		return *this;
+	}
+
+	void VulkanDescriptorWriter::updateSet(VulkanContext* context, vk::DescriptorSet set)
+	{
+		for (auto& write : writes)
+			write.dstSet = set;
+
+		context->getDevice().updateDescriptorSets(
+			static_cast<uint32_t>(writes.size()), writes.data(),
+			0, VK_NULL_HANDLE
+		);
 	}
 }

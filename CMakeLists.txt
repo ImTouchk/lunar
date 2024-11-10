@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
-project(lunar VERSION 0.1.7)
+project(lunar VERSION 0.1.8)
 
 message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar_VERSION_PATCH}")
 

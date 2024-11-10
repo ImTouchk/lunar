@@ -36,6 +36,7 @@ namespace Render
 		auto& vk_ctx = _getVkContext();
 		auto phys_device = vk_ctx.getRenderingDevice();
 		auto device = vk_ctx.getDevice();
+		device.waitIdle();
 
 		auto capabilities = phys_device.getSurfaceCapabilitiesKHR(_vkSurface);
 		auto image_count = (capabilities.maxImageCount != 0)
@@ -73,7 +74,7 @@ namespace Render
 		_vkSwapchain = device.createSwapchainKHR(swap_info);
 
 		auto images = device.getSwapchainImagesKHR(_vkSwapchain);
-		if (images.size() > 5)
+		if (images.size() > FRAME_OVERLAP)
 		{
 			DEBUG_ERROR("Too many swapchain images (max supported: 5 | existent: {})", images.size());
 		}
@@ -100,8 +101,8 @@ namespace Render
 				}
 			};
 
-			_vkSwapImages[i].img = images[i];
-			_vkSwapImages[i].view = device.createImageView(view_info);
+			_vkFrameData[i].swapchain.image = images[i];
+			_vkFrameData[i].swapchain.view = device.createImageView(view_info);
 		}
 	}
 
@@ -113,8 +114,9 @@ namespace Render
 		device.waitIdle();
 		for (size_t i = 0; i < _vkSwapImgCount; i++)
 		{
-			device.destroyImageView(_vkSwapImages[i].view);
+			device.destroyImageView(_vkFrameData[i].swapchain.view);
 		}
+
 		device.destroySwapchainKHR(_vkSwapchain);
 	}
 
@@ -127,10 +129,11 @@ namespace Render
 
 		_vkDestroySwap();
 
-		for (size_t i = 0; i < FRAME_OVERLAP; i++)
+		for (size_t i = 0; i < _vkSwapImgCount; i++)
 		{
-			device.destroySemaphore(_vkSwapImages[i].imagePresentable);
-			device.destroySemaphore(_vkSwapImages[i].imageAvailable);
+			device.destroyDescriptorSetLayout(_vkFrameData[i].uniformBuffer.descriptorLayout);
+			device.destroySemaphore(_vkFrameData[i].internal.renderFinished);
+			device.destroySemaphore(_vkFrameData[i].swapchain.imageAvailable);
 		}
 
 		inst.destroySurfaceKHR(_vkSurface);
@@ -193,16 +196,46 @@ namespace Render
 
 		auto device = vk_ctx.getDevice();
 		
+
+		auto sizes = std::vector<VulkanGrowableDescriptorAllocator::PoolSizeRatio>
+		{
+			{ vk::DescriptorType::eStorageImage, 1 }
+		};
+
 		_vkCommandPool = vk_ctx.createCommandPool();
+		_vkDescriptorAlloc = VulkanGrowableDescriptorAllocator(&vk_ctx, 10, sizes);
 
 		for (size_t i = 0; i < FRAME_OVERLAP; i++)
 		{
+			auto draw_img_extent = vk::Extent3D{ 1920, 1080, 1 };
+			auto draw_img_format = vk::Format::eR16G16B16A16Sfloat;
+			auto draw_img_usage = vk::ImageUsageFlagBits::eColorAttachment |
+				vk::ImageUsageFlagBits::eStorage |
+				vk::ImageUsageFlagBits::eTransferSrc |
+				vk::ImageUsageFlagBits::eTransferDst;
+
 			vk::SemaphoreCreateInfo semaphore_info = {};
 			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
 
-			_vkSwapImages[i].imagePresentable = device.createSemaphore(semaphore_info);
-			_vkSwapImages[i].imageAvailable = device.createSemaphore(semaphore_info);
-			_vkSwapImages[i].cmdBuffer = _vkCommandPool.allocateBuffer(vk::CommandBufferLevel::ePrimary);
+			_vkFrameData[i].internal.image = vk_ctx.createImage(draw_img_format, draw_img_extent, draw_img_usage);
+			_vkFrameData[i].internal.renderFinished = device.createSemaphore(semaphore_info);
+			_vkFrameData[i].swapchain.imageAvailable = device.createSemaphore(semaphore_info);
+			_vkFrameData[i].commandBuffer = _vkCommandPool.allocateBuffer(vk::CommandBufferLevel::ePrimary);
+			_vkFrameData[i].uniformBuffer.descriptorLayout = VulkanDescriptorLayoutBuilder()
+				.useVulkanContext(vk_ctx)
+				.addBinding(0, vk::DescriptorType::eUniformBuffer)
+				.addShaderStageFlag(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)
+				.build();
+			_vkFrameData[i].uniformBuffer.descriptorSet = _vkDescriptorAlloc.allocate(_vkFrameData[i].uniformBuffer.descriptorLayout);
+			_vkFrameData[i].uniformBuffer.buffer = vk_ctx.createBuffer(
+				sizeof(UniformBufferData), 
+				vk::BufferUsageFlagBits::eUniformBuffer,
+				VMA_MEMORY_USAGE_CPU_TO_GPU
+			);
+
+			VulkanDescriptorWriter()
+				.writeBuffer(0, _vkFrameData[i].uniformBuffer.buffer, sizeof(UniformBufferData), 0, vk::DescriptorType::eUniformBuffer)
+				.updateSet(&vk_ctx, _vkFrameData[i].uniformBuffer.descriptorSet);
 		}
 	}
 
@@ -215,7 +248,8 @@ namespace Render
 			.getRenderingDevice()
 			.getSurfaceCapabilitiesKHR(_vkSurface);
 
-		_vkSwapExtent = vk::Extent2D{
+		_vkSwapExtent = vk::Extent2D 
+		{
 			std::clamp(
 				(uint32_t)width,
 				capabilities.minImageExtent.width,
@@ -227,6 +261,11 @@ namespace Render
 				capabilities.maxImageExtent.height
 			)
 		};
+	}
+
+	VulkanFrameData& Window::getVkFrameData(size_t idx)
+	{
+		return _vkFrameData[idx];
 	}
 
 	vk::SurfaceKHR& Window::getVkSurface()
@@ -249,27 +288,27 @@ namespace Render
 		return _vkSwapImgCount;
 	}
 
-	vk::Semaphore& Window::getVkImageAvailable(size_t idx)
-	{
-		// TODO: bounds check
-		return _vkSwapImages[idx].imageAvailable;
-	}
+	//vk::Semaphore& Window::getVkImageAvailable(size_t idx)
+	//{
+	//	// TODO: bounds check
+	//	return _vkSwapImages[idx].imageAvailable;
+	//}
 
-	vk::Semaphore& Window::getVkImagePresentable(size_t idx)
-	{
-		// TODO: bounds check
-		return _vkSwapImages[idx].imagePresentable;;
-	}
+	//vk::Semaphore& Window::getVkImagePresentable(size_t idx)
+	//{
+	//	// TODO: bounds check
+	//	return _vkSwapImages[idx].imagePresentable;;
+	//}
 
-	VulkanCommandBuffer& Window::getVkCommandBuffer(size_t idx)
-	{
-		return _vkSwapImages[idx].cmdBuffer;
-	}
+	//VulkanCommandBuffer& Window::getVkCommandBuffer(size_t idx)
+	//{
+	//	return _vkSwapImages[idx].cmdBuffer;
+	//}
 
-	vk::Image& Window::getVkSwapImage(size_t idx)
-	{
-		return _vkSwapImages[idx].img;
-	}
+	//vk::Image& Window::getVkSwapImage(size_t idx)
+	//{
+	//	return _vkSwapImages[idx].img;
+	//}
 
 	const vk::Extent2D& Window::getVkSwapExtent() const
 	{

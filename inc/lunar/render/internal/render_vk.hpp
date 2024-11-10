@@ -124,7 +124,7 @@ namespace Render
 
 		VulkanDescriptorLayoutBuilder& clear();
 		VulkanDescriptorLayoutBuilder& useVulkanContext(VulkanContext& context);
-		VulkanDescriptorLayoutBuilder& addShaderStageFlag(vk::ShaderStageFlagBits flag);
+		VulkanDescriptorLayoutBuilder& addShaderStageFlag(vk::ShaderStageFlags flag);
 		VulkanDescriptorLayoutBuilder& addLayoutCreateFlag(vk::DescriptorSetLayoutCreateFlagBits flag);
 		VulkanDescriptorLayoutBuilder& addBinding(uint32_t binding, vk::DescriptorType type);
 		VulkanDescriptorLayoutBuilder& setNext(void* pNext);
@@ -162,6 +162,49 @@ namespace Render
 
 	private:
 		VulkanContext* context;
+	};
+
+	class LUNAR_API VulkanGrowableDescriptorAllocator
+	{
+	public:
+		struct PoolSizeRatio
+		{
+			vk::DescriptorType type;
+			float ratio;
+		};
+
+		VulkanGrowableDescriptorAllocator(VulkanContext* context, uint32_t initialSets, std::span<PoolSizeRatio> poolRatios);
+		VulkanGrowableDescriptorAllocator() = default;
+		~VulkanGrowableDescriptorAllocator();
+
+		VulkanGrowableDescriptorAllocator(VulkanGrowableDescriptorAllocator&&)  noexcept;
+		VulkanGrowableDescriptorAllocator& operator=(VulkanGrowableDescriptorAllocator&&) noexcept;
+	
+		void destroy();
+		void clearPools();
+
+		[[nodiscard]] vk::DescriptorSet allocate(vk::DescriptorSetLayout layout);
+	private:
+		[[nodiscard]] vk::DescriptorPool getPool();
+		[[nodiscard]] vk::DescriptorPool createPool(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
+
+		VulkanContext* context = nullptr;
+		std::vector<PoolSizeRatio> ratios = {};
+		std::vector<vk::DescriptorPool> fullPools = {};
+		std::vector<vk::DescriptorPool> readyPools = {};
+		uint32_t setsPerPool = 0;
+	};
+
+	struct LUNAR_API VulkanDescriptorWriter
+	{
+		std::deque<vk::DescriptorImageInfo> imageInfos = {};
+		std::deque<vk::DescriptorBufferInfo> bufferInfos = {};
+		std::vector<vk::WriteDescriptorSet> writes = {};
+
+		VulkanDescriptorWriter& clear();
+		VulkanDescriptorWriter& writeImage(int binding, vk::ImageView view, vk::Sampler sampler, vk::ImageLayout layout, vk::DescriptorType type);
+		VulkanDescriptorWriter& writeBuffer(int binding, vk::Buffer buffer, size_t size, size_t offset, vk::DescriptorType type);
+		void updateSet(VulkanContext* context, vk::DescriptorSet set);
 	};
 
 	struct LUNAR_API VulkanPipelineBuilder
@@ -211,12 +254,14 @@ namespace Render
 		VulkanBuffer() = default;
 		~VulkanBuffer();
 
-
 		VulkanBuffer(const VulkanBuffer&) = delete;
 		VulkanBuffer& operator=(const VulkanBuffer&) = delete;
 		VulkanBuffer(VulkanBuffer&&) noexcept;
 		VulkanBuffer& operator=(VulkanBuffer&&) noexcept;
 
+		void destroy();
+
+		operator vk::Buffer& ();
 
 		vk::Buffer handle = VK_NULL_HANDLE;
 		VmaAllocation allocation = VK_NULL_HANDLE;
@@ -231,6 +276,11 @@ namespace Render
 		VulkanBuffer indexBuffer;
 		VulkanBuffer vertexBuffer;
 		vk::DeviceAddress vertexBufferAddr;
+	};
+
+	class LUNAR_API VulkanShader
+	{
+
 	};
 
 	class LUNAR_API VulkanContext : public RenderContext
@@ -248,11 +298,9 @@ namespace Render
 		void init() override;
 		void destroy() override;
 
-		void render(Core::Scene& scene) override;
-		void output(RenderTarget* target) override;
-
 		//void render(Core::Scene& scene);
 		//void draw(Core::Scene& scene, RenderTarget* target) override;
+		void draw(Core::Scene& scene, RenderTarget* target) override;
 		void flush();
 
 		VulkanCommandPool createCommandPool();
@@ -280,7 +328,6 @@ namespace Render
 			vk::PhysicalDeviceVulkan13Features features13
 		);
 		bool createMainCommandPool();
-		bool createDrawImage();
 
 		std::queue<std::function<void()>> deletionQueue;
 		std::stack<std::function<void()>> deletionStack;
@@ -298,20 +345,25 @@ namespace Render
 
 		VulkanCommandPool mainCmdPool;
 		VulkanCommandBuffer mainCmdBuffer;
-		VulkanDescriptorAllocator mainDescriptorAllocator;
+		VulkanGrowableDescriptorAllocator mainDescriptorAllocator;
 		VmaAllocator allocator;
 
-		vk::Semaphore drawFinished;
-		VulkanImage drawImage;
-		vk::Extent2D drawExtent;
-		vk::DescriptorSet drawImageDescriptors;
-		vk::DescriptorSetLayout drawImageDescriptorLayout;
+		//vk::Semaphore drawFinished;
+		//VulkanImage drawImage;
+		//vk::Extent2D drawExtent;
+
+		struct {
+			vk::DescriptorSet descriptorSet;
+			vk::DescriptorSetLayout descriptorLayout;
+			VulkanBuffer buffer;
+		} sceneData;
 
 		friend class VulkanImage;
 		friend class VulkanBuffer;
 		friend class VulkanCommandPool;
 		friend class VulkanCommandBuffer;
 		friend class VulkanDescriptorAllocator;
+		friend class VulkanGrowableDescriptorAllocator;
 		friend struct VulkanPipelineBuilder;
 	};
 
