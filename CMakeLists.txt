@@ -90,6 +90,7 @@ add_library(lunar SHARED
     "src/render/terra/scanner.cpp"
     "src/render/terra/parser.cpp"
     "src/render/terra/transpiler.cpp"
+    "src/render/terra/vk_transpiler.cpp"
 
     "src/render/image.cpp"
     "src/render/window.cpp"
