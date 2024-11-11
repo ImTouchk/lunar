@@ -1,0 +1,22 @@
+struct vec3 {
+	x: Float,
+	y: Float,
+	z: int,
+	test: fn () {
+		x = 5;
+		y = 7.04;
+
+	}
+};
+
+- ( 5 + 3 ) == true;
+
+let x = vec3( 1, 2 , 3 );
+
+{
+	let mut x = 5;
+	while ( true ) 
+	{
+		vec3( 5, 6.4, 3 );
+	}
+}

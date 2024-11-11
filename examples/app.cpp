@@ -12,6 +12,8 @@
 #include <lunar/exp/ui/dom.hpp>
 #include <lunar/file/file_tracker.hpp>
 
+#include <lunar/render/terra.hpp>
+
 class Test2Comp : public Core::Component
 {
 public:
@@ -114,6 +116,11 @@ int main(int argc, char* argv[])
         //.useNativePackageLoader()
         //.enableVerbose()
         //.create();
+
+    Terra::transpileCode(
+        Fs::dataDirectory().append("test.tvs"),
+        Terra::TranspilerOutput::eVulkanGLSL
+    );
 
     while (!game_window.shouldClose())
     {
