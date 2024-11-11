@@ -1,6 +1,7 @@
 #pragma once
 #include <lunar/api.hpp>
 #include <lunar/exp/utils/lexer.hpp>
+#include <lunar/debug.hpp>
 #include <string_view>
 #include <variant>
 #include <format>
@@ -51,6 +52,26 @@ namespace Terra
 		Token(TokenType type, int i) : type(type), value(i) {}
 		Token(TokenType type) : type(type), value(-1) {}
 
+		bool operator==(TokenType type)
+		{
+			return this->type == type;
+		}
+
+		bool operator==(const std::string_view& value)
+		{
+			if (this->value.index() != 2)
+				return false;
+
+			return std::get<std::string_view>(this->value)
+				.compare(value) == 0;
+		}
+
+		std::string_view toStringView() const
+		{
+			DEBUG_ASSERT(value.index() == 2);
+			return std::get<std::string_view>(value);
+		}
+
 		std::string toString() const
 		{
 			switch (value.index())
@@ -60,6 +81,8 @@ namespace Terra
 			case 2: return std::format("{}", std::get<std::string_view>(value));
 			}
 		}
+
+		operator std::string() { return toString(); }
 	};
 
 	LUNAR_API void scanShaderSource
