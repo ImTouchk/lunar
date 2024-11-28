@@ -1,6 +1,7 @@
 #include <lunar/exp/utils/lexer.hpp>
 #include <lunar/debug.hpp>
 #include <cstdarg>
+#include <regex>
 
 namespace Utils::Exp
 {

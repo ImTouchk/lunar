@@ -1,7 +1,8 @@
 #pragma once
 #include <lunar/api.hpp>
-#include <lunar/render/terra/token.hpp>
+#include <lunar/exp/utils/token.hpp>
 #include <concepts>
+#include <format>
 
 namespace Terra::imp
 {
@@ -17,7 +18,8 @@ namespace Terra::imp
 	};
 
 	using Expression = std::shared_ptr<Expression_T>;
-
+	using Token = Utils::Exp::Token;
+	
 	struct LUNAR_API BinaryExpr : Expression_T
 	{
 		BinaryExpr(Expression& left, const Token& op, Expression& right) : left(left), op(op), right(right) {}

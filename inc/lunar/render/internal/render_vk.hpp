@@ -280,7 +280,21 @@ namespace Render
 
 	class LUNAR_API VulkanShader
 	{
+	public:
+		VulkanShader(
+			VulkanContext* context,
+			vk::Pipeline& pipeline,
+			vk::PipelineLayout& layout,
+			vk::Fence& wasCompiled
+		);
 
+		
+
+		vk::Pipeline       pipeline    = VK_NULL_HANDLE;
+		vk::PipelineLayout layout      = VK_NULL_HANDLE;
+		vk::Fence          wasCompiled = VK_NULL_HANDLE;
+	private:
+		VulkanContext*     context     = nullptr;
 	};
 
 	class LUNAR_API VulkanContext : public RenderContext

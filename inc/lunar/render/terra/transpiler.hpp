@@ -3,6 +3,7 @@
 #include <lunar/file/filesystem.hpp>
 #include <lunar/render/terra/statement.hpp>
 #include <lunar/render/terra/parser.hpp>
+#include <lunar/exp/utils/token.hpp>
 #include <vector>
 
 namespace Terra
@@ -23,7 +24,7 @@ namespace Terra
 		concept IsNamedStatementType = 
 			std::derived_from<T, Statement_T> && 
 			requires(T t) {
-				{ t.name } -> IsAnyOf<Token, Token&>;
+				{ t.name } -> IsAnyOf<Utils::Exp::Token, Utils::Exp::Token&>;
 			};
 
 		inline size_t getTypeHash(const Expression& expr) { return typeid(*expr).hash_code(); }
@@ -66,65 +67,51 @@ namespace Terra
 
 		struct LUNAR_API TranspilerData
 		{
-			TranspilerData(const std::vector<Statement>& rootScope);
+			TranspilerData(std::vector<Statement>& rootScope);
 			
+			std::vector<Statement>&       rootScope;
 			size_t                        charsSinceLastBr = 0;
 			std::string                   output           = "";
+			std::string                   errorOutput      = "";
 			size_t                        inLayoutCount    = 0;
 			size_t                        outLayoutCount   = 0;
 			size_t                        currentDepth     = 0;
 
-			const std::vector<Statement>& rootScope;
-
-			std::vector<Statement>        globalFunctions  = {};
-			std::vector<Statement>        globalStructures = {};
-			std::vector<Statement>        globalVariables  = {};
-
-			std::vector<Statement>        scopeFunctions   = {};
-			std::vector<Statement>        scopeStructures  = {};
-			std::vector<Statement>        scopeVariables   = {};
 
 			void beginScope();
 			void endScope();
 			void writeToOutput(const std::string_view& text);
-
-			StructStmt* getStructure(const std::string_view& name);
-			FnStmt* getFunction(const std::string_view& name);
-			VarStmt* getVariable(const std::string_view& name);
-			std::string_view getIdentifierReturnType(const std::string_view& name);
-			std::string_view getIdentifierType(const std::string_view& name);
-			std::string_view getVariableType(const VarStmt& var);
-			std::string_view getFnReturnType(const FnStmt& fn);
-			std::string_view getExpressionType(const Expression& expr);
-
-			void loadLocalScope(const std::vector<Statement>& localScope);
-			void clearLocalScope();
-
-			template<typename T> requires IsNamedStatementType<T>
-			T* searchInScopes
-			(
-				const std::string_view& name,
-				const std::vector<Statement>& global,
-				const std::vector<Statement>& local
-			)
-			{
-				for (auto& stmt : local)
-				{
-					auto* casted_stmt = static_cast<T*>(stmt.get());
-					if (casted_stmt->name == name)
-						return casted_stmt;
-				}
-
-				for (auto& stmt : global)
-				{
-					auto* casted_stmt = static_cast<T*>(stmt.get());
-					if (casted_stmt->name == name)
-						return casted_stmt;
-				}
-
-				return nullptr;
-			}
+			void writeError(const Statement& at, const std::string& message);
+			void writeError(const Expression& at, const std::string& message);
 		};
+
+		enum class LUNAR_API NativeType
+		{
+			eUnknown = 0,
+			eInt,
+			eFloat,
+			eBool,
+			eVec3,
+			eVec4
+		};
+
+		NativeType toNativeType(const std::string_view& name);
+		
+
+		struct LUNAR_API StaticAnalyzer
+		{
+			StaticAnalyzer(TranspilerData& data);
+
+			StaticAnalyzer& run();
+
+			TranspilerData& data;
+		};
+
+		LUNAR_API typedef void (*PFN_StatementVisitor)(TranspilerData&, Statement&);
+		LUNAR_API typedef void (*PFN_ExpressionVisitor)(TranspilerData&, Expression&);
+
+		template<typename T>
+		using VisitorMap = std::unordered_map<size_t, T>;
 
 		LUNAR_API bool isNativeType(const std::string_view& name);
 		LUNAR_API bool _vkGlsl_transpileCode(TranspilerData& data);

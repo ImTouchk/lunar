@@ -1,6 +1,7 @@
 #include <lunar/render/internal/render_vk.hpp>
 #include <lunar/file/binary_file.hpp>
 #include <lunar/debug.hpp>
+#include <glslang/Public/ShaderLang.h>
 
 namespace Render
 {

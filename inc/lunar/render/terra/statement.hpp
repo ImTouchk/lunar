@@ -1,6 +1,6 @@
 #pragma once
 #include <lunar/api.hpp>
-#include <lunar/render/terra/token.hpp>
+#include <lunar/exp/utils/token.hpp>
 #include <lunar/render/terra/expression.hpp>
 
 namespace Terra::imp
@@ -95,22 +95,16 @@ namespace Terra::imp
 			Token type;
 		};
 
-		FnStmt(const Token& name, const Token& retType) : name(name), retType(retType), params(), body() {}
+		FnStmt(const Token& name, const std::string_view& retType) : name(name), retType(retType), params(), body() {}
 
 		Token name;
-		Token retType;
+		std::string_view retType;
 		std::vector<Parameter> params;
 		Statement body;
 
 		std::string toString() const override
 		{
-			std::string str = std::format("fn {}(", name.toString());
-			for (auto& param : params)
-				str += std::format("{}: {},", param.name.toString(), param.type.toString());
-			str += std::format("): {} {{\n", retType.toString());
-			str += body->toString() + "\n";
-			str += "}\n";
-			return str;
+			return "";
 		}
 	};
 

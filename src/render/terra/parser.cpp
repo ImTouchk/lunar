@@ -61,12 +61,12 @@ namespace Terra::imp
 		if (check(type)) return advance();
 		else
 		{
-			DEBUG_ERROR("Shader parsing error: {}", message);
+			DEBUG_ERROR("Shader parsing error: {}\n{}", message, Utils::Exp::createContextMessage(tokens, current));
 			throw;
 		}
 	}
 
-	const std::vector<Statement>& Parser::run()
+	Parser& Parser::run()
 	{
 		try {
 			while (!isAtEnd())
@@ -76,6 +76,16 @@ namespace Terra::imp
 			DEBUG_ERROR("Failed to parse shader file.");
 		}
 
+		return *this;
+	}
+
+	const std::vector<Statement>& Parser::getResult() const
+	{
+		return stmts;
+	}
+
+	std::vector<Statement>& Parser::getResult()
+	{
 		return stmts;
 	}
 
@@ -250,7 +260,7 @@ namespace Terra::imp
 
 	Expression Parser::primary()
 	{
-		if (match({ TokenType::eFalse, TokenType::eTrue, TokenType::eReal, TokenType::eIdentifier }))
+		if (match({ TokenType::eFalse, TokenType::eTrue, TokenType::eReal, TokenType::eInteger, TokenType::eIdentifier }))
 			return std::make_shared<LiteralExpr>(previous());
 
 		if (match({ TokenType::eLeftParen }))
@@ -278,7 +288,7 @@ namespace Terra::imp
 		auto stmt = std::make_shared<BlockStmt>();
 
 		while (!check(TokenType::eRightBrace) && !isAtEnd())
-			stmt->stmts.push_back(declaration());
+			stmt->stmts.emplace_back(declaration());
 
 		consume(TokenType::eRightBrace, "Expected right brace at the end of block");
 		return stmt;
@@ -411,7 +421,7 @@ namespace Terra::imp
 
 		consume(TokenType::eLeftParen, "Expected '(' at beginning of function declaration.");
 
-		auto fn_stmt = std::make_shared<FnStmt>(name, Token(TokenType::eEof, "void"));
+		auto fn_stmt = std::make_shared<FnStmt>(name, "unknown");
 		if (!check(TokenType::eRightParen))
 		{
 			do
@@ -433,7 +443,9 @@ namespace Terra::imp
 		if (!check(TokenType::eLeftBrace))
 		{
 			consume(TokenType::eDoubleColon, "Expected function return type inside declaration.");
-			fn_stmt->retType = consume(TokenType::eIdentifier, "Expected function return type inside declaration.");
+			
+			const auto& ret_type = consume(TokenType::eIdentifier, "Expected function return type inside declaration.");
+			fn_stmt->retType = ret_type.toStringView();
 		}
 
 		consume(TokenType::eLeftBrace, "Expected beginning of function block.");

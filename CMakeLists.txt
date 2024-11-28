@@ -82,14 +82,14 @@ add_library(lunar SHARED
     "src/render/render_components.cpp"
     
     "inc/lunar/render/terra.hpp"
-    "inc/lunar/render/terra/token.hpp"
     "inc/lunar/render/terra/expression.hpp"
     "inc/lunar/render/terra/statement.hpp"
     "inc/lunar/render/terra/parser.hpp"
     "inc/lunar/render/terra/transpiler.hpp"
-    "src/render/terra/scanner.cpp"
+    
     "src/render/terra/parser.cpp"
     "src/render/terra/transpiler.cpp"
+    "src/render/terra/type_checker.cpp"
     "src/render/terra/vk_transpiler.cpp"
 
     "src/render/image.cpp"
@@ -100,8 +100,12 @@ add_library(lunar SHARED
 if(${LUNAR_EXPERIMENTAL})
     message("-- lunar: Including experimental features")
     target_sources(lunar PRIVATE
+        "inc/lunar/exp/utils/token.hpp"
         "inc/lunar/exp/utils/lexer.hpp"
         "src/exp/utils/lexer.cpp"
+
+        "inc/lunar/exp/utils/scanner.hpp"
+        "src/exp/utils/scanner.cpp"
         
         "inc/lunar/exp/ui/dom.hpp"
         "src/exp/ui/dom.cpp"
