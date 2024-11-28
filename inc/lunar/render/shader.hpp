@@ -4,12 +4,26 @@
 #include <lunar/api.hpp>
 #include <string_view>
 #include <vector>
-#ifdef LUNAR_VULKAN
-#	include <vulkan/vulkan.hpp>
-#endif
 
 namespace Render
 {
+	class LUNAR_API GraphicsShader
+	{
+		
+	};
+
+	struct LUNAR_API GraphicsShaderBuilder
+	{
+	public:
+		GraphicsShaderBuilder() = default;
+		~GraphicsShaderBuilder() = default;
+
+		GraphicsShaderBuilder& useRenderContext(std::shared_ptr<RenderContext>& ctx);
+		GraphicsShaderBuilder& fromVertexSourceFile(const Fs::Path& path);
+		GraphicsShaderBuilder& fromFragmentSourceFile(const Fs::Path& path);
+
+	};
+
 //	enum class LUNAR_API ShaderVariableValueT
 //	{
 //		eUnknown = 0,

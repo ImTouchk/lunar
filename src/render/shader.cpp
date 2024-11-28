@@ -1,3 +1,21 @@
+#include <lunar/render/terra/parser.hpp>
+#include <lunar/render/shader.hpp>
+#include <lunar/file/text_file.hpp>
+#include <lunar/exp/utils/lexer.hpp>
+#include <lunar/exp/utils/token.hpp>
+#include <variant>
+#include <memory>
+#include <format>
+
+namespace Render
+{
+	GraphicsShaderBuilder& GraphicsShaderBuilder::fromVertexSourceFile(const Fs::Path& path)
+	{
+
+		return *this;
+	}
+}
+
 //#include <lunar/render/shader.hpp>
 //#include <lunar/render/render_context.hpp>
 //#include <lunar/debug.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 #include <lunar/api.hpp>
-#include <lunar/render/terra/token.hpp>
+#include <lunar/exp/utils/token.hpp>
 #include <lunar/render/terra/expression.hpp>
 #include <lunar/render/terra/statement.hpp>
 
@@ -9,9 +9,14 @@ namespace Terra::imp
 	class LUNAR_API Parser
 	{
 	public:
+		using Token = Utils::Exp::Token;
+		using TokenType = Utils::Exp::TokenType;
+
 		Parser(const std::vector<Token>& tokens);
 
-		[[nodiscard]] const std::vector<Statement>& run();
+		Parser& run();
+		[[nodiscard]] std::vector<Statement>& getResult();
+		[[nodiscard]] const std::vector<Statement>& getResult() const;
 
 	private:
 		Expression term();
