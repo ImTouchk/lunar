@@ -12,6 +12,11 @@
 #include <lunar/debug.hpp>
 #include <set>
 
+#ifdef LUNAR_IMGUI
+#	include <imgui_impl_glfw.h>
+#	include <imgui_impl_vulkan.h>
+#endif
+
 namespace Render
 {
 	VKAPI_ATTR VkBool32 VKAPI_CALL DebugLayerCallback
@@ -298,6 +303,65 @@ namespace Render
 		});
 		return true;
 	}
+
+#	ifdef LUNAR_IMGUI
+	void VulkanContext::_imguiInit()
+	{
+		vk::DescriptorPoolSize pool_sizes[] =
+		{
+			{ vk::DescriptorType::eSampler, 1000 },
+			{ vk::DescriptorType::eCombinedImageSampler, 1000 },
+			{ vk::DescriptorType::eSampledImage, 1000 },
+			{ vk::DescriptorType::eStorageImage, 1000 },
+			{ vk::DescriptorType::eUniformTexelBuffer, 1000 },
+			{ vk::DescriptorType::eStorageTexelBuffer, 1000 },
+			{ vk::DescriptorType::eUniformBuffer, 1000 },
+			{ vk::DescriptorType::eStorageBuffer, 1000 },
+			{ vk::DescriptorType::eUniformBufferDynamic, 1000 },
+			{ vk::DescriptorType::eStorageBufferDynamic, 1000 },
+			{ vk::DescriptorType::eInputAttachment, 1000 }
+		};
+
+		auto pool_info = vk::DescriptorPoolCreateInfo
+		{
+			.flags         = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+			.maxSets       = 1000,
+			.poolSizeCount = 11,
+			.pPoolSizes    = pool_sizes
+		};
+
+		imguiPool = device.createDescriptorPool(pool_info);
+
+		auto pipeline_color_attachments = VK_FORMAT_R16G16B16A16_SFLOAT;
+
+		auto init_info = ImGui_ImplVulkan_InitInfo
+		{
+			.Instance                    = instance,
+			.PhysicalDevice              = physicalDevice,
+			.Device                      = device,
+			.Queue                       = graphicsQueue,
+			.DescriptorPool              = imguiPool,
+			.MinImageCount               = 2,
+			.ImageCount                  = 2,
+			.MSAASamples                 = VK_SAMPLE_COUNT_1_BIT,
+			.UseDynamicRendering         = true,
+			.PipelineRenderingCreateInfo =
+			{
+				.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+				.colorAttachmentCount    = 1,
+				.pColorAttachmentFormats = &pipeline_color_attachments
+			}
+		};
+
+		ImGui_ImplVulkan_Init(&init_info);
+		ImGui_ImplVulkan_CreateFontsTexture();
+
+		deletionStack.push([this]() {
+			device.destroyDescriptorPool(imguiPool);
+			ImGui_ImplVulkan_Shutdown();
+		});
+	}
+#	endif
 
 	VulkanContext::VulkanContext
 	(

@@ -8,6 +8,9 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
+#include <imgui_impl_vulkan.h>
+#include <imgui_impl_glfw.h>
+
 namespace Render
 {
 	void TransitionImage
@@ -110,6 +113,12 @@ namespace Render
 
 		command_buffer.begin();
 
+#		ifdef LUNAR_IMGUI
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+#		endif
+
 		uint32_t img_idx;
 		std::ignore = device.acquireNextImageKHR(swapchain, UINT64_MAX, frame_data.swapchain.imageAvailable, {}, &img_idx);
 		
@@ -175,6 +184,10 @@ namespace Render
 
 		command_buffer->setViewport(0, viewport);
 		command_buffer->setScissor(0, scissor);
+
+		ImGui::ShowDemoWindow();
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer.operator vk::CommandBuffer &());
 		
 		//mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, trianglePipeline);
 		//mainCmdBuffer->draw(3, 1, 0, 0);

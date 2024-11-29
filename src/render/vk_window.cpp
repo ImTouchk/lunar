@@ -5,6 +5,11 @@
 #include <lunar/debug.hpp>
 #include <GLFW/glfw3.h>
 
+#ifdef LUNAR_IMGUI
+#	include <imgui_impl_vulkan.h>
+#	include <imgui_impl_glfw.h>
+#endif
+
 namespace Render
 {
 
@@ -237,6 +242,14 @@ namespace Render
 				.writeBuffer(0, _vkFrameData[i].uniformBuffer.buffer, sizeof(UniformBufferData), 0, vk::DescriptorType::eUniformBuffer)
 				.updateSet(&vk_ctx, _vkFrameData[i].uniformBuffer.descriptorSet);
 		}
+
+#		ifdef LUNAR_IMGUI
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGui::StyleColorsDark();
+		ImGui_ImplGlfw_InitForVulkan(handle, true);
+		vk_ctx._imguiInit();
+#		endif
 	}
 
 	void Window::_vkUpdateSwapExtent()
