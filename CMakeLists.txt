@@ -10,6 +10,7 @@ set(LUNAR_RESOURCES_DIR ${CMAKE_CURRENT_LIST_DIR}/resources)
 set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
 set(LUNAR_RUNTIME_SHADER_BUILD OFF)
 set(LUNAR_EXPERIMENTAL ON)
+set(LUNAR_USE_IMGUI ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -111,6 +112,27 @@ if(${LUNAR_EXPERIMENTAL})
         "src/exp/ui/dom.cpp"
     )
     target_compile_definitions(lunar PUBLIC LUNAR_EXPERIMENTAL)
+endif()
+
+if(${LUNAR_USE_IMGUI})
+    message("-- lunar: Using imgui library")
+    add_library(imgui STATIC)
+    target_sources(imgui PRIVATE
+        "imgui/imgui.h"
+        "imgui/imgui.cpp"
+        "imgui/imgui_demo.cpp"
+        "imgui/imgui_draw.cpp"
+        "imgui/imgui_widgets.cpp"
+        "imgui/imgui_tables.cpp"
+        "imgui/backends/imgui_impl_vulkan.cpp"
+        "imgui/backends/imgui_impl_glfw.cpp"
+    )
+    target_include_directories(imgui PUBLIC "imgui" "imgui/backends")
+    target_link_libraries(imgui PUBLIC Vulkan::Vulkan glfw)
+    target_include_directories(imgui PUBLIC Vulkan::Vulkan glfw)
+    
+    target_link_libraries(lunar PUBLIC imgui)
+    target_compile_definitions(lunar PUBLIC LUNAR_IMGUI=1)
 endif()
 
 if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
