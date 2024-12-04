@@ -4,6 +4,6 @@ cmake-build-*/
 .idea/
 *.vert.spv
 *.frag.spv
-*shader-bin/*
+shader-bin/
 CMakeSettings.json
 build/
