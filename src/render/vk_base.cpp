@@ -447,6 +447,11 @@ namespace Render
 		return queueFamilies[0] != queueFamilies[1];
 	}
 
+	VmaAllocator VulkanContext::getAllocator()
+	{
+		return allocator;
+	}
+
 	void VulkanContext::init() {}
 	void VulkanContext::destroy() {}
 

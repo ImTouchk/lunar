@@ -7,12 +7,59 @@
 #include <memory>
 #include <format>
 
+#ifdef LUNAR_VULKAN
+#	include <lunar/render/internal/render_vk.hpp>
+#endif
+
 namespace Render
 {
+	GraphicsShaderBuilder& GraphicsShaderBuilder::useRenderContext(std::shared_ptr<RenderContext>& context)
+	{
+		this->context = context;
+		return *this;
+	}
+	
 	GraphicsShaderBuilder& GraphicsShaderBuilder::fromVertexSourceFile(const Fs::Path& path)
 	{
-
+		vertexPath = path;
 		return *this;
+	}
+
+	GraphicsShaderBuilder& GraphicsShaderBuilder::fromFragmentSourceFile(const Fs::Path& path)
+	{
+		fragmentPath = path;
+		return *this;
+	}
+
+	GraphicsShader GraphicsShaderBuilder::build()
+	{
+		auto& vk_ctx      = getVulkanContext(context);
+		
+		auto  shader      = GraphicsShader();
+		auto  layout_info = vk::PipelineLayoutCreateInfo
+		{	
+		};
+
+		shader._vkLayout   = vk_ctx
+			.getDevice()
+			.createPipelineLayout(layout_info);
+
+		shader._vkPipeline = VulkanPipelineBuilder()
+			.useVulkanContext(&vk_ctx)
+			.useLayout(shader._vkLayout)
+			.setVertexShader(vertexPath)
+			.setFragmentShader(fragmentPath)
+			.setColorAttachmentFormat(vk::Format::eR16G16B16A16Sfloat)
+			.setDepthFormat(vk::Format::eUndefined)
+			.setPolygonMode(vk::PolygonMode::eFill)
+			.setInputTopology(vk::PrimitiveTopology::eTriangleList)
+			.setCullMode(vk::CullModeFlagBits::eNone, vk::FrontFace::eClockwise)
+			.noMultisampling()
+			.disableBlending()
+			.disableDepthTesting()
+			.create();
+
+		return shader;
 	}
 }
 

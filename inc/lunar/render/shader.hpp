@@ -5,11 +5,27 @@
 #include <string_view>
 #include <vector>
 
+#ifdef LUNAR_VULKAN
+#	include <lunar/render/internal/vk_pipeline.hpp>
+#endif
+
+
 namespace Render
 {
-	class LUNAR_API GraphicsShader
+	class LUNAR_API GraphicsShader : public Identifiable
 	{
-		
+	public:
+		GraphicsShader() = default;
+		~GraphicsShader() = default;
+
+	private:
+#		ifdef LUNAR_VULKAN
+		vk::Pipeline       _vkPipeline = VK_NULL_HANDLE;
+		vk::PipelineLayout _vkLayout   = VK_NULL_HANDLE;
+		friend class VulkanContext;
+#		endif
+
+		friend struct GraphicsShaderBuilder;
 	};
 
 	struct LUNAR_API GraphicsShaderBuilder
@@ -21,7 +37,12 @@ namespace Render
 		GraphicsShaderBuilder& useRenderContext(std::shared_ptr<RenderContext>& ctx);
 		GraphicsShaderBuilder& fromVertexSourceFile(const Fs::Path& path);
 		GraphicsShaderBuilder& fromFragmentSourceFile(const Fs::Path& path);
+		GraphicsShader build();
 
+	private:
+		std::shared_ptr<RenderContext> context       = nullptr;
+		Fs::Path                       vertexPath    = {};
+		Fs::Path                       fragmentPath  = {};
 	};
 
 //	enum class LUNAR_API ShaderVariableValueT

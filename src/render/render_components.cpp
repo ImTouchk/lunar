@@ -2,6 +2,8 @@
 
 namespace Render
 {
+
+
 	//MeshRenderer::MeshRenderer(const ShaderBuilder& shaderBuilder)
 	//	: shader(shaderBuilder)
 	//{
@@ -18,13 +20,12 @@ namespace Render
 	//	return "core.meshRenderer";
 	//}
 
-	//bool MeshRenderer::isUpdateable()
-	//{
-	//	return false;
-	//}
+	bool MeshRenderer::isUpdateable()
+	{
+		return false;
+	}
 
-	//void MeshRenderer::update()
-	//{
-
-	//}
+	void MeshRenderer::update()
+	{
+	}
 }
