@@ -149,6 +149,10 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
         "src/render/vk_window.cpp"
         "src/render/vk_buffer.cpp"
         "inc/lunar/render/internal/render_vk.hpp"
+        "inc/lunar/render/internal/vk_base.hpp"
+        "inc/lunar/render/internal/vk_mesh.hpp"
+        "inc/lunar/render/internal/vk_buffer.hpp"
+        "inc/lunar/render/internal/vk_pipeline.hpp"
     )
     target_compile_definitions(lunar PRIVATE
         VULKAN_HPP_NO_CONSTRUCTORS  

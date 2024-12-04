@@ -185,12 +185,20 @@ namespace Render
 		command_buffer->setViewport(0, viewport);
 		command_buffer->setScissor(0, scissor);
 
+
+		for (auto& object : scene.getGameObjects())
+		{
+			MeshRenderer* mesh_renderer = object.getComponent<MeshRenderer>();
+			if (mesh_renderer == nullptr)
+				continue;
+
+			command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, mesh_renderer->shader._vkPipeline);
+			command_buffer->draw(3, 1, 0, 0);
+		}
+
 		ImGui::ShowDemoWindow();
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer.operator vk::CommandBuffer &());
-		
-		//mainCmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, trianglePipeline);
-		//mainCmdBuffer->draw(3, 1, 0, 0);
 
 		command_buffer->endRendering();
 

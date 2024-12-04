@@ -232,11 +232,12 @@ namespace Render
 				.addShaderStageFlag(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)
 				.build();
 			_vkFrameData[i].uniformBuffer.descriptorSet = _vkDescriptorAlloc.allocate(_vkFrameData[i].uniformBuffer.descriptorLayout);
-			_vkFrameData[i].uniformBuffer.buffer = vk_ctx.createBuffer(
-				sizeof(UniformBufferData), 
-				vk::BufferUsageFlagBits::eUniformBuffer,
-				VMA_MEMORY_USAGE_CPU_TO_GPU
-			);
+			_vkFrameData[i].uniformBuffer.buffer = VulkanBufferBuilder()
+				.useRenderContext(&vk_ctx)
+				.setAllocationSize(sizeof(UniformBufferData))
+				.setMemoryUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
+				.addUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer)
+				.build();
 
 			VulkanDescriptorWriter()
 				.writeBuffer(0, _vkFrameData[i].uniformBuffer.buffer, sizeof(UniformBufferData), 0, vk::DescriptorType::eUniformBuffer)
