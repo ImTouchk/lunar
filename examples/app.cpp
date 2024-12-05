@@ -122,9 +122,28 @@ int main(int argc, char* argv[])
 
     mesh_renderer.shader = Render::GraphicsShaderBuilder()
         .useRenderContext(render_ctx)
-        .fromVertexSourceFile(Fs::dataDirectory().append("shader-bin/default.vert.spv"))
+        .fromVertexSourceFile(Fs::dataDirectory().append("shader-bin/mesh.vert.spv"))
         .fromFragmentSourceFile(Fs::dataDirectory().append("shader-bin/default.frag.spv"))
         .build();
+
+    auto vertices = std::vector<Render::Vertex>
+    {
+        Render::Vertex { { -1.f, 1.f, 0 }, 0, { 0, 0, 0 }, 0, { 1.f, 0.f, 0.f, 1.f } },
+        Render::Vertex { {  1.f, 1.f, 0 }, 0, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+        Render::Vertex { {  0.f, 0.f, 0 }, 0, { 0, 0, 0 }, 0, { 0.f, 0.f, 1.f, 1.f } },
+    };
+
+    auto indices = std::vector<uint32_t> { 0, 1, 2 };
+
+    auto mesh_builder = Render::MeshBuilder();
+
+    mesh_builder
+        .useRenderContext(render_ctx)
+        .setVertices(vertices)
+        .setIndices(indices)
+        .build();
+
+    mesh_renderer.mesh = mesh_builder.getResult();
 
     while (!game_window.shouldClose())
     {

@@ -34,7 +34,7 @@ namespace Render
 		return *this;
 	}
 
-	VulkanBuffer VulkanBufferBuilder::build()
+	VulkanBufferBuilder& VulkanBufferBuilder::build()
 	{
 		auto buffer_info = VkBufferCreateInfo
 		{
@@ -67,10 +67,32 @@ namespace Render
 		if (_result != VK_SUCCESS)
 		{
 			DEBUG_ERROR("Failed to create GPU buffer: {}", static_cast<uint32_t>(_result));
-			return VulkanBuffer();
+			//return VulkanBuffer();
 		}
 
-		return VulkanBuffer(context, _buffer, _alloc, _alloc_info);
+		result = VulkanBuffer(context, _buffer, _alloc, _alloc_info);
+		return *this;
+		//return VulkanBuffer(context, _buffer, _alloc, _alloc_info);
+	}
+
+	vk::Buffer VulkanBufferBuilder::getBuffer()
+	{
+		return result.handle;
+	}
+
+	VmaAllocation VulkanBufferBuilder::getAllocation()
+	{
+		return result.allocation;
+	}
+
+	VmaAllocationInfo VulkanBufferBuilder::getAllocationInfo()
+	{
+		return result.info;
+	}
+
+	VulkanBuffer VulkanBufferBuilder::getResult()
+	{
+		return std::move(result);
 	}
 
 	VulkanBuffer::VulkanBuffer(
@@ -102,6 +124,7 @@ namespace Render
 		if (handle == VK_NULL_HANDLE)
 			return;
 
+		DEBUG_LOG("Managed Vulkan buffer destroyed (handle: {})", (void*)handle);
 		destroy();
 	}
 
@@ -126,6 +149,7 @@ namespace Render
 	{
 		DEBUG_ASSERT(handle != VK_NULL_HANDLE, "VulkanBuffer object not initialized");
 		
+		vmaUnmapMemory(context->allocator, allocation);
 		vmaDestroyBuffer(context->allocator, handle, allocation);
 
 		context = nullptr;
@@ -152,31 +176,39 @@ namespace Render
 		return *this;
 	}
 
-	VulkanMesh VulkanMeshBuilder::build()
+	VulkanMeshBuilder& VulkanMeshBuilder::build()
 	{
 		const size_t vertex_buf_size = vertices.size() * sizeof(Vertex);
 		const size_t index_buf_size  = indices.size() * sizeof(uint32_t);
-		VulkanBuffer index_buffer = VulkanBufferBuilder()
+
+		auto buffer_builder = VulkanBufferBuilder();
+		indexBuf = buffer_builder
+			.useRenderContext(context)
 			.addUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
 			.setMemoryUsage(VMA_MEMORY_USAGE_GPU_ONLY)
 			.setAllocationSize(index_buf_size)
-			.build();
+			.build()
+			.getResult();
 
-		VulkanBuffer vertex_buffer = VulkanBufferBuilder()
+		vertexBuf = buffer_builder
+			.useRenderContext(context)
 			.addUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer)
 			.addUsageFlags(vk::BufferUsageFlagBits::eShaderDeviceAddress)
 			.setMemoryUsage(VMA_MEMORY_USAGE_GPU_ONLY)
 			.setAllocationSize(vertex_buf_size)
-			.build();
+			.build()
+			.getResult();
 
-		VulkanBuffer staging_buffer = VulkanBufferBuilder()
+		auto staging_buffer = buffer_builder
+			.useRenderContext(context)
 			.addUsageFlags(vk::BufferUsageFlagBits::eTransferSrc)
 			.setMemoryUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
 			.setAllocationSize(vertex_buf_size + index_buf_size)
-			.build();
+			.build()
+			.getResult();
 
-		auto device_address_info = vk::BufferDeviceAddressInfo{ .buffer = vertex_buffer.handle };
-		auto vertex_buffer_addr  = context->getDevice().getBufferAddress(device_address_info);
+		auto device_address_info = vk::BufferDeviceAddressInfo{ .buffer = vertexBuf.handle };
+		vertexBufAddr  = context->getDevice().getBufferAddress(device_address_info);
 
 		void* pData;
 		vmaMapMemory(context->getAllocator(), staging_buffer.allocation, &pData);
@@ -191,7 +223,7 @@ namespace Render
 				.size      = vertex_buf_size
 			};
 
-			cmd.copyBuffer(staging_buffer.handle, vertex_buffer.handle, vertex_copy);
+			cmd.copyBuffer(staging_buffer.handle, vertexBuf.handle, vertex_copy);
 
 			auto index_copy = vk::BufferCopy
 			{
@@ -200,10 +232,26 @@ namespace Render
 				.size     = index_buf_size
 			};
 
-			cmd.copyBuffer(staging_buffer.handle, index_buffer.handle, index_copy);
+			cmd.copyBuffer(staging_buffer.handle, indexBuf.handle, index_copy);
 		}, true);
 
-		return VulkanMesh(index_buffer, vertex_buffer, vertex_buffer_addr);
+		//return VulkanMesh(index_buffer, vertex_buffer, vertex_buffer_addr);
+		return *this;
+	}
+
+	VulkanBuffer VulkanMeshBuilder::getIndexBuffer()
+	{
+		return std::move(indexBuf);
+	}
+
+	VulkanBuffer VulkanMeshBuilder::getVertexBuffer()
+	{
+		return std::move(vertexBuf);
+	}
+
+	vk::DeviceAddress VulkanMeshBuilder::getVertexBufferAddress()
+	{
+		return vertexBufAddr;
 	}
 
 	VulkanMesh::VulkanMesh(VulkanBuffer& idx, VulkanBuffer& vert, vk::DeviceAddress vertBufAddr)

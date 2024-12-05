@@ -112,6 +112,8 @@ namespace Render
 		void _vkHandleResize(int width, int height);
 
 		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
+
+		friend class VulkanContext;
 #		endif
 	};
 

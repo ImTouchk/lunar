@@ -1,6 +1,7 @@
 #pragma once
 #include <lunar/core/component.hpp>
 #include <lunar/render/shader.hpp>
+#include <lunar/render/mesh.hpp>
 #include <lunar/api.hpp>
 
 namespace Render
@@ -14,6 +15,7 @@ namespace Render
 		bool isUpdateable() override;
 
 		GraphicsShader shader = {};
+		Mesh           mesh   = {};
 	};
 
 	//class LUNAR_API MeshRenderer : public Core::Component

@@ -29,10 +29,18 @@ namespace Render
 		VulkanMeshBuilder& setVertices(const std::span<Vertex>& vertices);
 		VulkanMeshBuilder& setIndices(const std::span<uint32_t>& indices);
 		VulkanMeshBuilder& useRenderContext(VulkanContext* context);
-		VulkanMesh build();
+		VulkanMeshBuilder& build();
+		VulkanBuffer getIndexBuffer();
+		VulkanBuffer getVertexBuffer();
+		vk::DeviceAddress getVertexBufferAddress();
+		
 	private:
-		VulkanContext*        context = nullptr;
-		std::vector<Vertex>   vertices = {};
-		std::vector<uint32_t> indices  = {};
+		VulkanContext*        context       = nullptr;
+		std::vector<Vertex>   vertices      = {};
+		std::vector<uint32_t> indices       = {};
+
+		VulkanBuffer          indexBuf      = {};
+		VulkanBuffer          vertexBuf     = {};
+		vk::DeviceAddress     vertexBufAddr = {};
 	};
 }

@@ -36,8 +36,18 @@ namespace Render
 		auto& vk_ctx      = getVulkanContext(context);
 		
 		auto  shader      = GraphicsShader();
+
+		auto push_ranges = vk::PushConstantRange
+		{
+			.stageFlags = vk::ShaderStageFlagBits::eVertex,
+			.offset     = 0,
+			.size       = sizeof(UniformBufferData),
+		};
+
 		auto  layout_info = vk::PipelineLayoutCreateInfo
-		{	
+		{
+			.pushConstantRangeCount = 1,
+			.pPushConstantRanges    = &push_ranges
 		};
 
 		shader._vkLayout   = vk_ctx

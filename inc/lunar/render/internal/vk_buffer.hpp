@@ -63,12 +63,19 @@ namespace Render
 		VulkanBufferBuilder& addUsageFlags(vk::BufferUsageFlags flags);
 		VulkanBufferBuilder& setAllocationSize(size_t size);
 		VulkanBufferBuilder& setMemoryUsage(VmaMemoryUsage usage);
-		VulkanBuffer build();
+		VulkanBufferBuilder& build();
+
+		VulkanBuffer getResult();
+		vk::Buffer getBuffer();
+		VmaAllocation getAllocation();
+		VmaAllocationInfo getAllocationInfo();
+		
 	private:
 		VulkanContext*       context     = nullptr;
 		VulkanBufferFlags    flags       = VulkanBufferFlags::eNone;
 		vk::BufferUsageFlags usageFlags  = {};
 		VmaMemoryUsage       memoryUsage = {};
 		size_t               allocSize   = 0;
+		VulkanBuffer         result      = {};
 	};
 }
