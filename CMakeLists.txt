@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
-project(lunar VERSION 0.1.9)
+project(lunar VERSION 0.1.10)
 
 message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar_VERSION_PATCH}")
 
@@ -8,7 +8,7 @@ set(LUNAR_BUNDLE_RESOURCES ON)
 set(LUNAR_RENDER_BACKEND "VULKAN")
 set(LUNAR_RESOURCES_DIR ${CMAKE_CURRENT_LIST_DIR}/resources)
 set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
-set(LUNAR_RUNTIME_SHADER_BUILD OFF)
+set(LUNAR_RUNTIME_SHADER_BUILD ON)
 set(LUNAR_EXPERIMENTAL ON)
 set(LUNAR_USE_IMGUI ON)
 
@@ -96,6 +96,7 @@ add_library(lunar SHARED
     "src/render/image.cpp"
     "src/render/window.cpp"
     "src/render/shader.cpp"
+    "src/render/mesh.cpp"
 )
 
 if(${LUNAR_EXPERIMENTAL})
@@ -126,6 +127,8 @@ if(${LUNAR_USE_IMGUI})
         "imgui/imgui_tables.cpp"
         "imgui/backends/imgui_impl_vulkan.cpp"
         "imgui/backends/imgui_impl_glfw.cpp"
+        "imgui/backends/imgui_impl_vulkan.h"
+        "imgui/backends/imgui_impl_glfw.h"
     )
     target_include_directories(imgui PUBLIC "imgui" "imgui/backends")
     target_link_libraries(imgui PUBLIC Vulkan::Vulkan glfw)

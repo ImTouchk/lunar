@@ -186,14 +186,33 @@ namespace Render
 		command_buffer->setScissor(0, scissor);
 
 
+		UniformBufferData uniform_data =
+		{
+			.worldMatrix     = glm::mat4(1.f),
+			._vkVertexBuffer = {}
+		};
+
 		for (auto& object : scene.getGameObjects())
 		{
 			MeshRenderer* mesh_renderer = object.getComponent<MeshRenderer>();
 			if (mesh_renderer == nullptr)
 				continue;
 
-			command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, mesh_renderer->shader._vkPipeline);
-			command_buffer->draw(3, 1, 0, 0);
+			auto& mesh   = mesh_renderer->mesh;
+			auto& shader = mesh_renderer->shader;
+
+			uniform_data._vkVertexBuffer = mesh._vkVertexBufferAddr;
+			
+			command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, shader._vkPipeline);
+			command_buffer->pushConstants(
+				shader._vkLayout, 
+				vk::ShaderStageFlagBits::eVertex, 
+				0, 
+				sizeof(UniformBufferData), 
+				&uniform_data
+			);
+			command_buffer->bindIndexBuffer(mesh._vkIndexBuffer.handle, 0, vk::IndexType::eUint32);
+			command_buffer->drawIndexed(mesh.indicesCount, 1, 0, 0, 0);
 		}
 
 		ImGui::ShowDemoWindow();

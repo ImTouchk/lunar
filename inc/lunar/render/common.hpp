@@ -2,6 +2,10 @@
 #include <lunar/api.hpp>
 #include <glm/glm.hpp>
 
+#ifdef LUNAR_VULKAN
+#	include <vulkan/vulkan.hpp>
+#endif
+
 namespace Render
 {
 	struct LUNAR_API Vertex
@@ -15,11 +19,12 @@ namespace Render
 
 	struct LUNAR_API UniformBufferData
 	{
-		glm::mat4 view;
-		glm::mat4 projection;
-		glm::mat4 viewproj;
-		glm::vec4 ambientColor;
-		glm::vec4 sunlightDir;
-		glm::vec4 sunlightCol;
+		glm::mat4 worldMatrix;
+#		ifdef LUNAR_VULKAN
+	private:
+		vk::DeviceAddress _vkVertexBuffer;
+
+		friend class VulkanContext;
+#		endif
 	};
 }
