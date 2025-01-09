@@ -5,6 +5,10 @@
 #	include <vulkan/vulkan.hpp>
 #endif
 
+#ifdef LUNAR_OPENGL
+#	include <glad/gl.h>
+#endif	
+
 #include <lunar/render/window.hpp>
 #include <lunar/debug.hpp>
 #include <GLFW/glfw3.h>
@@ -115,6 +119,12 @@ namespace Render
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #		endif
 
+#		ifdef LUNAR_OPENGL
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#		endif
+
 		handle = glfwCreateWindow(
 			width, height,
 			title,
@@ -136,6 +146,10 @@ namespace Render
 
 #		ifdef LUNAR_VULKAN
 		_vkInitialize();
+#		endif
+
+#		ifdef LUNAR_OPENGL
+		_glInitialize();
 #		endif
 	}
 
