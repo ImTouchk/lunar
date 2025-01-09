@@ -7,6 +7,7 @@
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
+#include <glm/ext/matrix_transform.hpp>
 
 #include <imgui_impl_vulkan.h>
 #include <imgui_impl_glfw.h>
@@ -145,6 +146,7 @@ namespace Render
 		command_buffer->clearColorImage(draw_image.image.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
 
 		TransitionImage(command_buffer, draw_image.image.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
+		TransitionImage(command_buffer, draw_image.depthImage.handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal);
 
 		auto color_attachment = vk::RenderingAttachmentInfo
 		{
@@ -153,6 +155,16 @@ namespace Render
 			.loadOp      = vk::AttachmentLoadOp::eLoad,
 			.storeOp     = vk::AttachmentStoreOp::eStore,
 		};
+
+		auto depth_attachment = vk::RenderingAttachmentInfo
+		{
+			.imageView   = draw_image.depthImage.view,
+			.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+			.loadOp      = vk::AttachmentLoadOp::eClear,
+			.storeOp     = vk::AttachmentStoreOp::eStore,
+			.clearValue  = { .depthStencil = {.depth = 0.f } }
+		};
+
 
 		auto render_info = vk::RenderingInfo
 		{
@@ -164,6 +176,7 @@ namespace Render
 			.layerCount           = 1,
 			.colorAttachmentCount = 1,
 			.pColorAttachments    = &color_attachment,
+			.pDepthAttachment     = &depth_attachment,
 		};
 
 		command_buffer->beginRendering(render_info);
@@ -186,11 +199,9 @@ namespace Render
 		command_buffer->setScissor(0, scissor);
 
 
-		UniformBufferData uniform_data =
-		{
-			.worldMatrix     = glm::mat4(1.f),
-			._vkVertexBuffer = {}
-		};
+		UniformBufferData uniform_data = {};
+		//uniform_data.worldMatrix     = glm::mat4(1.f);
+		uniform_data._vkVertexBuffer = {};
 
 		for (auto& object : scene.getGameObjects())
 		{

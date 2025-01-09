@@ -160,6 +160,20 @@ namespace Render
 		return *this;
 	}
 
+	VulkanPipelineBuilder& VulkanPipelineBuilder::enableDepthTesting(bool depthWriteEnable, vk::CompareOp op)
+	{
+		depthStencilState.depthTestEnable       = vk::True;
+		depthStencilState.depthWriteEnable      = depthWriteEnable;
+		depthStencilState.depthCompareOp        = op;
+		depthStencilState.depthBoundsTestEnable = vk::False;
+		depthStencilState.stencilTestEnable     = vk::False;
+		depthStencilState.front                 = {};
+		depthStencilState.back                  = {};
+		depthStencilState.minDepthBounds        = 0.f;
+		depthStencilState.maxDepthBounds        = 1.f;
+		return *this;
+	}
+
 	VulkanPipelineBuilder& VulkanPipelineBuilder::useLayout(vk::PipelineLayout layout)
 	{
 		pipelineLayout = layout;

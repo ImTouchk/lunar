@@ -28,6 +28,7 @@ namespace Render
 		struct
 		{
 			VulkanImage image;
+			VulkanImage depthImage;
 			vk::Extent2D extent;
 			vk::Semaphore renderFinished;
 		} internal;

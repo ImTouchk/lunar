@@ -118,6 +118,7 @@ namespace Render
 		VulkanPipelineBuilder& setColorAttachmentFormat(vk::Format format);
 		VulkanPipelineBuilder& setDepthFormat(vk::Format format);
 		VulkanPipelineBuilder& disableDepthTesting();
+		VulkanPipelineBuilder& enableDepthTesting(bool depthWriteEnable, vk::CompareOp op);
 		VulkanPipelineBuilder& useLayout(vk::PipelineLayout layout);
 		vk::Pipeline create();
 

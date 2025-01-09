@@ -349,7 +349,8 @@ namespace Render
 			{
 				.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 				.colorAttachmentCount    = 1,
-				.pColorAttachmentFormats = &pipeline_color_attachments
+				.pColorAttachmentFormats = &pipeline_color_attachments,
+				.depthAttachmentFormat   = VK_FORMAT_D32_SFLOAT,
 			}
 		};
 

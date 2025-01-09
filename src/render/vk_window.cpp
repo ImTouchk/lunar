@@ -134,11 +134,18 @@ namespace Render
 
 		_vkDestroySwap();
 
-		for (size_t i = 0; i < _vkSwapImgCount; i++)
+		for (size_t i = 0; i < FRAME_OVERLAP; i++)
 		{
-			device.destroyDescriptorSetLayout(_vkFrameData[i].uniformBuffer.descriptorLayout);
-			device.destroySemaphore(_vkFrameData[i].internal.renderFinished);
-			device.destroySemaphore(_vkFrameData[i].swapchain.imageAvailable);
+			auto& frame_data = _vkFrameData[i];
+			frame_data.internal.depthImage.destroy();
+			frame_data.internal.image.destroy();
+			frame_data.internal.extent = {};
+			device.destroySemaphore(frame_data.internal.renderFinished);
+
+			device.destroyDescriptorSetLayout(frame_data.uniformBuffer.descriptorLayout);
+			frame_data.uniformBuffer.buffer.destroy();
+
+			device.destroySemaphore(frame_data.swapchain.imageAvailable);
 		}
 
 		inst.destroySurfaceKHR(_vkSurface);
@@ -222,10 +229,29 @@ namespace Render
 			vk::SemaphoreCreateInfo semaphore_info = {};
 			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
 
-			_vkFrameData[i].internal.image = vk_ctx.createImage(draw_img_format, draw_img_extent, draw_img_usage);
-			_vkFrameData[i].internal.renderFinished = device.createSemaphore(semaphore_info);
+			auto image_builder = VulkanImageBuilder();
+			_vkFrameData[i].internal.image = image_builder
+				.useVulkanContext(&vk_ctx)
+				.setFormat(draw_img_format)
+				.setExtent(draw_img_extent)
+				.setUsageFlags(draw_img_usage)
+				.build()
+				.getResult();
+
+			//image_builder = {};
+			_vkFrameData[i].internal.depthImage = image_builder
+				.useVulkanContext(&vk_ctx)
+				.setFormat(vk::Format::eD32Sfloat)
+				.setExtent(draw_img_extent)
+				.setUsageFlags(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+				.build()
+				.getResult();
+
+			_vkFrameData[i].internal.renderFinished  = device.createSemaphore(semaphore_info);
 			_vkFrameData[i].swapchain.imageAvailable = device.createSemaphore(semaphore_info);
-			_vkFrameData[i].commandBuffer = _vkCommandPool.allocateBuffer(vk::CommandBufferLevel::ePrimary);
+			_vkFrameData[i].commandBuffer            = _vkCommandPool.allocateBuffer(vk::CommandBufferLevel::ePrimary);
+
+
 			_vkFrameData[i].uniformBuffer.descriptorLayout = VulkanDescriptorLayoutBuilder()
 				.useVulkanContext(vk_ctx)
 				.addBinding(0, vk::DescriptorType::eUniformBuffer)
@@ -236,14 +262,14 @@ namespace Render
 			auto buffer_builder = VulkanBufferBuilder();
 			_vkFrameData[i].uniformBuffer.buffer = buffer_builder
 				.useRenderContext(&vk_ctx)
-				.setAllocationSize(sizeof(UniformBufferData))
+				.setAllocationSize(sizeof(SceneGpuData))
 				.setMemoryUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
 				.addUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer)
 				.build()
 				.getResult();
 
 			VulkanDescriptorWriter()
-				.writeBuffer(0, _vkFrameData[i].uniformBuffer.buffer, sizeof(UniformBufferData), 0, vk::DescriptorType::eUniformBuffer)
+				.writeBuffer(0, _vkFrameData[i].uniformBuffer.buffer, sizeof(SceneGpuData), 0, vk::DescriptorType::eUniformBuffer)
 				.updateSet(&vk_ctx, _vkFrameData[i].uniformBuffer.descriptorSet);
 		}
 

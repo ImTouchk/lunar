@@ -3,32 +3,107 @@
 
 namespace Render
 {
-	VulkanImage::VulkanImage
-	(
-		VulkanContext& context, 
-		vk::Image image, 
-		vk::ImageView view, 
-		VmaAllocation allocation, 
-		vk::Extent3D extent, 
-		vk::Format format
-	)
-		: context(&context),
-		handle(image),
-		view(view),
-		allocation(allocation),
-		extent(extent),
-		format(format)
+	VulkanImageBuilder& VulkanImageBuilder::useVulkanContext(VulkanContext* ctx)
 	{
+		context = ctx;
+		return *this;
 	}
 
-	VulkanImage::VulkanImage()
-		: context(nullptr),
-		handle(VK_NULL_HANDLE),
-		view(VK_NULL_HANDLE),
-		allocation(VK_NULL_HANDLE),
-		extent(),
-		format()
+	VulkanImageBuilder& VulkanImageBuilder::setFormat(vk::Format fmt)
 	{
+		format = fmt;
+		return *this;
+	}
+
+	VulkanImageBuilder& VulkanImageBuilder::setExtent(vk::Extent3D extent)
+	{
+		this->extent = extent;
+		return *this;
+	}
+
+	VulkanImageBuilder& VulkanImageBuilder::setUsageFlags(vk::ImageUsageFlags flags)
+	{
+		usageFlags = flags;
+		return *this;
+	}
+
+	VulkanImageBuilder& VulkanImageBuilder::addUsageFlags(vk::ImageUsageFlags flags)
+	{
+		usageFlags |= flags;
+		return *this;
+	}
+
+	VulkanImageBuilder& VulkanImageBuilder::build()
+	{
+		auto image_info = vk::ImageCreateInfo
+		{
+			.imageType   = vk::ImageType::e2D,
+			.format      = format,
+			.extent      = extent,
+			.mipLevels   = 1,
+			.arrayLayers = 1,
+			.samples     = vk::SampleCountFlagBits::e1,
+			.tiling      = vk::ImageTiling::eOptimal,
+			.usage       = usageFlags
+		};
+
+		auto image_alloc_info = VmaAllocationCreateInfo
+		{
+			.usage         = VMA_MEMORY_USAGE_GPU_ONLY,
+			.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+
+		VkImage       _image;
+		VmaAllocation _allocation;
+		VkResult      _result;
+		_result = vmaCreateImage(
+			context->getAllocator(), 
+			&image_info.operator const VkImageCreateInfo & (), 
+			&image_alloc_info, 
+			&_image, 
+			&_allocation, 
+			nullptr
+		);
+
+		if (_result != VK_SUCCESS)
+		{
+			DEBUG_ERROR("Failed to create a VulkanImage: {}", static_cast<uint32_t>(_result));
+			return *this;
+		}
+
+		auto view_info = vk::ImageViewCreateInfo
+		{
+			.image    = _image,
+			.viewType = vk::ImageViewType::e2D,
+			.format   = format,
+			.subresourceRange = {
+				.aspectMask     = (format == vk::Format::eD32Sfloat) 
+					? vk::ImageAspectFlagBits::eDepth 
+					: vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel   = 0,
+				.levelCount     = 1,
+				.baseArrayLayer = 0,
+				.layerCount     = 1,
+			}
+		};
+
+		VkImageView _view = context
+			->getDevice()
+			.createImageView(view_info);
+
+		result = VulkanImage();
+		result.allocation = _allocation;
+		result.handle     = _image;
+		result.context    = context;
+		result.extent     = extent;
+		result.format     = format;
+		result.view       = _view;
+		return *this;
+	}
+
+	VulkanImage VulkanImageBuilder::getResult()
+	{
+		return std::move(result);
 	}
 
 	VulkanImage::~VulkanImage()
@@ -85,62 +160,5 @@ namespace Render
 		view = VK_NULL_HANDLE;
 		handle = VK_NULL_HANDLE;
 		allocation = VK_NULL_HANDLE;
-	}
-
-	VulkanImage VulkanContext::createImage
-	(
-		vk::Format format,
-		vk::Extent3D extent,
-		vk::ImageUsageFlags flags
-	)
-	{
-		auto image_info = vk::ImageCreateInfo
-		{
-			.imageType   = vk::ImageType::e2D,
-			.format      = format,
-			.extent      = extent,
-			.mipLevels   = 1,
-			.arrayLayers = 1,
-			.samples     = vk::SampleCountFlagBits::e1,
-			.tiling      = vk::ImageTiling::eOptimal,
-			.usage       = flags
-		};
-
-		auto image_alloc_info = VmaAllocationCreateInfo
-		{
-			.usage         = VMA_MEMORY_USAGE_GPU_ONLY,
-			.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
-		VkImage _image;
-		VmaAllocation _allocation;
-		VkResult _result;
-		_result = vmaCreateImage(
-			allocator, &image_info.operator const VkImageCreateInfo &(), &image_alloc_info, &_image, &_allocation, nullptr
-		);
-
-		if (_result != VK_SUCCESS)
-		{
-			DEBUG_ERROR("Failed to create a VulkanImage: {}", static_cast<uint32_t>(_result));
-			return VulkanImage();
-		}
-
-		auto view_info = vk::ImageViewCreateInfo
-		{
-			.image    = _image,
-			.viewType = vk::ImageViewType::e2D,
-			.format   = format,
-			.subresourceRange = {
-				.aspectMask     = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel   = 0,
-				.levelCount     = 1,
-				.baseArrayLayer = 0,
-				.layerCount     = 1,
-			}
-		};
-
-		VkImageView _view = device.createImageView(view_info);
-
-		return VulkanImage(*this, _image, _view, _allocation, extent, format);
 	}
 }
