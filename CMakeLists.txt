@@ -5,7 +5,7 @@ message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar
 
 set(LUNAR_BUILD_EXAMPLE ON)
 set(LUNAR_BUNDLE_RESOURCES ON)
-set(LUNAR_RENDER_BACKEND "VULKAN")
+set(LUNAR_RENDER_BACKEND "OPENGL")
 set(LUNAR_RESOURCES_DIR ${CMAKE_CURRENT_LIST_DIR}/resources)
 set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
 set(LUNAR_RUNTIME_SHADER_BUILD ON)
@@ -125,17 +125,44 @@ if(${LUNAR_USE_IMGUI})
         "imgui/imgui_draw.cpp"
         "imgui/imgui_widgets.cpp"
         "imgui/imgui_tables.cpp"
-        "imgui/backends/imgui_impl_vulkan.cpp"
         "imgui/backends/imgui_impl_glfw.cpp"
-        "imgui/backends/imgui_impl_vulkan.h"
         "imgui/backends/imgui_impl_glfw.h"
     )
     target_include_directories(imgui PUBLIC "imgui" "imgui/backends")
-    target_link_libraries(imgui PUBLIC Vulkan::Vulkan glfw)
-    target_include_directories(imgui PUBLIC Vulkan::Vulkan glfw)
+    target_link_libraries(imgui PUBLIC glfw)
+    target_include_directories(imgui PUBLIC glfw)
+
+    if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
+        target_link_libraries(imgui PUBLIC Vulkan::Vulkan)
+        target_include_directories(imgui PUBLIC Vulkan::Vulkan)
+        target_sources(imgui PRIVATE
+            "imgui/backends/imgui_impl_vulkan.h"
+            "imgui/backends/imgui_impl_vulkan.cpp"
+        )
+    endif()
+
+    if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
+        target_sources(imgui PRIVATE
+            "imgui/backends/imgui_impl_opengl3.h"
+            "imgui/backends/imgui_impl_opengl3.cpp"
+        )
+    endif()
     
     target_link_libraries(lunar PUBLIC imgui)
     target_compile_definitions(lunar PUBLIC LUNAR_IMGUI=1)
+endif()
+
+if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
+    add_subdirectory(glad)
+    target_link_libraries(lunar PUBLIC glad)
+
+    message("-- lunar: Using OpenGL backend")
+    target_sources(lunar PRIVATE
+        "src/render/gl_base.cpp"
+        "inc/lunar/render/internal/render_gl.hpp"
+    )
+
+    target_compile_definitions(lunar PUBLIC LUNAR_OPENGL)
 endif()
 
 if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")

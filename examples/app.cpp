@@ -117,14 +117,14 @@ int main(int argc, char* argv[])
         Terra::TranspilerOutput::eVulkanGLSL
     );
 
-    auto& mesh_renderer = scene->getGameObject("Test Object")
-        .addComponent<Render::MeshRenderer>();
+    //auto& mesh_renderer = scene->getGameObject("Test Object")
+    //    .addComponent<Render::MeshRenderer>();
 
-    mesh_renderer.shader = Render::GraphicsShaderBuilder()
-        .useRenderContext(render_ctx)
-        .fromVertexSourceFile(Fs::dataDirectory().append("shader-bin/mesh.vert.spv"))
-        .fromFragmentSourceFile(Fs::dataDirectory().append("shader-bin/default.frag.spv"))
-        .build();
+    //mesh_renderer.shader = Render::GraphicsShaderBuilder()
+    //    .useRenderContext(render_ctx)
+    //    .fromVertexSourceFile(Fs::dataDirectory().append("shader-bin/mesh.vert.spv"))
+    //    .fromFragmentSourceFile(Fs::dataDirectory().append("shader-bin/default.frag.spv"))
+    //    .build();
 
     auto vertices = std::vector<Render::Vertex>
     {
@@ -135,20 +135,20 @@ int main(int argc, char* argv[])
 
     auto indices = std::vector<uint32_t> { 0, 1, 2 };
 
-    auto mesh_builder = Render::MeshBuilder();
+    //auto mesh_builder = Render::MeshBuilder();
 
-    mesh_builder
-        .useRenderContext(render_ctx)
-        .setVertices(vertices)
-        .setIndices(indices)
-        .build();
+    //mesh_builder
+    //    .useRenderContext(render_ctx)
+    //    .setVertices(vertices)
+    //    .setIndices(indices)
+    //    .build();
 
-    mesh_renderer.mesh = mesh_builder.getResult();
+    //mesh_renderer.mesh = mesh_builder.getResult();
 
     while (!game_window.shouldClose())
     {
-        Render::Window::pollEvents();
         render_ctx->draw(scene, game_window);
+        Render::Window::pollEvents();
     }
 
     return 1;

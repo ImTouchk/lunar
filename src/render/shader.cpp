@@ -33,6 +33,7 @@ namespace Render
 
 	GraphicsShader GraphicsShaderBuilder::build()
 	{
+#		ifdef LUNAR_VULKAN
 		auto& vk_ctx      = getVulkanContext(context);
 		
 		auto  shader      = GraphicsShader();
@@ -70,6 +71,9 @@ namespace Render
 			.create();
 
 		return shader;
+#		endif
+
+		return GraphicsShader();
 	}
 }
 

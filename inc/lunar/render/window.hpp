@@ -89,6 +89,11 @@ namespace Render
 		std::shared_ptr<RenderContext> renderCtx;
 		bool initialized;
 
+#		ifdef LUNAR_OPENGL
+		void _glInitialize();
+		friend class GLContext;
+#		endif
+
 #		ifdef LUNAR_VULKAN
 		vk::SurfaceKHR _vkSurface;
 		vk::SurfaceFormatKHR _vkSurfaceFmt;
