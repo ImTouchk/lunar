@@ -73,7 +73,9 @@ namespace Render
 		return shader;
 #		endif
 
-		return GraphicsShader();
+#ifdef LUNAR_OPENGL
+		return _glBuild();
+#endif
 	}
 }
 

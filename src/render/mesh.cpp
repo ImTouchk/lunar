@@ -44,6 +44,9 @@ namespace Render
 		result._vkVertexBuffer     = builder.getVertexBuffer();
 		result._vkVertexBufferAddr = builder.getVertexBufferAddress();
 #endif
+#ifdef LUNAR_OPENGL
+		_glBuild();
+#endif
 		return *this;
 	}
 

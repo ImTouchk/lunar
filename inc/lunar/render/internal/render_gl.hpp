@@ -8,7 +8,7 @@ namespace Render
 	class LUNAR_API GLContext : public RenderContext
 	{
 	public:
-		GLContext() = default;
+		GLContext();
 		virtual ~GLContext() = default;
 
 		void init() override;
@@ -18,5 +18,6 @@ namespace Render
 
 	namespace GL
 	{
+		
 	}
 }
