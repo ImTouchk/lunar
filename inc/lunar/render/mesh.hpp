@@ -4,6 +4,10 @@
 #include <lunar/api.hpp>
 #include <span>
 
+#ifdef LUNAR_OPENGL
+#	include <glad/gl.h>
+#endif
+
 #ifdef LUNAR_VULKAN
 #	include <lunar/render/internal/vk_mesh.hpp>
 #endif
@@ -20,11 +24,19 @@ namespace Render
 		VulkanBuffer      _vkIndexBuffer      = {};
 		VulkanBuffer      _vkVertexBuffer     = {};
 		vk::DeviceAddress _vkVertexBufferAddr = {};
+
+		friend class VulkanContext;
+#endif
+#ifdef LUNAR_OPENGL
+		GLuint _glVao;
+		GLuint _glVbo;
+		GLuint _glEbo;
+
+		friend class GLContext;
 #endif
 		//size_t vertexCount = 0;
 		size_t indicesCount = 0;
 
-		friend class VulkanContext;
 		friend struct MeshBuilder;
 	};
 
@@ -45,6 +57,10 @@ namespace Render
 		std::span<Vertex>              vertices = {};
 		std::span<uint32_t>            indices  = {};
 		Mesh                           result   = {};
+
+#		ifdef LUNAR_OPENGL
+		void _glBuild();
+#		endif
 	};
 }
 

@@ -162,6 +162,7 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
         "inc/lunar/render/internal/render_gl.hpp"
     )
 
+    target_compile_definitions(lunar PRIVATE GLFW_INCLUDE_NONE)
     target_compile_definitions(lunar PUBLIC LUNAR_OPENGL)
 endif()
 

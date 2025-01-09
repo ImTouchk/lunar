@@ -9,6 +9,9 @@
 #	include <lunar/render/internal/vk_pipeline.hpp>
 #endif
 
+#ifdef LUNAR_OPENGL
+#	include <glad/gl.h>
+#endif
 
 namespace Render
 {
@@ -23,6 +26,11 @@ namespace Render
 		vk::Pipeline       _vkPipeline = VK_NULL_HANDLE;
 		vk::PipelineLayout _vkLayout   = VK_NULL_HANDLE;
 		friend class VulkanContext;
+#		endif
+
+#		ifdef LUNAR_OPENGL
+		GLuint _glHandle = 0;
+		friend class GLContext;
 #		endif
 
 		friend struct GraphicsShaderBuilder;
@@ -43,6 +51,10 @@ namespace Render
 		std::shared_ptr<RenderContext> context       = nullptr;
 		Fs::Path                       vertexPath    = {};
 		Fs::Path                       fragmentPath  = {};
+
+#ifdef LUNAR_OPENGL
+		GraphicsShader _glBuild();
+#endif
 	};
 
 //	enum class LUNAR_API ShaderVariableValueT
