@@ -38,6 +38,12 @@ namespace Core
 			return static_cast<T*>(getComponent(typeid(T)));
 		}
 
+		template<typename T> requires IsDerivedComponent<T>
+		const T* getComponent() const
+		{
+			return static_cast<const T*>(getComponent(typeid(T)));
+		}
+
 		template <typename T, class... _Valty> requires IsDerivedComponent<T>
 		T& addComponent(_Valty&&... ctor_values)
 		{	
