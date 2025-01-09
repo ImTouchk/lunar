@@ -20,37 +20,10 @@
 #include <lunar/render/internal/vk_pipeline.hpp>
 #include <lunar/render/internal/vk_buffer.hpp>
 #include <lunar/render/internal/vk_mesh.hpp>
+#include <lunar/render/internal/vk_image.hpp>
 
 namespace Render
 {
-	class LUNAR_API VulkanImage
-	{
-	public:
-		VulkanImage(
-			VulkanContext& context,
-			vk::Image image,
-			vk::ImageView view,
-			VmaAllocation allocation,
-			vk::Extent3D extent,
-			vk::Format format
-		);
-		VulkanImage();
-		~VulkanImage();
-
-		void destroy();
-
-		VulkanImage(VulkanImage&&) noexcept;
-		VulkanImage& operator=(VulkanImage&&) noexcept;
-
-		vk::Image handle;
-		vk::ImageView view;
-		VmaAllocation allocation;
-		vk::Extent3D extent;
-		vk::Format format;
-	private:
-		VulkanContext* context;
-	};
-
 	class LUNAR_API VulkanContext : public RenderContext
 	{
 	public:

@@ -60,13 +60,13 @@ namespace Render
 			.setVertexShader(vertexPath)
 			.setFragmentShader(fragmentPath)
 			.setColorAttachmentFormat(vk::Format::eR16G16B16A16Sfloat)
-			.setDepthFormat(vk::Format::eUndefined)
 			.setPolygonMode(vk::PolygonMode::eFill)
 			.setInputTopology(vk::PrimitiveTopology::eTriangleList)
 			.setCullMode(vk::CullModeFlagBits::eNone, vk::FrontFace::eClockwise)
 			.noMultisampling()
-			.disableBlending()
-			.disableDepthTesting()
+			.alphaBlending()
+			.setDepthFormat(vk::Format::eD32Sfloat)
+			.enableDepthTesting(true, vk::CompareOp::eGreaterOrEqual)
 			.create();
 
 		return shader;

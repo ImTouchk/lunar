@@ -1,17 +1,29 @@
 struct vec3 {
 	x: Float,
 	y: Float,
-	z: int,
-	test: fn () {
-		x = 5;
-		y = 7.04;
-
-	}
+	z: int
 };
 
 - ( 5 + 3 ) == true;
 
+5 + vec3(1, 2, 3);
+
 let x = vec3( 1, 2 , 3 );
+
+fn pula(): Float {
+	return 5.0;
+}
+
+fn test(): vec3 {
+	a = a + b;
+	return vec3 ( 1, 2, 3 );
+}
+
+fn main () {
+	if ( x > 5 ) {
+		x = 7;
+	}
+}
 
 {
 	let mut x = 5;

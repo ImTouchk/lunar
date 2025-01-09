@@ -19,12 +19,18 @@ namespace Render
 
 	struct LUNAR_API UniformBufferData
 	{
-		glm::mat4 worldMatrix;
 #		ifdef LUNAR_VULKAN
 	private:
 		vk::DeviceAddress _vkVertexBuffer;
 
 		friend class VulkanContext;
 #		endif
+	};
+
+	struct LUNAR_API SceneGpuData
+	{
+		glm::mat4 view;
+		glm::mat4 projection;
+		glm::mat4 model;
 	};
 }
