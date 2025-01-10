@@ -5,6 +5,8 @@
 #include <fstream>
 #include <string>
 
+#include <lunar/exp/utils/scanner.hpp>
+
 namespace Fs
 {
 	ConfigFile::ConfigFile(const Path& path)
@@ -17,23 +19,54 @@ namespace Fs
 		if (!fileExists(path))
 			return false;
 
-		auto res_file = std::ifstream(path);
-		auto res_buf = std::stringstream();
-		res_buf << res_file.rdbuf();
-		
-		auto file_content = res_buf.str();
-		auto lexer = Utils::Lexer(file_content);
-		std::string key, value;
-		while (!lexer.atEnd())
+		using namespace Utils::Exp;
+
+		auto        file    = TextFile(path);
+		auto        scanner = Scanner(file.content);
+		const auto& tokens  = scanner
+								.run()
+								.getResult();
+
+		auto get_at = [&](size_t idx) -> const Token&
 		{
-			if (lexer.consume('#'))
-			{
-				lexer.skipLine();
-			}
-			if (lexer.consumeTemplate("{:s} = {:s}", &key, &value))
-			{
-				content.insert(std::pair<std::string, std::string>(key, value));
-			}
+			if (idx >= tokens.size())
+				return tokens[tokens.size() - 1];
+			
+			if (idx < 0)
+				return tokens[0];
+
+			return tokens[idx];
+		};
+
+		size_t i = 0;
+		while (get_at(i).type != TokenType::eEof)
+		{
+			const auto& key        = get_at(i);
+			const auto& equal_sign = get_at(i + 1);
+			const auto& value      = get_at(i + 2);
+
+			if (key.type != TokenType::eIdentifier)
+				DEBUG_ERROR(
+					"At line {}: Invalid token '{}' inside config file '{}'. Expected key name.",
+					key.line, key.toStringView(), path.generic_string()
+				);
+
+			if (equal_sign.type != TokenType::eEqual)
+				DEBUG_ERROR(
+					"At line {}: Invalid token '{}' inside config file '{}'. Expected equal sign instead.",
+					equal_sign.line, equal_sign.toStringView(), path.generic_string()
+				);
+
+			if (equal_sign.value == value.value)
+				DEBUG_ERROR(
+					"At line {}: Expected value of key '{}' inside config file '{}'.",
+					value.line, key.toStringView(), path.generic_string()
+				);
+
+			content.insert(std::pair<std::string, std::string>(key.toString(), value.toString()));
+			//DEBUG_LOG("Found key-value pair '{}'='{}'", key.toString(), value.toString());
+
+			i += 3;
 		}
 
 		return true;
