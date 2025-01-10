@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 
     auto game_window = Render::WindowBuilder()
         .setRenderContext(render_ctx)
-        .setSize(1280, 720)
+        .loadFromConfigFile(Fs::baseDirectory().append("window.cfg"))
         .create();
 
     //auto script_vm = Script::VirtualMachineBuilder()

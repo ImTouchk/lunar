@@ -36,6 +36,15 @@ namespace Fs
 				static_assert(true); // not implemented
 		}
 
+		template<typename T>
+		inline T get_or(const std::string& key, const T& default_value) const
+		{
+			if (content.contains(key))
+				return get<T>(key);
+			else
+				return default_value;
+		}
+
 		std::map<std::string, std::string> content;
 	};
 }

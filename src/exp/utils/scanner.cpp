@@ -84,7 +84,7 @@ namespace Utils::Exp
 
 	void Scanner::identifier()
 	{
-		while (isalnum(peek()))
+		while (isalnum(peek()) || peek() == '_')
 			advance();
 
 		static const std::unordered_map<std::string_view, TokenType> keywords =

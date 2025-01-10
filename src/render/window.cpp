@@ -9,6 +9,7 @@
 #	include <glad/gl.h>
 #endif	
 
+#include <lunar/file/config_file.hpp>
 #include <lunar/render/window.hpp>
 #include <lunar/debug.hpp>
 #include <GLFW/glfw3.h>
@@ -44,6 +45,18 @@ namespace Render
 	WindowBuilder& WindowBuilder::setTitle(const std::string_view& title)
 	{
 		this->title = title;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::loadFromConfigFile(const Fs::Path& path)
+	{
+		auto config = Fs::ConfigFile(path);
+		setSize(
+			config.get_or<int>("width", 800),
+			config.get_or<int>("height", 600)
+		);
+
+		setFullscreen(config.get_or<int>("fullscreen", 0));
 		return *this;
 	}
 
