@@ -49,15 +49,6 @@ namespace Render
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glClearColor(1.0f, 1.f, 1.f, 1.f);
 
-#		ifdef LUNAR_IMGUI
-		ImGui_ImplGlfw_NewFrame();
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui::NewFrame();
-
-		ImGui::ShowDemoWindow();
-		ImGui::Render();
-#		endif
-
 		for (auto& object : scene.getGameObjects())
 		{
 			MeshRenderer* mesh_renderer = object.getComponent<MeshRenderer>();
@@ -71,6 +62,17 @@ namespace Render
 			glBindVertexArray(mesh._glVao);
 			glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
 		}
+
+#		ifdef LUNAR_IMGUI
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::ShowDemoWindow();
+		ImGui::Render();
+
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#		endif
 
 		glfwSwapBuffers(target_window.handle);
 	}
@@ -179,8 +181,8 @@ namespace Render
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGui::StyleColorsDark();
-		ImGui_ImplOpenGL3_Init();
 		ImGui_ImplGlfw_InitForOpenGL(handle, true);
+		ImGui_ImplOpenGL3_Init();
 #		endif
 	}
 }
