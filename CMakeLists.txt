@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
-project(lunar VERSION 0.1.10)
+project(lunar VERSION 0.1.11)
 
 message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar_VERSION_PATCH}")
 
@@ -78,6 +78,7 @@ add_library(lunar SHARED
     "inc/lunar/render/window.hpp"
     "inc/lunar/render/shader.hpp"
     "inc/lunar/render/common.hpp"
+    "inc/lunar/render/texture.hpp"
     "inc/lunar/render/render_context.hpp"
     "inc/lunar/render/render_components.hpp"
     "src/render/render_components.cpp"
@@ -97,6 +98,9 @@ add_library(lunar SHARED
     "src/render/window.cpp"
     "src/render/shader.cpp"
     "src/render/mesh.cpp"
+    "src/render/texture.cpp"
+
+    "src/stb_image.cpp"
 )
 
 if(${LUNAR_EXPERIMENTAL})
@@ -223,6 +227,19 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
         set(LUNAR_COMPILED_SHADERS "")
     endif()
 endif()
+
+if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/stb_image.h")
+    message("-- lunar: Downloading 'stb_image.h' file")
+    file(
+        DOWNLOAD 
+        https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_image.h 
+        "${CMAKE_CURRENT_LIST_DIR}/stb_image.h"
+    )
+else()
+    message("-- lunar: Found 'stb_image' header")
+endif()
+
+target_sources(lunar PRIVATE "stb_image.h")
 
 target_include_directories(lunar PUBLIC inc)
 target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw)

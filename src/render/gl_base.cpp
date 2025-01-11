@@ -12,8 +12,8 @@
 #include <lunar/render/window.hpp>
 #include <lunar/render/shader.hpp>
 #include <lunar/render/mesh.hpp>
+#include <lunar/render/texture.hpp>
 #include <lunar/file/text_file.hpp>
-
 
 namespace Render
 {
@@ -55,10 +55,12 @@ namespace Render
 			if (mesh_renderer == nullptr)
 				continue;
 
-			auto&         mesh          = mesh_renderer->mesh;
-			auto&         shader        = mesh_renderer->shader;
+			auto& mesh    = mesh_renderer->mesh;
+			auto& shader  = mesh_renderer->shader;
+			auto& texture = mesh_renderer->tex;
 
 			glUseProgram(shader._glHandle);
+			glBindTexture(GL_TEXTURE_2D, texture._glHandle);
 			glBindVertexArray(mesh._glVao);
 			glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
 		}
@@ -75,6 +77,22 @@ namespace Render
 #		endif
 
 		glfwSwapBuffers(target_window.handle);
+	}
+
+	bool TextureBuilder::_glBuild()
+	{
+		auto& handle = result._glHandle;
+	
+		glGenTextures(1, &handle);
+		glBindTexture(GL_TEXTURE_2D, handle);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, rawBytes);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		
+		return true;
 	}
 
 	GraphicsShader GraphicsShaderBuilder::_glBuild()
