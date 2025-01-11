@@ -7,3 +7,4 @@ cmake-build-*/
 shader-bin/
 CMakeSettings.json
 build/
+stb_image.h
