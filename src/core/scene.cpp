@@ -49,6 +49,39 @@ namespace Core
 
 		auto& game_object = scene->createGameObject(name, parent);
 
+		if (json.contains("transform"))
+		{
+			auto& transform_data = json["transform"];
+			auto& transform      = game_object.getTransform();
+			
+			if (transform_data.contains("position"))
+			{
+				auto& pos_data = transform_data["position"];
+				auto& position = transform.position;
+				position.x = pos_data.value("x", 0.f);
+				position.y = pos_data.value("y", 0.f);
+				position.z = pos_data.value("z", 0.f);
+			}
+
+			if (transform_data.contains("rotation"))
+			{
+				auto& rot_data = transform_data["rotation"];
+				auto& rotation = transform.rotation;
+				rotation.x = rot_data.value("x", 0.f);
+				rotation.y = rot_data.value("y", 0.f);
+				rotation.z = rot_data.value("z", 0.f);
+			}
+
+			if (transform_data.contains("scale"))
+			{
+				auto& scale_data = transform_data["scale"];
+				auto& scale = transform.scale;
+				scale.x = scale_data.value("x", 0.f);
+				scale.y = scale_data.value("y", 0.f);
+				scale.z = scale_data.value("z", 0.f);
+			}
+		}
+
 		if (json.contains("components"))
 		{
 			auto& components = json["components"];

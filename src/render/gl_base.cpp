@@ -34,10 +34,10 @@ namespace Render
 
 	void GLContext::destroy()
 	{
-
+		glDeleteBuffers(1, &ubo);
 	}
 
-	void GLContext::draw(Core::Scene& scene, RenderTarget* target)
+	void GLContext::draw(Core::Scene& scene, Camera& camera, RenderTarget* target)
 	{
 		if (target->getType() != RenderTargetType::eWindow)
 			return; // TODO
@@ -46,26 +46,53 @@ namespace Render
 		if (target_window.isMinimized())
 			return;
 
+		if (ubo == 0)
+		{
+			glGenBuffers(1, &ubo);
+			glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+			glBufferData(GL_UNIFORM_BUFFER, sizeof(SceneGpuData), NULL, GL_STATIC_DRAW);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+			DEBUG_LOG("Created uniform buffer object.");
+		}
+
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glClearColor(1.0f, 1.f, 1.f, 1.f);
 
+		auto ubo_data = SceneGpuData
+		{
+			.projection = camera.getProjectionMatrix(1280, 720),
+			.view       = camera.getViewMatrix(),
+			.model      = {},
+		};
+		
 		for (auto& object : scene.getGameObjects())
 		{
 			MeshRenderer* mesh_renderer = object.getComponent<MeshRenderer>();
 			if (mesh_renderer == nullptr)
 				continue;
 
-			auto& mesh     = mesh_renderer->mesh;
-			auto& shader   = mesh_renderer->shader;
-			auto& material = mesh.material;
+			const auto& transform = object.getTransform();
+			auto&       mesh      = mesh_renderer->mesh;
+			auto&       shader    = mesh_renderer->shader;
+			auto&       material  = mesh.material;
+
+			if (shader._glHandle != 0)
+				glUseProgram(shader._glHandle);
+			// TODO: else ? 
+
+			ubo_data.model = mesh_renderer->getModelMatrix();
+			glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SceneGpuData), &ubo_data);
 
 			if (material.colorMap._glHandle != 0)
 			{
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, material.colorMap._glHandle);
 			}
+			// TODO: else ?
 
-			glUseProgram(shader._glHandle);
 			glBindVertexArray(mesh._glVao);
 			glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
 		}

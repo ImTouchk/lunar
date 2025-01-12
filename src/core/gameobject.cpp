@@ -45,6 +45,8 @@ namespace Core
 
 	void GameObject::addComponent(Component* constructed)
 	{
+		constructed->_scene = scene;
+		constructed->_gameObject = id;
 		components.push_back(constructed);
 	}
 
@@ -67,6 +69,11 @@ namespace Core
 		return transform;
 	}
 
+	const TransformComponent& GameObject::getTransform() const
+	{
+		return transform;
+	}
+
     size_t GameObject::getNameHash() const
     {
         return nameHash;
@@ -84,6 +91,11 @@ namespace Core
 
 	void GameObject::update()
 	{
+		for (auto& component : components)
+		{
+			if (component->_getClassFlags() & ComponentClassFlagBits::eUpdateable)
+				component->update();
+		}
 		//for (auto& component_ptr : components)
 		//{
 		//	Component* component = component_ptr.get();
