@@ -122,12 +122,13 @@ int main(int argc, char* argv[])
 
     auto vertices = std::vector<Render::Vertex>
     {
-        Render::Vertex { { -1.f, 1.f, 0 }, 0, { 0, 0, 0 }, 0, { 1.f, 0.f, 0.f, 1.f } },
-        Render::Vertex { {  1.f, 1.f, 0 }, 0, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
-        Render::Vertex { {  0.f, 0.f, 0 }, 0, { 0, 0, 0 }, 0, { 0.f, 0.f, 1.f, 1.f } },
+        Render::Vertex { { -1.f,-1.f, 0 }, 0, { 0, 0, 0 }, 0, { 1.f, 0.f, 0.f, 1.f } },
+        Render::Vertex { { -1.f, 1.f, 0 }, 0, { 0, 0, 0 }, 1, { 0.f, 0.f, 1.f, 1.f } },
+        Render::Vertex { {  1.f,-1.f, 0 }, 1, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+        Render::Vertex { {  1.f, 1.f, 0 }, 1, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
     };
 
-    auto indices = std::vector<uint32_t> { 0, 1, 2 };
+    auto indices = std::vector<uint32_t> { 0, 1, 2, 2, 1, 3 };
 
     auto mesh_builder = Render::MeshBuilder();
 
@@ -143,6 +144,26 @@ int main(int argc, char* argv[])
         .fromVertexSourceFile(Fs::dataDirectory().append("shader-src/default_gl.vert"))
         .fromFragmentSourceFile(Fs::dataDirectory().append("shader-src/default_gl.frag"))
         .build();
+
+
+    std::vector<uint32_t> bytes = {};
+    for (size_t x = 0; x < 16; x++) {
+        for (size_t y = 0; y < 16; y++) {            
+            if ((x % 2) ^ (y % 2))
+                bytes.push_back(0xFFFF00FF);
+            else
+                bytes.push_back(0xFF000000);
+        }
+    }
+    
+    auto texture_builder = Render::TextureBuilder();
+    auto texture = texture_builder
+        .fromByteArray(Render::TextureFormat::eRGBA, 16, 16, bytes.data())
+        .setFiltering(Render::TextureFiltering::eNearest)
+        .build()
+        .getResult();
+
+    mesh_renderer.mesh.material.colorMap = texture;
 
     while (!game_window.shouldClose())
     {
