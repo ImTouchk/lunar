@@ -16,8 +16,12 @@ namespace Render
 		void draw(Core::Scene& scene, RenderTarget* target) override;
 	};
 
-	namespace GL
+	namespace imp
 	{
-		
+		enum class LUNAR_API TextureFormat
+		{
+			eUnknown = -1,
+			eRGBA    = GL_RGBA,
+		};
 	}
 }
