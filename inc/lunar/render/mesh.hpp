@@ -1,6 +1,7 @@
 #pragma once
 #include <lunar/render/render_context.hpp>
 #include <lunar/render/common.hpp>
+#include <lunar/render/material.hpp>
 #include <lunar/api.hpp>
 #include <span>
 
@@ -19,6 +20,7 @@ namespace Render
 	public:
 		Mesh() = default;
 
+		Material material = {};
 	private:
 #ifdef LUNAR_VULKAN
 		VulkanBuffer      _vkIndexBuffer      = {};

@@ -5,6 +5,7 @@
 #include <lunar/render/render_context.hpp>
 
 #ifdef LUNAR_OPENGL
+#	include <lunar/render/internal/render_gl.hpp>
 #	include <glad/gl.h>
 #endif
 
@@ -12,8 +13,14 @@ namespace Render
 {
 	enum class LUNAR_API TextureFormat
 	{
-		eUnknown = -1,
-		eRGBA = 0,
+		eUnknown = imp::TextureFormat::eUnknown,
+		eRGBA    = imp::TextureFormat::eRGBA,
+	};
+
+	enum class LUNAR_API TextureFiltering
+	{
+		eNearest = 0,
+		eLinear  = 1,
 	};
 
 	class LUNAR_API Texture
@@ -24,7 +31,7 @@ namespace Render
 
 	private:
 #ifdef LUNAR_OPENGL
-		GLuint _glHandle;
+		GLuint _glHandle = 0;
 
 		friend class GLContext;
 #endif
@@ -39,6 +46,7 @@ namespace Render
 		~TextureBuilder() = default;
 
 		TextureBuilder& setFormat(TextureFormat format);
+		TextureBuilder& setFiltering(TextureFiltering filtering);
 		TextureBuilder& fromImagePath(const Fs::Path& path);
 		TextureBuilder& fromByteArray(TextureFormat originalFormat, int width, int height, void* data);
 		TextureBuilder& useRenderContext(std::shared_ptr<RenderContext>& context);
@@ -54,6 +62,7 @@ namespace Render
 		void*                          rawBytes  = nullptr;
 		TextureFormat                  srcFormat = TextureFormat::eUnknown;
 		TextureFormat                  dstFormat = TextureFormat::eRGBA;
+		TextureFiltering               filtering = TextureFiltering::eLinear;
 
 #ifdef LUNAR_OPENGL
 		bool _glBuild();

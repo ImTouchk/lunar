@@ -3,6 +3,12 @@
 
 namespace Render
 {
+	TextureBuilder& TextureBuilder::setFiltering(TextureFiltering filtering)
+	{
+		this->filtering = filtering;
+		return *this;
+	}
+
 	TextureBuilder& TextureBuilder::fromImagePath(const Fs::Path& path)
 	{
 		this->path = path;

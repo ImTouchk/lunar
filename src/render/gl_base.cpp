@@ -55,12 +55,17 @@ namespace Render
 			if (mesh_renderer == nullptr)
 				continue;
 
-			auto& mesh    = mesh_renderer->mesh;
-			auto& shader  = mesh_renderer->shader;
-			auto& texture = mesh_renderer->tex;
+			auto& mesh     = mesh_renderer->mesh;
+			auto& shader   = mesh_renderer->shader;
+			auto& material = mesh.material;
+
+			if (material.colorMap._glHandle != 0)
+			{
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, material.colorMap._glHandle);
+			}
 
 			glUseProgram(shader._glHandle);
-			glBindTexture(GL_TEXTURE_2D, texture._glHandle);
 			glBindVertexArray(mesh._glVao);
 			glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
 		}
@@ -87,9 +92,13 @@ namespace Render
 		glBindTexture(GL_TEXTURE_2D, handle);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, rawBytes);
+
+		GLint min_filter = (filtering == TextureFiltering::eNearest) ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR;
+		GLint mag_filter = (filtering == TextureFiltering::eNearest) ? GL_NEAREST : GL_LINEAR;
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
+		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)dstFormat, width, height, 0, (GLint)srcFormat, GL_UNSIGNED_BYTE, rawBytes);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		
 		return true;
