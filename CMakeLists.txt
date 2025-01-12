@@ -79,6 +79,7 @@ add_library(lunar SHARED
     "inc/lunar/render/shader.hpp"
     "inc/lunar/render/common.hpp"
     "inc/lunar/render/texture.hpp"
+    "inc/lunar/render/material.hpp"
     "inc/lunar/render/render_context.hpp"
     "inc/lunar/render/render_components.hpp"
     "src/render/render_components.cpp"
