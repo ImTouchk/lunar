@@ -21,16 +21,17 @@ namespace Core
 		GameObject();
 		~GameObject();
 
-		void update();
-        size_t getNameHash() const;
-        const std::string& getName() const;
-		TransformComponent& getTransform();
+		void                      update();
+        size_t                    getNameHash() const;
+        const std::string&        getName() const;
+		TransformComponent&       getTransform();
+		const TransformComponent& getTransform() const;
 
-		GameObject* getParent();
-		Identifiable::NativeType getParentId() const;
-		Scene* getParentScene();
+		GameObject*               getParent();
+		Identifiable::NativeType  getParentId() const;
+		Scene*                    getParentScene();
 
-		void addComponent(Component* constructed);
+		void                      addComponent(Component* constructed);
 
 		template<typename T> requires IsDerivedComponent<T>
 		T* getComponent()
@@ -49,7 +50,7 @@ namespace Core
 		{	
 			DEBUG_ASSERT(getComponent<T>() == nullptr, "There can exist only one component of type <T> on a single gameobject.");
 			T* new_component = new T(std::forward<_Valty>(ctor_values)...);
-			components.push_back(new_component);
+			addComponent((Component*)new_component);
 			return *new_component;
 		}
 		

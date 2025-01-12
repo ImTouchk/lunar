@@ -13,7 +13,10 @@ namespace Render
 
 		void init() override;
 		void destroy() override;
-		void draw(Core::Scene& scene, RenderTarget* target) override;
+		void draw(Core::Scene& scene, Camera& camera, RenderTarget* target) override;
+
+	private:
+		GLuint ubo = 0;
 	};
 
 	namespace imp

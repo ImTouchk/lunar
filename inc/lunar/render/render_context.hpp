@@ -7,6 +7,7 @@
 
 namespace Render
 {
+	class LUNAR_API Camera;
 	class LUNAR_API RenderContext
 	{
 	public:
@@ -14,14 +15,14 @@ namespace Render
 
 		virtual void init() = 0;
 		virtual void destroy() = 0;
-		virtual void draw(Core::Scene& scene, RenderTarget* target) = 0;
+		virtual void draw(Core::Scene& scene, Camera& camera, RenderTarget* target) = 0;
 
 		//virtual void draw(Core::Scene& scene, RenderTarget* target) = 0;
 
 		template<typename T> requires IsRenderTarget<T>
-		inline void draw(std::shared_ptr<Core::Scene>& scene, T& target)
+		inline void draw(std::shared_ptr<Core::Scene>& scene, Camera& camera, T& target)
 		{
-			draw(*scene.get(), &target);
+			draw(*scene.get(), camera, &target);
 		}
 	};
 

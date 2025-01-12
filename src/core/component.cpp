@@ -1,15 +1,28 @@
+#include <lunar/core/scene.hpp>
+#include <lunar/core/gameobject.hpp>
 #include <lunar/core/component.hpp>
 #include <lunar/script/script_vm.hpp>
 
 namespace Core
 {
-	bool TransformComponent::isUpdateable()
+	GameObject& Component::getGameObject()
 	{
-		return false;
+		return _scene->getGameObject(_gameObject);
 	}
 
-	void TransformComponent::update() 
+	const GameObject& Component::getGameObject() const
 	{
+		return _scene->getGameObject(_gameObject);
+	}
+
+	TransformComponent& Component::getTransform()
+	{
+		return getGameObject().getTransform();
+	}
+
+	const TransformComponent& Component::getTransform() const
+	{
+		return getGameObject().getTransform();
 	}
 
 	ScriptComponent::ScriptComponent(const std::string_view& name)
@@ -51,11 +64,6 @@ namespace Core
 	const std::string& ScriptComponent::getScriptName() const
 	{
 		return scriptName;
-	}
-
-	bool ScriptComponent::isUpdateable()
-	{
-		return true;
 	}
 
 	void ScriptComponent::update()
