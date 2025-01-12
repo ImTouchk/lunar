@@ -92,6 +92,11 @@ namespace Render
 #		ifdef LUNAR_VULKAN
 		window._vkHandleResize(width, height);
 #		endif
+
+#		ifdef LUNAR_OPENGL
+		// TODO: switch to window context (need a public window.getNative() function)
+		glViewport(0, 0, width, height);
+#		endif
 	}
 
 	Window::Window(
