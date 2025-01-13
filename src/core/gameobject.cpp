@@ -1,3 +1,4 @@
+#include <lunar/render/render_context.hpp>
 #include <lunar/core/gameobject.hpp>
 #include <lunar/core/component.hpp>
 #include <lunar/core/scene.hpp>
@@ -31,8 +32,6 @@ namespace Core
 
 	GameObject::~GameObject()
 	{
-		for (size_t i = 0; i < components.size(); i++)
-			delete components[i];
 	}
 
 	GameObject* GameObject::getParent()
@@ -43,20 +42,37 @@ namespace Core
 		return nullptr;
 	}
 
-	void GameObject::addComponent(Component* constructed)
+	std::span<std::shared_ptr<Component>> GameObject::getComponents()
+	{
+		return components;
+	}
+
+	void GameObject::addComponent(std::shared_ptr<Component> constructed)
 	{
 		constructed->_scene = scene;
 		constructed->_gameObject = id;
-		components.push_back(constructed);
+		components.emplace_back(constructed);
 	}
 
 	Component* GameObject::getComponent(const std::type_info& ty)
 	{
-		for (Component* component : components)
+		for (auto& component : components)
 			if (typeid(*component).hash_code() == ty.hash_code())
-				return component;
+				return component.get();
 
 		return nullptr;
+	}
+
+	std::vector<GameObject*> GameObject::getChildren()
+	{
+		auto children = std::vector<GameObject*> {};
+		auto& gameObjects = getParentScene()->getGameObjects();
+		for (auto& object : gameObjects)
+		{
+			if (object.getParentId() == id)
+				children.push_back(&object);
+		}
+		return std::move(children);
 	}
 
 	Identifiable::NativeType GameObject::getParentId() const
@@ -102,6 +118,15 @@ namespace Core
 		//	if (component->isUpdateable())
 		//		component->update();
 		//}
+	}
+
+	void GameObject::renderUpdate(Render::RenderContext& context)
+	{
+		for (auto& component : components)
+		{
+			if (component->_getClassFlags() & ComponentClassFlagBits::eRenderable)
+				component->renderUpdate(context);
+		}
 	}
 
 	//void GameObject::fromJson(nlohmann::json& json)

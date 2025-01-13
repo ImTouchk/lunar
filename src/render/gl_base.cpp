@@ -29,7 +29,10 @@ namespace Render
 
 	void GLContext::init()
 	{
-
+#ifdef LUNAR_IMGUI
+		IMGUI_CHECKVERSION();
+		_imguiContext = ImGui::CreateContext();
+#endif
 	}
 
 	void GLContext::destroy()
@@ -60,13 +63,19 @@ namespace Render
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glClearColor(1.0f, 1.f, 1.f, 1.f);
 
+#		ifdef LUNAR_IMGUI
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+#		endif
+
 		auto ubo_data = SceneGpuData
 		{
 			.projection = camera.getProjectionMatrix(1280, 720),
 			.view       = camera.getViewMatrix(),
 			.model      = {},
 		};
-		
+
 		for (auto& object : scene.getGameObjects())
 		{
 			MeshRenderer* mesh_renderer = object.getComponent<MeshRenderer>();
@@ -97,12 +106,11 @@ namespace Render
 			glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
 		}
 
-#		ifdef LUNAR_IMGUI
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
 
+#		ifdef LUNAR_IMGUI
 		ImGui::ShowDemoWindow();
+		scene.renderUpdate(*this);
+
 		ImGui::Render();
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -232,9 +240,12 @@ namespace Render
 		glEnable(GL_DEPTH_TEST);
 
 #		ifdef LUNAR_IMGUI
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
+		ImGui::SetCurrentContext(renderCtx->getImGuiContext());
 		ImGui::StyleColorsDark();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.FontGlobalScale = 1.f;
+
 		ImGui_ImplGlfw_InitForOpenGL(handle, true);
 		ImGui_ImplOpenGL3_Init();
 #		endif
