@@ -65,6 +65,9 @@ namespace Render
 		bool isMinimized() const;
 		bool exists() const;
 
+		int getRenderWidth() const override;
+		int getRenderHeight() const override;
+
 		static void pollEvents();
 
 #		ifdef LUNAR_VULKAN

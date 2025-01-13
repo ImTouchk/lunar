@@ -24,6 +24,9 @@ namespace Render
 			return _renderTargetType; 
 		}
 
+		virtual int getRenderWidth() const = 0;
+		virtual int getRenderHeight() const = 0;
+
 	protected:
 		RenderTargetType _renderTargetType;
 	};
