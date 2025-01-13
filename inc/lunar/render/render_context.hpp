@@ -5,6 +5,10 @@
 #include <concepts>
 #include <memory>
 
+#ifdef LUNAR_IMGUI
+#	include <imgui.h>
+#endif
+
 namespace Render
 {
 	class LUNAR_API Camera;
@@ -24,6 +28,21 @@ namespace Render
 		{
 			draw(*scene.get(), camera, &target);
 		}
+
+		template<typename T> requires IsRenderTarget<T>
+		inline void draw(std::shared_ptr<Core::Scene>& scene, T& target)
+		{
+			auto* camera = scene->getMainCamera();
+			DEBUG_ASSERT(camera != nullptr, "Scene does not have a main camera set.");
+			draw(*scene.get(), *camera, &target);
+		}
+
+#ifdef LUNAR_IMGUI
+		ImGuiContext* getImGuiContext() { return _imguiContext; }
+
+	protected:
+		ImGuiContext* _imguiContext;
+#endif
 	};
 
 	LUNAR_API std::shared_ptr<RenderContext> CreateDefaultContext();

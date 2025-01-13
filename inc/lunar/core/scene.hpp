@@ -8,10 +8,8 @@
 #include <string>
 #include <vector>
 
-namespace Script
-{
-	class LUNAR_API VirtualMachine;
-}
+namespace Script { class LUNAR_API VirtualMachine; }
+namespace Render { class LUNAR_API Camera; }
 
 namespace Core
 {
@@ -23,20 +21,25 @@ namespace Core
 			std::shared_ptr<Script::VirtualMachine>& scriptingVm
 		);
 		Scene() = default;
-
-		Scene(Scene&&) = delete;
+		Scene(Scene&&)           = delete;
 		Scene& operator=(Scene&&) = delete;
 
-        size_t getNameHash() const;
-        const std::string& getName() const;
-
-		GameObject& getGameObject(const std::string_view& name);
-        GameObject& getGameObject(Identifiable::NativeType id);
+		void                     update();
+		void                     renderUpdate(Render::RenderContext& context);
+        const std::string&       getName() const;
+        size_t                   getNameHash() const;
+        GameObject&              getGameObject(const std::string_view& name);
+		const GameObject&        getGameObject(const std::string_view& name) const;
+        GameObject&              getGameObject(Identifiable::NativeType id);
+		const GameObject&        getGameObject(Identifiable::NativeType id) const;
 		std::vector<GameObject>& getGameObjects();
-		GameObject& createGameObject(const std::string_view& name, GameObject* parent = nullptr);
+		GameObject&              createGameObject(const std::string_view& name, GameObject* parent = nullptr);
+		void                     deleteGameObject(Identifiable::NativeType id);
+		Render::Camera*          getMainCamera();
+		void                     setMainCamera(Render::Camera& camera);
 
 	private:
-
+		Identifiable::NativeType mainCamera = -1;
 		size_t nameHash = SIZE_MAX;
 		std::string name = "Untitled Scene";
 		std::vector<GameObject> objects = {};
@@ -45,7 +48,7 @@ namespace Core
 
 	struct LUNAR_API SceneBuilder
 	{
-		using ComponentJsonParser = std::function<Component*(const nlohmann::json&)>;
+		using ComponentJsonParser = std::function<std::shared_ptr<Component>(const nlohmann::json&)>;
 
 		SceneBuilder() = default;
 		~SceneBuilder() = default;
@@ -59,8 +62,8 @@ namespace Core
 		template<typename T> requires IsDerivedComponent<T> && IsJsonSerializable<T>
 		SceneBuilder& useClassSerializer(const std::string& componentName) 
 		{
-			return useCustomClassSerializer(componentName, [](const nlohmann::json& json) -> Component* {
-				T* component = new T(T::Deserialize(json));
+			return useCustomClassSerializer(componentName, [](const nlohmann::json& json) -> std::shared_ptr<Component> {
+				auto component = std::make_shared<Component>(T::Deserialize(json));
 				return component;
 			});
 		}

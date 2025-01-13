@@ -14,12 +14,13 @@
 
 #include <lunar/render/terra.hpp>
 
+#include <imgui.h>
+
 class Test2Comp : public Core::Component
 {
 public:
     Test2Comp(std::string str) : name(str) {}
 
-    bool isUpdateable() override { return true; }
     void update() override {
         DEBUG_LOG("{}", name);
     }
@@ -44,8 +45,6 @@ class TestComp : public Core::Component
 public:
     TestComp(float x, float y) : x(x), y(y) {}
 
-    bool isUpdateable() override { return true; }
-
     void update() override {
         const auto& ty = typeid(this);
         DEBUG_LOG("{} (hash: {}): {}, {}", ty.name(), ty.hash_code(), x, y);
@@ -67,6 +66,104 @@ public:
     float x, y;
 };
 
+class UISceneHierarchy : public Core::Component
+{
+private:
+    void renderComponent(Core::Component* component)
+    {
+        auto title = std::format("Component: {}", component->_getClassName());
+        if (ImGui::CollapsingHeader(title.c_str()))
+        {
+            ImGui::Indent();
+
+            ImGui::Unindent();
+        }
+    }
+
+    void renderObjectTree(Core::GameObject& object)
+    {
+        auto title    = std::format("GameObject: {} (ID: {})", object.getName(), object.getId());
+
+        ImGui::TreePush(object.getName().c_str());
+        if (ImGui::CollapsingHeader(title.c_str()))
+        {
+            ImGui::Indent();
+
+            if (ImGui::Button("Delete"))
+            {
+                auto* scene = object.getParentScene();
+                scene->deleteGameObject(object.getId());
+            }
+
+            if (ImGui::CollapsingHeader("Transform"))
+            {
+                ImGui::Indent();
+
+                auto& transform = object.getTransform();
+                
+                ImGui::InputFloat3("Position", &transform.position.x);
+                ImGui::InputFloat3("Rotation", &transform.rotation.x);
+                ImGui::InputFloat3("Scale",    &transform.scale.x);
+                
+                ImGui::Unindent();
+            }
+
+            if (ImGui::CollapsingHeader("Components"))
+            {
+                ImGui::Indent();
+
+                auto components = object.getComponents();
+                for (auto& component : components)
+                    renderComponent(component.get());
+
+                ImGui::Unindent();
+            }
+
+            auto children = object.getChildren();
+            if (ImGui::CollapsingHeader("Children"))
+            {
+                ImGui::Indent();
+                for (auto& child : children)
+                    renderObjectTree(*child);
+
+                ImGui::Unindent();
+            }
+            ImGui::Unindent();
+        }
+        ImGui::TreePop();
+    }
+    
+public:
+    void renderUpdate(Render::RenderContext& context) override
+    {
+        auto& scene = getScene();
+        auto  title = std::format("Scene: {}", scene.getName());
+
+        ImGui::SetCurrentContext(context.getImGuiContext());
+        ImGui::Begin(title.c_str());
+
+        ImGui::Text("ID: %d", scene.getId());
+        
+        ImGui::SeparatorText("GameObjects");
+        ImGui::BeginChild("GameObjects");
+        auto& objects = getScene().getGameObjects();
+        for (auto& object : objects)
+            if (object.getParentId() == -1)
+                renderObjectTree(object);
+        ImGui::EndChild();
+
+        ImGui::End();
+    }
+
+    Core::ComponentClassFlags _getClassFlags() 
+    { 
+        return 
+            Core::ComponentClassFlagBits::eNone |
+            Core::ComponentClassFlagBits::eRenderable; 
+    }
+
+};
+
 int main(int argc, char* argv[])
 {
     auto args = Utils::ArgumentParser(argc, argv);
@@ -83,20 +180,10 @@ int main(int argc, char* argv[])
         .fromJsonFile(Fs::dataDirectory().append("main_scene.json"))
         .create();
 
-    scene->getGameObject("Skibidi Toilet")
-        .addComponent<Test2Comp>("big boss");
 
-    scene->getGameObject("Skibidi Toilet")
-        .getComponent<Test2Comp>()
-            ->update();
-
-    scene->getGameObject("Skibidi Toilet")
-        .addComponent<TestComp>(1.f, 1.f)
-        .update();
-
-    scene->getGameObject("Test Object")
-        .getComponent<TestComp>()
-            ->update();
+    scene->getGameObject("Skibidi Toilet").addComponent<UISceneHierarchy>();
+    scene->setMainCamera(scene->getGameObject("Skibidi Toilet").addComponent<Render::Camera>());
+    scene->createGameObject("Bruh Moment", &scene->getGameObject("Test Object"));
 
     DEBUG_LOG("{}", scene->getName());
 
@@ -117,8 +204,7 @@ int main(int argc, char* argv[])
         Terra::TranspilerOutput::eVulkanGLSL
     );
 
-    auto& mesh_renderer = scene->getGameObject("Test Object")
-        .addComponent<Render::MeshRenderer>();
+    auto& mesh_renderer = scene->getGameObject("Test Object").addComponent<Render::MeshRenderer>();
 
     auto vertices = std::vector<Render::Vertex>
     {

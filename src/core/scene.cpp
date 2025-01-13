@@ -1,4 +1,6 @@
 #include <lunar/core/scene.hpp>
+#include <lunar/render/render_components.hpp>
+#include <lunar/render/render_context.hpp>
 #include <lunar/debug/log.hpp>
 
 namespace Core
@@ -17,9 +19,13 @@ namespace Core
 
 	SceneBuilder& SceneBuilder::useCoreSerializers()
 	{
-		useCustomClassSerializer("core.scriptComponent", [](const nlohmann::json&) -> Component* {
+		useCustomClassSerializer("core.scriptComponent", [](const nlohmann::json&) -> std::shared_ptr<Component> {
 			DEBUG_LOG("Hello, world!");
 			return nullptr;
+		});
+
+		useCustomClassSerializer("core.render.camera", [](const nlohmann::json&) -> std::shared_ptr<Component> {
+			return std::make_shared<Render::Camera>();
 		});
 		return *this;
 	}
@@ -94,7 +100,7 @@ namespace Core
 					continue;
 				}
 
-				Component* parsed_component = componentParsers[component_type](component);
+				auto parsed_component = componentParsers[component_type](component);
 				if (parsed_component == nullptr)
 				{
 					DEBUG_WARN("Component of type '{}' was parsed but result was NULL. Skipping...", component_type);
@@ -142,9 +148,10 @@ namespace Core
 	) : name(name),
 		nameHash(std::hash<std::string>{}(name)),
 		scriptingVm(scriptingVm),
+		objects(),
 		Identifiable()
 	{
-
+		//objects.reserve(100);
 	}
 
 	const std::string& Scene::getName() const
@@ -155,6 +162,27 @@ namespace Core
 	size_t Scene::getNameHash() const
 	{
 		return nameHash;
+	}
+
+	void Scene::deleteGameObject(Identifiable::NativeType id)
+	{
+		// TODO: Rethink this function; it somehow messes up the ids of all objects
+
+		for (size_t i = 0; i < objects.size(); i++)
+		{
+			if (objects[i].getId() != id)
+				continue;
+
+			auto name = objects[i].getName();
+
+			std::iter_swap(objects.begin() + i, objects.end() - 1);
+			objects.pop_back();
+			
+			DEBUG_LOG("Deleted object '{}'", name);
+			return;
+		}
+
+		DEBUG_ASSERT(true, "deleteGameObject called on inexistent id");
 	}
 
 	GameObject& Scene::createGameObject(const std::string_view& name, GameObject* parent)
@@ -174,6 +202,18 @@ namespace Core
         throw;
     }
 
+	const GameObject& Scene::getGameObject(Identifiable::NativeType id) const
+	{
+		for (auto& game_object : objects)
+		{
+			if (game_object.getId() == id)
+				return game_object;
+		}
+
+		DEBUG_ERROR("Called on inexistent game object (id: {})", id);
+		throw;
+	}
+
     GameObject& Scene::getGameObject(const std::string_view& name)
     {
 		size_t name_hash = Lunar::imp::fnv1a_hash(name);
@@ -187,8 +227,49 @@ namespace Core
         throw;
     }
 
+	const GameObject& Scene::getGameObject(const std::string_view& name) const
+	{
+		size_t name_hash = Lunar::imp::fnv1a_hash(name);
+		for (auto& game_object : objects)
+		{
+			if (game_object.getNameHash() == name_hash)
+				return game_object;
+		}
+
+		DEBUG_ERROR("Called on inexistent game object (name: {})", name);
+		throw;
+	}
+
 	std::vector<GameObject>& Scene::getGameObjects()
 	{
 		return objects;
+	}
+
+	void Scene::setMainCamera(Render::Camera& camera)
+	{
+		mainCamera = camera
+			.getGameObject()
+			.getId();
+	}
+
+	Render::Camera* Scene::getMainCamera()
+	{
+		if (mainCamera == -1)
+			return nullptr;
+
+		return getGameObject(mainCamera)
+			.getComponent<Render::Camera>();
+	}
+
+	void Scene::update()
+	{
+		for (auto& object : getGameObjects())
+			object.update();
+	}
+
+	void Scene::renderUpdate(Render::RenderContext& context)
+	{
+		for (auto& object : getGameObjects())
+			object.renderUpdate(context);
 	}
 }
