@@ -167,6 +167,11 @@ namespace Core
 	void Scene::deleteGameObject(Identifiable::NativeType id)
 	{
 		// TODO: Rethink this function; it somehow messes up the ids of all objects
+		
+		auto& object   = getGameObject(id);
+		auto  children = object.getChildren();
+		for (size_t i = 0; i < children.size(); i++)
+			deleteGameObject(children[i]->getId());
 
 		for (size_t i = 0; i < objects.size(); i++)
 		{
