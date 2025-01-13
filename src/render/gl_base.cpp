@@ -108,7 +108,7 @@ namespace Render
 
 
 #		ifdef LUNAR_IMGUI
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 		scene.renderUpdate(*this);
 
 		ImGui::Render();

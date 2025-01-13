@@ -108,6 +108,9 @@ private:
             for (auto& component : components)
                 renderComponent(component.get());
 
+            if (components.size() == 0)
+                ImGui::Text("This object has no components.");
+
             auto children = object.getChildren();
             ImGui::SeparatorText("Children");
             for (auto& child : children)
