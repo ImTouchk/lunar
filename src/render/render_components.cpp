@@ -1,5 +1,7 @@
+#define GLM_ENABLE_EXPERIMENTAL
 #include <lunar/render/render_components.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 namespace Render
 {
@@ -41,13 +43,11 @@ namespace Render
 	glm::mat4 MeshRenderer::getModelMatrix() const
 	{
 		const auto& transform = getTransform();
-		auto model = glm::mat4(1.f);
-		model      = glm::scale(glm::mat4(1.f), transform.scale);
-		model      = glm::rotate(model, transform.rotation.z, { 0.f, 0.f, 1.f });
-		model      = glm::rotate(model, transform.rotation.y, { 0.f, 1.f, 0.f });
-		model      = glm::rotate(model, transform.rotation.x, { 1.f, 0.f, 0.f });
-		model      = glm::translate(model, transform.position);
-		return model;
+		auto scale       = glm::scale(glm::mat4(1.f), transform.scale);
+		auto translation = glm::translate(glm::mat4(1.f), transform.position);
+		auto rot_quat    = glm::quat(glm::radians(transform.rotation));
+		auto rotation    = glm::mat4(rot_quat);
+		return translation * rotation * scale;
 	}
 
 	//MeshRenderer::MeshRenderer(const ShaderBuilder& shaderBuilder)

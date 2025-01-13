@@ -71,8 +71,8 @@ namespace Render
 
 		auto ubo_data = SceneGpuData
 		{
-			.projection = camera.getProjectionMatrix(1280, 720),
 			.view       = camera.getViewMatrix(),
+			.projection = camera.getProjectionMatrix(1280, 720),
 			.model      = {},
 		};
 
