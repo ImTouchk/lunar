@@ -14,6 +14,8 @@
 
 #include <lunar/render/terra.hpp>
 
+#include <lunar/core/time.hpp>
+
 #include <imgui.h>
 
 class Test2Comp : public Core::Component
@@ -127,6 +129,8 @@ private:
 public:
     void renderUpdate(Render::RenderContext& context) override
     {
+        return;
+
         auto& scene   = getScene();
         auto& objects = scene.getGameObjects();
         auto  title   = std::format("Scene: {}", scene.getName());
@@ -243,8 +247,14 @@ int main(int argc, char* argv[])
 
     while (!game_window.shouldClose())
     {
-        render_ctx->draw(scene, game_window);
         Render::Window::pollEvents();
+        Time::Update();
+        
+        render_ctx->begin(game_window);
+        Debug::DrawSceneHierarchyPanel(*scene, *render_ctx); 
+        Debug::DrawGeneralInfoPanel(*render_ctx);
+        render_ctx->draw(scene);
+        render_ctx->end();
     }
 
     return 1;

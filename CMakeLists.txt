@@ -36,13 +36,16 @@ add_library(lunar SHARED
     "inc/lunar/utils/identifiable.hpp"
     "inc/lunar/debug/log.hpp"
     "inc/lunar/debug/assert.hpp"
+    "inc/lunar/debug/ui.hpp"
     "inc/lunar/debug.hpp"
     
+
     "inc/lunar/ui/stylesheet.hpp"
 
     "inc/lunar/core/scene.hpp"
     "inc/lunar/core/gameobject.hpp"
     "inc/lunar/core/component.hpp"
+    "inc/lunar/core/time.hpp"
 
     "inc/lunar/script/script_vm.hpp"
     "inc/lunar/script/script_api.hpp"
@@ -62,10 +65,12 @@ add_library(lunar SHARED
     "src/file/file_tracker.cpp"
     "src/utils/lexer.cpp"
     "src/debug/log.cpp"
+    "src/debug/ui.cpp"
     "src/ui/stylesheet.cpp"
     "src/core/scene.cpp"
     "src/core/gameobject.cpp"
     "src/core/component.cpp"
+    "src/core/time.cpp"
 
     "src/script/script_vm.cpp"
     "src/script/script_scene.cpp"

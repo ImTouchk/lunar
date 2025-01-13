@@ -2,7 +2,7 @@
 #include <lunar/core/component.hpp>
 #include <lunar/file/json_file.hpp>
 #include <lunar/utils/identifiable.hpp>
-#include <lunar/debug.hpp>
+#include <lunar/debug/assert.hpp>
 #include <lunar/api.hpp>
 #include <concepts>
 #include <string>
