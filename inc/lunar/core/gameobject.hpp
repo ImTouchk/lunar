@@ -2,108 +2,74 @@
 #include <lunar/core/component.hpp>
 #include <lunar/file/json_file.hpp>
 #include <lunar/utils/identifiable.hpp>
+#include <lunar/debug.hpp>
 #include <lunar/api.hpp>
 #include <concepts>
 #include <string>
 #include <memory>
 #include <vector>
 
+namespace Render { class LUNAR_API RenderContext; }
+
 namespace Core
 {
 	// TODO: sort components based on nameHash so binary search can be done
 	class LUNAR_API Scene;
 
-	class LUNAR_API GameObject : public Fs::JsonObject, public Identifiable
+	class LUNAR_API GameObject : public Identifiable
 	{
 	public:
-		GameObject(nlohmann::json& json);
-		GameObject(std::string name);
+		GameObject(const std::string_view& name, Scene* scene, GameObject* parent = nullptr);
 		GameObject();
 		~GameObject();
 
-		GameObject(GameObject&& other);
-		GameObject(const GameObject& other);
-		GameObject& operator=(GameObject&& other);
-		GameObject& operator=(const GameObject& other);
+		void                      update();
+		void                      renderUpdate(Render::RenderContext& context);
+        size_t                    getNameHash() const;
+        const std::string&        getName() const;
+		TransformComponent&       getTransform();
+		const TransformComponent& getTransform() const;
 
-		void fromJson(nlohmann::json& json);
+		std::vector<GameObject*>  getChildren();
+		GameObject*               getParent();
+		Identifiable::NativeType  getParentId() const;
+		Scene*                    getParentScene();
+		std::span<std::shared_ptr<Component>> getComponents();
+		void                      addComponent(std::shared_ptr<Component> constructed);
 
-		void update();
-        size_t getNameHash() const;
-        const std::string& getName() const;
-		TransformComponent& getTransform();
-
-		GameObject* getParent();
-		Identifiable::NativeType getParentId() const;
-		Scene* getParentScene();
-
-		template<typename T> requires std::derived_from<T, Component>
-		T& addComponent() 
+		template<typename T> requires IsDerivedComponent<T>
+		T* getComponent()
 		{
-			return *reinterpret_cast<T*>(
-					components.emplace_back(std::make_unique<T>())
-						.get()
-					);
+			return static_cast<T*>(getComponent(typeid(T)));
 		}
 
-		Component* getComponent(const char* name)
+		template<typename T> requires IsDerivedComponent<T>
+		const T* getComponent() const
 		{
-			size_t name_hash = std::hash<std::string>{}(name);
-			for (auto& component : components)
-			{
-				if (component.get()->getTypeHash() == name_hash)
-					return component.get();
-			}
-
-			return nullptr;
+			return static_cast<const T*>(getComponent(typeid(T)));
 		}
 
-		template<typename T> requires std::derived_from<T, Component>
-		inline T* getComponent()
-		{
-			if constexpr (std::is_same<T, TransformComponent>::value)
-			{
-				return &transform;
-			}
-			else
-			{
-				auto _default = T();
-				return reinterpret_cast<T*>(
-					getComponent(
-						reinterpret_cast<Component*>(&_default)->getType()
-					)
-				);
-			}
-
+		template <typename T, class... _Valty> requires IsDerivedComponent<T>
+		T& addComponent(_Valty&&... ctor_values)
+		{	
+			DEBUG_ASSERT(getComponent<T>() == nullptr, "There can exist only one component of type <T> on a single gameobject.");
+			std::shared_ptr<T> new_component = std::make_shared<T>(std::forward<_Valty>(ctor_values)...);
+			addComponent(new_component);
+			return *new_component;
 		}
-
-		template<typename T> requires std::derived_from<T, Component>
-		inline T& getComponentRef()
-		{
-			if constexpr (std::is_same<T, TransformComponent>::value)
-			{
-				return transform;
-			}
-			else
-			{
-				auto _default = T();
-				return *reinterpret_cast<T*>(
-					getComponent(
-						reinterpret_cast<Component*>(&_default)->getType()
-					)
-				);
-			}
-		}
-
-	private:
-		friend class Scene;
-
-		Identifiable::NativeType scene;
-		Identifiable::NativeType parent;
-		size_t nameHash;
-        std::string name;
-		TransformComponent transform;
-		std::vector<std::unique_ptr<Component>> components;
 		
+	private:
+		Component* getComponent(const std::type_info& ty);
+
+        std::string name;
+		size_t nameHash;
+
+		TransformComponent transform;
+		std::vector<std::shared_ptr<Component>> components;
+
+		Scene* scene;
+		Identifiable::NativeType parent;	
+		
+		friend class Scene;
 	};
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <concepts>
 
 namespace Render
 {
@@ -23,7 +24,13 @@ namespace Render
 			return _renderTargetType; 
 		}
 
+		virtual int getRenderWidth() const = 0;
+		virtual int getRenderHeight() const = 0;
+
 	protected:
 		RenderTargetType _renderTargetType;
 	};
+
+	template<typename T>
+	concept IsRenderTarget = std::derived_from<T, RenderTarget>;
 }

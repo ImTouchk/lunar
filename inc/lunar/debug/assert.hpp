@@ -3,21 +3,25 @@
 #include <lunar/debug/log.hpp>
 #include <cassert>
 
-constexpr inline void do_assert(bool condition, const char* message)
+inline void do_assert(bool condition, const char* conditionName, const char* message = nullptr)
 {
 	if (!condition)
 	{
-		DEBUG_ERROR("Assert condition \"{}\" failed!", message);
+		DEBUG_ERROR("Assert condition \"{}\" failed!", conditionName);
+		if (message != nullptr) {
+			DEBUG_ERROR("|====>: {}", message);
+		}
+
 		throw;
 	}
 }
 
 
 #ifdef LUNAR_DEBUG_BUILD
-#	define DEBUG_ASSERT(condition) do_assert(condition, #condition)
+#	define DEBUG_ASSERT(condition, ...) do_assert(condition, #condition __VA_OPT__(,) __VA_ARGS__);
 #	define DEBUG_ONLY_EXPR(expr) expr
 #else
-#	define DEBUG_ASERT(condition)
+#	define DEBUG_ASERT(condition, ...) 
 #	define DEBUG_ONLY_EXPR(expr)
 #endif
 

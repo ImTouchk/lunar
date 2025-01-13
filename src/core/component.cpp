@@ -1,25 +1,40 @@
+#include <lunar/core/scene.hpp>
+#include <lunar/core/gameobject.hpp>
 #include <lunar/core/component.hpp>
 #include <lunar/script/script_vm.hpp>
 
 namespace Core
 {
-	size_t Component::getTypeHash()
+	Scene& Component::getScene()
 	{
-		return std::hash<std::string>{}(getType());
+		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
+		return *_scene;
 	}
 
-	const char* TransformComponent::getType()
+	const Scene& Component::getScene() const
 	{
-		return "core.transformComponent";
+		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
+		return *_scene;
 	}
 
-	bool TransformComponent::isUpdateable()
+	GameObject& Component::getGameObject()
 	{
-		return false;
+		return getScene().getGameObject(_gameObject);
 	}
 
-	void TransformComponent::update() 
+	const GameObject& Component::getGameObject() const
 	{
+		return getScene().getGameObject(_gameObject);
+	}
+
+	TransformComponent& Component::getTransform()
+	{
+		return getGameObject().getTransform();
+	}
+
+	const TransformComponent& Component::getTransform() const
+	{
+		return getGameObject().getTransform();
 	}
 
 	ScriptComponent::ScriptComponent(const std::string_view& name)
@@ -61,22 +76,6 @@ namespace Core
 	const std::string& ScriptComponent::getScriptName() const
 	{
 		return scriptName;
-	}
-
-	const char* ScriptComponent::getType()
-	{
-		return "core.scriptComponent";
-	}
-
-	size_t ScriptComponent::getTypeHash()
-	{
-		static size_t hash = std::hash<std::string>{}(getType());
-		return hash;
-	}
-
-	bool ScriptComponent::isUpdateable()
-	{
-		return true;
 	}
 
 	void ScriptComponent::update()

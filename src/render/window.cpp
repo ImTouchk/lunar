@@ -5,45 +5,76 @@
 #	include <vulkan/vulkan.hpp>
 #endif
 
+#ifdef LUNAR_OPENGL
+#	include <glad/gl.h>
+#endif	
+
+#include <lunar/file/config_file.hpp>
 #include <lunar/render/window.hpp>
 #include <lunar/debug.hpp>
 #include <GLFW/glfw3.h>
 #include <atomic>
 
-
 namespace Render
 {
-	WindowBuilder& WindowBuilder::width(int w)
+	WindowBuilder& WindowBuilder::setWidth(int width)
 	{
-		_width = w;
+		w = width;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::height(int h)
+	WindowBuilder& WindowBuilder::setHeight(int height)
 	{
-		_height = h;
+		h = height;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::fullscreen(bool value)
+	WindowBuilder& WindowBuilder::setSize(int width, int height)
 	{
-		_fullscreen = value;
+		w = width;
+		h = height;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::renderContext(std::shared_ptr<RenderContext>& context)
+	WindowBuilder& WindowBuilder::setFullscreen(bool value)
 	{
-		_renderCtx = context;
+		fs = value;
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::fromConfigFile(const Fs::Path& path)
+	WindowBuilder& WindowBuilder::setTitle(const std::string_view& title)
+	{
+		this->title = title;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::loadFromConfigFile(const Fs::Path& path)
 	{
 		auto config = Fs::ConfigFile(path);
-		_width = std::max(config.get<int>("width"), 800);
-		_height = std::max(config.get<int>("height"), 600);
-		_fullscreen = config.get<int>("fullscreen");
+		setSize(
+			config.get_or<int>("width", 800),
+			config.get_or<int>("height", 600)
+		);
+
+		setFullscreen(config.get_or<int>("fullscreen", 0));
 		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::setRenderContext(std::shared_ptr<RenderContext>& context)
+	{
+		renderContext = context;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::setDefaultRenderContext()
+	{
+		renderContext = CreateDefaultContext();
+		return *this;
+	}
+
+	Window WindowBuilder::create()
+	{
+		return Window(w, h, fs, title.data(), renderContext);
 	}
 
 	std::atomic<int> GlfwUsers = 0;
@@ -59,30 +90,28 @@ namespace Render
 	{
 		auto& window = Glfw_CastUserPtr(handle);
 #		ifdef LUNAR_VULKAN
-		auto& context = window._getVkContext();
-		window._vkDestroySwap();
-		window._vkInitSwap();
-		
-		auto& device = context.getDevice();
-		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			device.destroyFence(window._vkSwapImages[i].isInFlight);
+		window._vkHandleResize(width, height);
+#		endif
 
-			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
-			window._vkSwapImages[i].isInFlight = device.createFence(fence_info);
-		}
-
+#		ifdef LUNAR_OPENGL
+		// TODO: switch to window context (need a public window.getNative() function)
+		glViewport(0, 0, width, height);
 #		endif
 	}
 
-	Window::Window(const WindowBuilder& builder)
-		: handle(nullptr),
-		renderCtx(builder._renderCtx),
+	Window::Window(
+		int width,
+		int height,
+		bool fullscreen,
+		const char* title,
+		std::shared_ptr<RenderContext> context
+	) : handle(nullptr),
+		renderCtx(context),
 		initialized(false),
 		RenderTarget(RenderTargetType::eWindow),
 		Identifiable()
 	{
-		init(builder);
+		init(width, height, fullscreen, title, renderCtx);
 	}
 
 	Window::~Window()
@@ -90,7 +119,7 @@ namespace Render
 		destroy();
 	}
 
-	void Window::init(const WindowBuilder& builder)
+	void Window::init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context)
 	{
 		if (initialized)
 			return;
@@ -108,10 +137,17 @@ namespace Render
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #		endif
 
+#		ifdef LUNAR_OPENGL
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // for Mac
+#		endif
+
 		handle = glfwCreateWindow(
-			builder._width, builder._height,
-			"Lunar Engine Window",
-			(builder._fullscreen)
+			width, height,
+			title,
+			(fullscreen)
 				? glfwGetPrimaryMonitor() // TODO: monitor selection
 				: nullptr,
 			nullptr
@@ -129,6 +165,10 @@ namespace Render
 
 #		ifdef LUNAR_VULKAN
 		_vkInitialize();
+#		endif
+
+#		ifdef LUNAR_OPENGL
+		_glInitialize();
 #		endif
 	}
 
@@ -182,273 +222,17 @@ namespace Render
 		glfwPollEvents();
 	}
 
-#ifdef LUNAR_VULKAN
-	VulkanContext& Window::_getVkContext()
+	int Window::getRenderWidth() const
 	{
-		return *reinterpret_cast<VulkanContext*>(renderCtx.get());
+		int w, _;
+		glfwGetFramebufferSize(handle, &w, &_);
+		return w;
 	}
 
-	void Window::_vkInitSwap()
+	int Window::getRenderHeight() const
 	{
-		_vkUpdateSwapExtent();
-
-		auto& vk_ctx = _getVkContext();
-		auto& phys_device = vk_ctx.getRenderingDevice();
-		auto& device = vk_ctx.getDevice();
-
-		auto capabilities = phys_device.getSurfaceCapabilitiesKHR(_vkSurface);
-		auto image_count = (capabilities.maxImageCount != 0)
-			? std::clamp(capabilities.minImageCount + 1, capabilities.minImageCount, capabilities.maxImageCount)
-			: capabilities.minImageCount + 1;
-
-		vk::SwapchainCreateInfoKHR swap_info = {
-			.surface          = _vkSurface,
-			.minImageCount    = image_count,
-			.imageFormat      = _vkSurfaceFmt.format,
-			.imageColorSpace  = _vkSurfaceFmt.colorSpace,
-			.imageExtent      = _vkSwapExtent,
-			.imageArrayLayers = 1,
-			.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment,
-			.preTransform     = capabilities.currentTransform,
-			.compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-			.presentMode      = _vkPresentMode,
-			.clipped          = VK_TRUE,
-			.oldSwapchain     = VK_NULL_HANDLE // todo
-		};
-
-		if (vk_ctx.areQueuesSeparate())
-		{
-			auto indices = vk_ctx.getQueueFamilies();
-
-			swap_info.imageSharingMode = vk::SharingMode::eConcurrent;
-			swap_info.queueFamilyIndexCount = indices.size();
-			swap_info.pQueueFamilyIndices = indices.data();
-		}
-		else
-		{
-			swap_info.imageSharingMode = vk::SharingMode::eExclusive;
-		}
-
-		_vkSwapchain = device.createSwapchainKHR(swap_info);
-
-		auto images = device.getSwapchainImagesKHR(_vkSwapchain);
-		if (images.size() > 5)
-		{
-			DEBUG_ERROR("Too many swapchain images (max supported: 5 | existent: {})", images.size());
-		}
-
-		_vkSwapImgCount = images.size();
-		for (size_t i = 0; i < _vkSwapImgCount; i++)
-		{
-			vk::ImageViewCreateInfo view_info = {
-				.image    = images[i],
-				.viewType = vk::ImageViewType::e2D,
-				.format   = _vkSurfaceFmt.format,
-				.components = {
-					vk::ComponentSwizzle::eIdentity,
-					vk::ComponentSwizzle::eIdentity,
-					vk::ComponentSwizzle::eIdentity,
-					vk::ComponentSwizzle::eIdentity
-				},
-				.subresourceRange = {
-					.aspectMask     = vk::ImageAspectFlagBits::eColor,
-					.baseMipLevel   = 0,
-					.levelCount     = 1,
-					.baseArrayLayer = 0,
-					.layerCount     = 1
-				}
-			};
-
-			_vkSwapImages[i].img = images[i];
-			_vkSwapImages[i].view = device.createImageView(view_info);
-
-			vk::FramebufferCreateInfo frame_buffer_info = {
-				.renderPass      = vk_ctx.getDefaultRenderPass(),
-				.attachmentCount = 1,
-				.pAttachments    = &_vkSwapImages[i].view,
-				.width           = _vkSwapExtent.width,
-				.height          = _vkSwapExtent.height,
-				.layers          = 1
-			};
-
-			_vkSwapImages[i].fbuffer = device.createFramebuffer(frame_buffer_info);
-		}
+		int _, h;
+		glfwGetFramebufferSize(handle, &_, &h);
+		return h;
 	}
-
-	void Window::_vkDestroySwap()
-	{
-		auto& device = _getVkContext()
-							.getDevice();
-
-		device.waitIdle();
-		for (size_t i = 0; i < _vkSwapImgCount; i++)
-		{
-			device.destroyFramebuffer(_vkSwapImages[i].fbuffer);
-			device.destroyImageView(_vkSwapImages[i].view);
-		}
-		device.destroySwapchainKHR(_vkSwapchain);
-	}
-
-	void Window::_vkDestroy()
-	{
-		auto& vk_ctx = _getVkContext();
-		auto& device = vk_ctx.getDevice();
-		auto& inst = vk_ctx.getInstance();
-		device.waitIdle();
-
-		_vkDestroySwap();
-		
-		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			device.destroyFence(_vkSwapImages[i].isInFlight);
-			device.destroySemaphore(_vkSwapImages[i].renderFinished);
-			device.destroySemaphore(_vkSwapImages[i].imageAvailable);
-		}
-
-		inst.destroySurfaceKHR(_vkSurface);
-	}
-
-	void Window::_vkInitialize()
-	{
-		auto& vk_ctx = _getVkContext();
-
-		VkSurfaceKHR _surf;
-		if 
-		(
-			glfwCreateWindowSurface(static_cast<VkInstance>(vk_ctx.getInstance()), handle, nullptr, &_surf)
-			!= VK_SUCCESS
-		)
-		{
-			DEBUG_ERROR("Failed to create a window surface.");
-		}
-
-		_vkSurface = _surf;
-		_vkCurrentFrame = 0;
-
-		auto& phys_device = vk_ctx.getRenderingDevice();
-
-		auto surface_formats = phys_device.getSurfaceFormatsKHR(_vkSurface);
-		// TODO: size 0 check
-
-		bool found_optimal = false;
-		for (const auto& format : surface_formats)
-		{
-			if (format.format == vk::Format::eB8G8R8A8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-			{
-				_vkSurfaceFmt = format;
-				found_optimal = true;
-				break;
-			}
-		}
-
-		if (!found_optimal)
-			_vkSurfaceFmt = surface_formats.at(0);
-
-		auto surface_present_modes = phys_device.getSurfacePresentModesKHR(_vkSurface);
-		// TODO: size 0 check
-
-		found_optimal = false;
-		for (const auto& present_mode : surface_present_modes)
-		{
-			if (present_mode == vk::PresentModeKHR::eMailbox)
-			{
-				_vkPresentMode = present_mode;
-				found_optimal = true;
-				break;
-			}
-		}
-
-		if (!found_optimal)
-			_vkPresentMode = vk::PresentModeKHR::eImmediate;
-
-		_vkInitSwap();
-
-		auto& device = vk_ctx.getDevice();
-		for (size_t i = 0; i < Vk::MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			vk::SemaphoreCreateInfo semaphore_info = {};
-			vk::FenceCreateInfo fence_info = { .flags = vk::FenceCreateFlagBits::eSignaled };
-
-			_vkSwapImages[i].renderFinished = device.createSemaphore(semaphore_info);
-			_vkSwapImages[i].imageAvailable = device.createSemaphore(semaphore_info);
-			_vkSwapImages[i].isInFlight = device.createFence(fence_info);
-		}
-	}
-
-	void Window::_vkUpdateSwapExtent()
-	{
-		int width, height;
-		glfwGetFramebufferSize(handle, &width, &height);
-
-		auto capabilities = _getVkContext()
-								.getRenderingDevice()
-								.getSurfaceCapabilitiesKHR(_vkSurface);
-
-		_vkSwapExtent = vk::Extent2D {
-			std::clamp(
-				(uint32_t)width, 
-				capabilities.minImageExtent.width, 
-				capabilities.maxImageExtent.width
-			),
-			std::clamp(
-				(uint32_t)height, 
-				capabilities.minImageExtent.height, 
-				capabilities.maxImageExtent.height
-			)
-		};
-	}
-
-	vk::SurfaceKHR& Window::getVkSurface()
-	{
-		return _vkSurface;
-	}
-
-	vk::SwapchainKHR& Window::getVkSwapchain()
-	{
-		return _vkSwapchain;
-	}
-
-	size_t Window::getVkSwapImageCount()
-	{
-		return _vkSwapImgCount;
-	}
-
-	vk::Framebuffer& Window::getVkSwapFramebuffer(size_t idx)
-	{
-		// TODO: bounds check
-		return _vkSwapImages[idx].fbuffer;
-	}
-
-	vk::Semaphore& Window::getVkImageAvailable(size_t idx)
-	{
-		// TODO: bounds check
-		return _vkSwapImages[idx].imageAvailable;
-	}
-
-	vk::Semaphore& Window::getVkRenderFinished(size_t idx)
-	{
-		// TODO: bounds check
-		return _vkSwapImages[idx].renderFinished;;
-	}
-
-	vk::Fence& Window::getVkInFlightFence(size_t idx)
-	{
-		return _vkSwapImages[idx].isInFlight;
-	}
-
-	const vk::Extent2D& Window::getVkSwapExtent() const
-	{
-		return _vkSwapExtent;
-	}
-
-	size_t Window::getVkCurrentFrame() const
-	{
-		return _vkCurrentFrame;
-	}
-
-	void Window::endVkFrame()
-	{
-		_vkCurrentFrame = (_vkCurrentFrame + 1) % Vk::MAX_FRAMES_IN_FLIGHT;
-	}
-#endif
 }

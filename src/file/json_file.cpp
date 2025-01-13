@@ -3,6 +3,11 @@
 
 namespace Fs
 {
+	JsonFile::JsonFile(const Path& path)
+	{
+		fromFile(path);
+	}
+
 	bool JsonFile::fromFile(const Path& path)
 	{
 		if (!fileExists(path))

@@ -20,8 +20,8 @@ namespace Fs
 		FileTracker& trackPath(const Fs::Path& path, const EventHandler& handler);
 		FileTracker& update();
 
-		bool hasChanged(const Fs::Path& path);
-
+		[[nodiscard]] bool hasChanged(const Fs::Path& path);
+		[[nodiscard]] std::vector<Fs::Path> getChangedPaths() const;
 	private:
 		struct PathData
 		{

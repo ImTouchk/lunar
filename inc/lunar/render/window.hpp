@@ -7,42 +7,57 @@
 #include <lunar/api.hpp>
 
 #ifdef LUNAR_VULKAN
+#	include <lunar/render/internal/render_vk.hpp>
 #	include <vulkan/vulkan.hpp>
 #endif
 
 namespace Render
 {
 #	ifdef LUNAR_VULKAN
-	class VulkanContext;
-#	endif
+	constexpr size_t FRAME_OVERLAP = 2;
 
-	struct LUNAR_API WindowBuilder
+	struct VulkanFrameData
 	{
-	public:
-		WindowBuilder() = default;
-		~WindowBuilder() = default;
+		struct
+		{
+			vk::Image image;
+			vk::ImageView view;
+			vk::Semaphore imageAvailable;
+		} swapchain;
 
-		WindowBuilder& width(int w);
-		WindowBuilder& height(int h);
-		WindowBuilder& fullscreen(bool value);
-		WindowBuilder& renderContext(std::shared_ptr<RenderContext>& context);
-		WindowBuilder& fromConfigFile(const Fs::Path& path);
-	private:
-		int _width, _height;
-		bool _fullscreen;
-		const char* _title;
-		std::shared_ptr<RenderContext> _renderCtx;
+		struct
+		{
+			VulkanImage image;
+			VulkanImage depthImage;
+			vk::Extent2D extent;
+			vk::Semaphore renderFinished;
+		} internal;
 
-		friend class Window;
+		struct
+		{
+			vk::DescriptorSetLayout descriptorLayout;
+			vk::DescriptorSet descriptorSet;
+			VulkanBuffer buffer;
+		} uniformBuffer;
+
+		VulkanCommandBuffer commandBuffer;
 	};
+#	endif
 
 	class LUNAR_API Window : public Identifiable, public RenderTarget
 	{
 	public:
-		Window(const WindowBuilder& builder);
+		Window(
+			int width,
+			int height,
+			bool fullscreen,
+			const char* title,
+			std::shared_ptr<RenderContext> context
+		);
+
 		~Window();
 
-		void init(const WindowBuilder& buidler);
+		void init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context);
 		void destroy();
 
 		void close();
@@ -50,18 +65,24 @@ namespace Render
 		bool isMinimized() const;
 		bool exists() const;
 
+		int getRenderWidth() const override;
+		int getRenderHeight() const override;
+
 		static void pollEvents();
 
 #		ifdef LUNAR_VULKAN
 		vk::SurfaceKHR& getVkSurface();
 		vk::SwapchainKHR& getVkSwapchain();
+		VulkanFrameData& getVkFrameData(size_t idx);
 		size_t getVkSwapImageCount();
-		vk::Framebuffer& getVkSwapFramebuffer(size_t idx);
 		const vk::Extent2D& getVkSwapExtent() const;
 
+		vk::Extent2D& getVkSwapExtent();
+		vk::Image& getVkSwapImage(size_t idx);
 		vk::Semaphore& getVkImageAvailable(size_t idx);
-		vk::Semaphore& getVkRenderFinished(size_t idx);
-		vk::Fence& getVkInFlightFence(size_t idx);
+		vk::Semaphore& getVkImagePresentable(size_t idx);
+		VulkanCommandBuffer& getVkCommandBuffer(size_t idx);
+
 
 		size_t getVkCurrentFrame() const;
 		void endVkFrame();
@@ -71,7 +92,25 @@ namespace Render
 		std::shared_ptr<RenderContext> renderCtx;
 		bool initialized;
 
+#		ifdef LUNAR_OPENGL
+		void _glInitialize();
+		friend class GLContext;
+#		endif
+
 #		ifdef LUNAR_VULKAN
+		vk::SurfaceKHR _vkSurface;
+		vk::SurfaceFormatKHR _vkSurfaceFmt;
+		vk::PresentModeKHR _vkPresentMode;
+		
+		vk::SwapchainKHR _vkSwapchain;
+		vk::Extent2D _vkSwapExtent;
+		size_t _vkSwapImgCount;
+
+		VulkanFrameData _vkFrameData[FRAME_OVERLAP];
+		VulkanCommandPool _vkCommandPool;
+		VulkanGrowableDescriptorAllocator _vkDescriptorAlloc;
+		size_t _vkCurrentFrame;
+
 		VulkanContext& _getVkContext();
 
 		void _vkInitialize();
@@ -79,25 +118,31 @@ namespace Render
 		void _vkDestroy();
 		void _vkDestroySwap();
 		void _vkUpdateSwapExtent();
-
-		vk::SurfaceKHR _vkSurface;
-		vk::SurfaceFormatKHR _vkSurfaceFmt;
-		vk::PresentModeKHR _vkPresentMode;
-		vk::SwapchainKHR _vkSwapchain;
-		vk::Extent2D _vkSwapExtent;
-		struct
-		{
-			vk::Image img;
-			vk::ImageView view;
-			vk::Framebuffer fbuffer;
-			vk::Semaphore imageAvailable;
-			vk::Semaphore renderFinished;
-			vk::Fence isInFlight;
-		} _vkSwapImages[5];
-		size_t _vkSwapImgCount;
-		size_t _vkCurrentFrame;
+		void _vkHandleResize(int width, int height);
 
 		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
+
+		friend class VulkanContext;
 #		endif
+	};
+
+	struct LUNAR_API WindowBuilder
+	{
+	public:
+		WindowBuilder& setWidth(int width);
+		WindowBuilder& setHeight(int height);
+		WindowBuilder& setSize(int width, int height);
+		WindowBuilder& setFullscreen(bool value = true);
+		WindowBuilder& setTitle(const std::string_view& title);
+		WindowBuilder& setRenderContext(std::shared_ptr<RenderContext>& context);
+		WindowBuilder& setDefaultRenderContext();
+		WindowBuilder& loadFromConfigFile(const Fs::Path& path);
+		Window create();
+
+	private:
+		int w = 800, h = 600;
+		bool fs = false;
+		std::string_view title = "lunar";
+		std::shared_ptr<RenderContext> renderContext = nullptr;
 	};
 }

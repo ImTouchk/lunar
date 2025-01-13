@@ -4,17 +4,29 @@
     {
       "name": "Skibidi Toilet",
       "transform": {
-        "position": { "x": 5.00, "y": 0.00, "z": 4.00 },
+        "position": { "x": 0.00, "y": 0.00, "z": 0.00 },
         "rotation": { "x": 0.00, "y": 0.00, "z": 0.00 },
-        "scale": { "x": 0.00, "y": 0.00, "z": 0.00 }
-      }
+        "scale": { "x": 1.00, "y": 1.00, "z": 1.00 }
+      },
+      "components": [
+      ]
     },
     {
       "name": "Test Object",
+      "transform": {
+        "position": { "x": 0.00, "y": 0.00, "z": -5.00 },
+        "rotation": { "x": 0.00, "y": 0.00, "z": 0.00 },
+        "scale": { "x": 1.00, "y": 1.00, "z": 1.00 }
+      },
       "components": [
         {
           "type": "core.scriptComponent",
           "scriptName": "dev/lunar/TestScript"
+        },
+        {
+          "type": "testComp",
+          "x": 1.0,
+          "y": 2048.0
         }
       ]
     }

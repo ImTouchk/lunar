@@ -7,125 +7,249 @@
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
+#include <glm/ext/matrix_transform.hpp>
+
+#include <imgui_impl_vulkan.h>
+#include <imgui_impl_glfw.h>
 
 namespace Render
 {
+	void TransitionImage
+	(
+		vk::CommandBuffer cmd, 
+		vk::Image image, 
+		vk::ImageLayout currentLayout, 
+		vk::ImageLayout newLayout
+	)
+	{
+		vk::ImageAspectFlags aspect_mask = (newLayout == vk::ImageLayout::eDepthAttachmentOptimal)
+												? vk::ImageAspectFlagBits::eDepth
+												: vk::ImageAspectFlagBits::eColor;
+
+		auto image_barrier = vk::ImageMemoryBarrier2
+		{
+			.srcStageMask     = vk::PipelineStageFlagBits2::eAllCommands,
+			.srcAccessMask    = vk::AccessFlagBits2::eMemoryWrite,
+			.dstStageMask     = vk::PipelineStageFlagBits2::eAllCommands,
+			.dstAccessMask    = vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead,
+			.oldLayout        = currentLayout,
+			.newLayout        = newLayout,
+			.image            = image,
+			.subresourceRange = 
+			{ 
+				.aspectMask     = aspect_mask,
+				.baseMipLevel   = 0,
+				.levelCount     = vk::RemainingMipLevels,
+				.baseArrayLayer = 0,
+				.layerCount     = vk::RemainingArrayLayers
+			}
+		};
+
+		auto dep_info = vk::DependencyInfo
+		{
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers    = &image_barrier
+		};
+
+		cmd.pipelineBarrier2(dep_info);
+	}
+
+	void CopyImageToImage
+	(
+		vk::CommandBuffer cmd,
+		vk::Image src,
+		vk::Image dst,
+		vk::Extent2D srcSize,
+		vk::Extent2D dstSize
+	)
+	{
+		auto blit_region = vk::ImageBlit2
+		{
+			.srcSubresource =
+			{
+				.aspectMask     = vk::ImageAspectFlagBits::eColor,
+				.mipLevel       = 0,
+				.baseArrayLayer = 0,
+				.layerCount     = 1,
+			},
+			.dstSubresource =
+			{
+				.aspectMask     = vk::ImageAspectFlagBits::eColor,
+				.mipLevel       = 0,
+				.baseArrayLayer = 0,
+				.layerCount     = 1,
+			}
+		};
+
+		blit_region.srcOffsets[1] = { .x = static_cast<int>(srcSize.width), .y = static_cast<int>(srcSize.height), .z = 1 };
+		blit_region.dstOffsets[1] = { .x = static_cast<int>(dstSize.width), .y = static_cast<int>(dstSize.height), .z = 1 };
+
+		auto blit_info = vk::BlitImageInfo2
+		{
+			.srcImage       = src,
+			.srcImageLayout = vk::ImageLayout::eTransferSrcOptimal,
+			.dstImage       = dst,
+			.dstImageLayout = vk::ImageLayout::eTransferDstOptimal,
+			.regionCount    = 1,
+			.pRegions       = &blit_region,
+			.filter         = vk::Filter::eLinear,
+		};
+
+		cmd.blitImage2(blit_info);
+	}
+
 	void VulkanContext::draw(Core::Scene& scene, RenderTarget* target)
 	{
-		// TODO: make Core::Scene const
-		// TODO: implement for RenderTargetType::eTexture
-		// TODO: check for initialization
+		if(target->getType() != RenderTargetType::eWindow)
+			return; // TODO
 
-		auto& target_window = *reinterpret_cast<Render::Window*>(target);
-		if (target_window.isMinimized())
-		{
+		auto& target_window = *static_cast<Render::Window*>(target);
+		if(target_window.isMinimized())
 			return;
-		}
 
 		auto current_frame = target_window.getVkCurrentFrame();
-		auto& img_available = target_window.getVkImageAvailable(current_frame);
-		auto& render_finished = target_window.getVkRenderFinished(current_frame);
-		auto& in_flight = target_window.getVkInFlightFence(current_frame);
-		auto& cmd_buffer = cmdBufferWrapper.renderCmdBuffers[current_frame];
-
+		auto& frame_data = target_window.getVkFrameData(current_frame);
 		auto& swapchain = target_window.getVkSwapchain();
-		auto& swap_extent = target_window.getVkSwapExtent();
+		auto& command_buffer = frame_data.commandBuffer;
 
-		auto& device = getDevice();
+		command_buffer.begin();
 
-		/* 
-			TODO: When rendering on multiple windows, weird sync issues
-			happen due to the reuse of only MAX_FRAMES_IN_FLIGHT (2) command buffers
-			for M windows with N frames in flight each
-			Need a better strategy for rendering
-		*/
-		device.waitForFences(in_flight, VK_TRUE, UINT64_MAX);
-
-
-		device.resetFences(in_flight);
+#		ifdef LUNAR_IMGUI
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+#		endif
 
 		uint32_t img_idx;
-		device.acquireNextImageKHR(swapchain, UINT64_MAX, img_available, {}, &img_idx);
+		std::ignore = device.acquireNextImageKHR(swapchain, UINT64_MAX, frame_data.swapchain.imageAvailable, {}, &img_idx);
+		
+		auto& swap_image = frame_data.swapchain.image;
+		auto& draw_image = frame_data.internal;
 
-		vk::CommandBufferBeginInfo begin_info = {};
-
-		cmd_buffer.reset();
-		cmd_buffer.begin(begin_info);
-
-		vk::ClearValue clear_value = { .color = { {{ 1.f, 1.f, 1.f, 1.f }} } };
-		vk::RenderPassBeginInfo render_pass_begin_info = {
-			.renderPass  = getDefaultRenderPass(),
-			.framebuffer = target_window.getVkSwapFramebuffer(img_idx),
-			.renderArea = {
-				.offset = { 0, 0 },
-				.extent = swap_extent
-			},
-			.clearValueCount = 1,
-			.pClearValues    = &clear_value
+		draw_image.extent = {
+			.width = draw_image.image.extent.width,
+			.height = draw_image.image.extent.height
 		};
 
-		vk::Viewport viewport = {
-			.x        = 0.f,
-			.y        = 0.f,
-			.width    = static_cast<float>(swap_extent.width),
-			.height   = static_cast<float>(swap_extent.height),
-			.minDepth = 0.f,
-			.maxDepth = 1.f
-		};
+		TransitionImage(command_buffer, draw_image.image.handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
 
-		vk::Rect2D scissor = {
-			.offset = { 0, 0 },
-			.extent = swap_extent
-		};
-
-		cmd_buffer.beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
-		cmd_buffer.setViewport(0, viewport);
-		cmd_buffer.setScissor(0, scissor);
-
-		for (auto& gameObject : scene.getGameObjects())
+		auto clear_value = vk::ClearColorValue{ {{ 1.f, 1.f, 1.f, 1.f }} };
+		auto clear_range = vk::ImageSubresourceRange
 		{
-			auto* mesh_renderer = gameObject.getComponent<MeshRenderer>();
-			
+			.aspectMask     = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel   = 0,
+			.levelCount     = vk::RemainingMipLevels,
+			.baseArrayLayer = 0,
+			.layerCount     = vk::RemainingArrayLayers
+		};
+
+		command_buffer->clearColorImage(draw_image.image.handle, vk::ImageLayout::eGeneral, &clear_value, 1, &clear_range);
+
+		TransitionImage(command_buffer, draw_image.image.handle, vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal);
+		TransitionImage(command_buffer, draw_image.depthImage.handle, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal);
+
+		auto color_attachment = vk::RenderingAttachmentInfo
+		{
+			.imageView   = draw_image.image.view,
+			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.loadOp      = vk::AttachmentLoadOp::eLoad,
+			.storeOp     = vk::AttachmentStoreOp::eStore,
+		};
+
+		auto depth_attachment = vk::RenderingAttachmentInfo
+		{
+			.imageView   = draw_image.depthImage.view,
+			.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+			.loadOp      = vk::AttachmentLoadOp::eClear,
+			.storeOp     = vk::AttachmentStoreOp::eStore,
+			.clearValue  = { .depthStencil = {.depth = 0.f } }
+		};
+
+
+		auto render_info = vk::RenderingInfo
+		{
+			.renderArea =
+			{
+				.offset = { 0, 0 },
+				.extent = draw_image.extent,
+			},
+			.layerCount           = 1,
+			.colorAttachmentCount = 1,
+			.pColorAttachments    = &color_attachment,
+			.pDepthAttachment     = &depth_attachment,
+		};
+
+		command_buffer->beginRendering(render_info);
+
+		auto viewport = vk::Viewport
+		{
+			.x      = 0,
+			.y      = 0,
+			.width  = (float)draw_image.extent.width,
+			.height = (float)draw_image.extent.height
+		};
+
+		auto scissor = vk::Rect2D
+		{
+			.offset = { 0, 0 },
+			.extent = { draw_image.extent.width, draw_image.extent.height }
+		};
+
+		command_buffer->setViewport(0, viewport);
+		command_buffer->setScissor(0, scissor);
+
+
+		UniformBufferData uniform_data = {};
+		//uniform_data.worldMatrix     = glm::mat4(1.f);
+		uniform_data._vkVertexBuffer = {};
+
+		for (auto& object : scene.getGameObjects())
+		{
+			MeshRenderer* mesh_renderer = object.getComponent<MeshRenderer>();
 			if (mesh_renderer == nullptr)
 				continue;
 
-			auto& shader = mesh_renderer->getShader();
-			cmd_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, shader.getVkPipeline());
-			cmd_buffer.draw(3, 1, 0, 0);
+			auto& mesh   = mesh_renderer->mesh;
+			auto& shader = mesh_renderer->shader;
+
+			uniform_data._vkVertexBuffer = mesh._vkVertexBufferAddr;
+			
+			command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, shader._vkPipeline);
+			command_buffer->pushConstants(
+				shader._vkLayout, 
+				vk::ShaderStageFlagBits::eVertex, 
+				0, 
+				sizeof(UniformBufferData), 
+				&uniform_data
+			);
+			command_buffer->bindIndexBuffer(mesh._vkIndexBuffer.handle, 0, vk::IndexType::eUint32);
+			command_buffer->drawIndexed(mesh.indicesCount, 1, 0, 0, 0);
 		}
 
-		// draw call
+		ImGui::ShowDemoWindow();
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer.operator vk::CommandBuffer &());
 
-		cmd_buffer.endRenderPass();
-		cmd_buffer.end();
-	
-		vk::PipelineStageFlags wait_stages[] = {
-			vk::PipelineStageFlagBits::eColorAttachmentOutput
-		};
+		command_buffer->endRendering();
 
-		vk::SubmitInfo submit_info = {
-			.waitSemaphoreCount   = 1,
-			.pWaitSemaphores      = &img_available,
-			.pWaitDstStageMask    = wait_stages,
-			.commandBufferCount   = 1,
-			.pCommandBuffers      = &cmd_buffer,
-			.signalSemaphoreCount = 1,
-			.pSignalSemaphores    = &render_finished
-		};
+		TransitionImage(command_buffer, draw_image.image.handle, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
 
-		getGraphicsQueue()
-			.submit(submit_info, in_flight);
+		TransitionImage(command_buffer, swap_image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+		CopyImageToImage(command_buffer, draw_image.image.handle, swap_image, draw_image.extent, target_window.getVkSwapExtent());
+		TransitionImage(command_buffer, swap_image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-		vk::PresentInfoKHR present_info = {
+		command_buffer.submit({ frame_data.swapchain.imageAvailable }, { frame_data.internal.renderFinished });
+
+		auto present_info = vk::PresentInfoKHR
+		{
 			.waitSemaphoreCount = 1,
-			.pWaitSemaphores    = &render_finished,
+			.pWaitSemaphores    = &frame_data.internal.renderFinished,
 			.swapchainCount     = 1,
 			.pSwapchains        = &swapchain,
-			.pImageIndices      = &img_idx
+			.pImageIndices      = &img_idx,
 		};
 
-		getPresentQueue()
-			.presentKHR(present_info);
+		std::ignore = presentQueue.presentKHR(present_info);
 
 		target_window.endVkFrame();
 	}

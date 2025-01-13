@@ -2,37 +2,88 @@
 #include <lunar/core/gameobject.hpp>
 #include <lunar/file/json_file.hpp>
 #include <lunar/utils/identifiable.hpp>
+#include <nlohmann/json.hpp>
+#include <unordered_map>
+#include <functional>
 #include <string>
 #include <vector>
 
+namespace Script { class LUNAR_API VirtualMachine; }
+namespace Render { class LUNAR_API Camera; }
+
 namespace Core
 {
-	class LUNAR_API Scene : public Fs::JsonObject, public Identifiable
+	class LUNAR_API Scene : public Identifiable
 	{
 	public:
-		Scene(const Fs::Path& path);
-		Scene(const std::string& name);
-		Scene();
+		Scene(
+			const std::string& name,
+			std::shared_ptr<Script::VirtualMachine>& scriptingVm
+		);
+		Scene() = default;
+		Scene(Scene&&)           = delete;
+		Scene& operator=(Scene&&) = delete;
 
-        Scene(const Scene&) = delete;
-        Scene& operator=(const Scene&) = delete;
-
-        size_t getNameHash() const;
-        const std::string& getName() const;
-        GameObject& getGameObject(const char* name);
-        GameObject& getGameObject(Identifiable::NativeType id);
-
-		void fromJson(nlohmann::json& json) override;
-
+		void                     update();
+		void                     renderUpdate(Render::RenderContext& context);
+        const std::string&       getName() const;
+        size_t                   getNameHash() const;
+        GameObject&              getGameObject(const std::string_view& name);
+		const GameObject&        getGameObject(const std::string_view& name) const;
+        GameObject&              getGameObject(Identifiable::NativeType id);
+		const GameObject&        getGameObject(Identifiable::NativeType id) const;
 		std::vector<GameObject>& getGameObjects();
+		GameObject&              createGameObject(const std::string_view& name, GameObject* parent = nullptr);
+		void                     deleteGameObject(Identifiable::NativeType id);
+		Render::Camera*          getMainCamera();
+		void                     setMainCamera(Render::Camera& camera);
 
 	private:
-		size_t nameHash;
-		std::string name;
-		std::vector<GameObject> objects;
+		Identifiable::NativeType mainCamera = -1;
+		size_t nameHash = SIZE_MAX;
+		std::string name = "Untitled Scene";
+		std::vector<GameObject> objects = {};
+		std::shared_ptr<Script::VirtualMachine>& scriptingVm;
 	};
 
-    LUNAR_API Scene& getActiveScene();
-    LUNAR_API Scene& getSceneByName(const char* name);
-    LUNAR_API Scene& getSceneById(Identifiable::NativeType id);
+	struct LUNAR_API SceneBuilder
+	{
+		using ComponentJsonParser = std::function<std::shared_ptr<Component>(const nlohmann::json&)>;
+
+		SceneBuilder() = default;
+		~SceneBuilder() = default;
+		
+		SceneBuilder& useCoreSerializers();
+		SceneBuilder& useCustomClassSerializer(
+			const std::string& componentName,
+			const ComponentJsonParser& parser
+		);
+
+		template<typename T> requires IsDerivedComponent<T> && IsJsonSerializable<T>
+		SceneBuilder& useClassSerializer(const std::string& componentName) 
+		{
+			return useCustomClassSerializer(componentName, [](const nlohmann::json& json) -> std::shared_ptr<Component> {
+				auto component = std::make_shared<Component>(T::Deserialize(json));
+				return component;
+			});
+		}
+
+		SceneBuilder& fromJsonFile(const Fs::Path& path);
+
+		SceneBuilder& setName(const std::string_view& name);
+		SceneBuilder& useScriptingVm(std::shared_ptr<Script::VirtualMachine>& vm);
+		std::shared_ptr<Scene> create();
+
+	private:
+		void parseGameObject(
+			const nlohmann::json& json, 
+			Scene* scene,
+			GameObject* parent = nullptr
+		);
+
+		std::string name = "Untitled Scene";
+		std::shared_ptr<Script::VirtualMachine> scriptingVm = nullptr;
+		std::unordered_map<std::string, ComponentJsonParser> componentParsers = {};
+		Fs::Path jsonFile = "";
+	};
 }

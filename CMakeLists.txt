@@ -1,17 +1,18 @@
 cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
-project(lunar VERSION 0.1.6)
+project(lunar VERSION 0.1.12)
 
 message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar_VERSION_PATCH}")
 
 set(LUNAR_BUILD_EXAMPLE ON)
 set(LUNAR_BUNDLE_RESOURCES ON)
-set(LUNAR_RENDER_BACKEND "VULKAN")
+set(LUNAR_RENDER_BACKEND "OPENGL")
 set(LUNAR_RESOURCES_DIR ${CMAKE_CURRENT_LIST_DIR}/resources)
 set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
-set(LUNAR_RUNTIME_SHADER_BUILD OFF)
+set(LUNAR_RUNTIME_SHADER_BUILD ON)
 set(LUNAR_EXPERIMENTAL ON)
+set(LUNAR_USE_IMGUI ON)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -31,6 +32,7 @@ add_library(lunar SHARED
     "inc/lunar/file/file_tracker.hpp"
 
     "inc/lunar/utils/lexer.hpp"
+    "inc/lunar/utils/stopwatch.hpp"
     "inc/lunar/utils/identifiable.hpp"
     "inc/lunar/debug/log.hpp"
     "inc/lunar/debug/assert.hpp"
@@ -49,6 +51,7 @@ add_library(lunar SHARED
 
     "inc/lunar/api.hpp"
 
+    "src/utils/stopwatch.cpp"
     "src/utils/argument_parser.cpp"
     "src/utils/identifiable.cpp"
     "src/file/filesystem.cpp"
@@ -71,32 +74,122 @@ add_library(lunar SHARED
     "src/script/vm_utils.cpp"
 
     "inc/lunar/render/mesh.hpp"
+    "inc/lunar/render/image.hpp"
     "inc/lunar/render/window.hpp"
     "inc/lunar/render/shader.hpp"
+    "inc/lunar/render/common.hpp"
+    "inc/lunar/render/texture.hpp"
+    "inc/lunar/render/material.hpp"
     "inc/lunar/render/render_context.hpp"
     "inc/lunar/render/render_components.hpp"
     "src/render/render_components.cpp"
-    "src/render/render_context.cpp"
+    
+    "inc/lunar/render/terra.hpp"
+    "inc/lunar/render/terra/expression.hpp"
+    "inc/lunar/render/terra/statement.hpp"
+    "inc/lunar/render/terra/parser.hpp"
+    "inc/lunar/render/terra/transpiler.hpp"
+    
+    "src/render/terra/parser.cpp"
+    "src/render/terra/transpiler.cpp"
+    "src/render/terra/type_checker.cpp"
+    "src/render/terra/vk_transpiler.cpp"
+
+    "src/render/image.cpp"
     "src/render/window.cpp"
     "src/render/shader.cpp"
+    "src/render/mesh.cpp"
+    "src/render/texture.cpp"
+
+    "src/stb_image.cpp"
 )
 
 if(${LUNAR_EXPERIMENTAL})
+    message("-- lunar: Including experimental features")
     target_sources(lunar PRIVATE
+        "inc/lunar/exp/utils/token.hpp"
         "inc/lunar/exp/utils/lexer.hpp"
         "src/exp/utils/lexer.cpp"
+
+        "inc/lunar/exp/utils/scanner.hpp"
+        "src/exp/utils/scanner.cpp"
+        
+        "inc/lunar/exp/ui/dom.hpp"
+        "src/exp/ui/dom.cpp"
     )
+    target_compile_definitions(lunar PUBLIC LUNAR_EXPERIMENTAL)
+endif()
+
+if(${LUNAR_USE_IMGUI})
+    message("-- lunar: Using imgui library")
+    add_library(imgui STATIC)
+    target_sources(imgui PRIVATE
+        "imgui/imgui.h"
+        "imgui/imgui.cpp"
+        "imgui/imgui_demo.cpp"
+        "imgui/imgui_draw.cpp"
+        "imgui/imgui_widgets.cpp"
+        "imgui/imgui_tables.cpp"
+        "imgui/backends/imgui_impl_glfw.cpp"
+        "imgui/backends/imgui_impl_glfw.h"
+    )
+    target_include_directories(imgui PUBLIC "imgui" "imgui/backends")
+    target_link_libraries(imgui PUBLIC glfw)
+    target_include_directories(imgui PUBLIC glfw)
+
+    if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
+        target_link_libraries(imgui PUBLIC Vulkan::Vulkan)
+        target_include_directories(imgui PUBLIC Vulkan::Vulkan)
+        target_sources(imgui PRIVATE
+            "imgui/backends/imgui_impl_vulkan.h"
+            "imgui/backends/imgui_impl_vulkan.cpp"
+        )
+    endif()
+
+    if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
+        target_sources(imgui PRIVATE
+            "imgui/backends/imgui_impl_opengl3.h"
+            "imgui/backends/imgui_impl_opengl3.cpp"
+        )
+    endif()
+    
+    target_link_libraries(lunar PUBLIC imgui)
+    target_compile_definitions(lunar PUBLIC LUNAR_IMGUI=1)
+endif()
+
+if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
+    add_subdirectory(glad)
+    target_link_libraries(lunar PUBLIC glad)
+
+    message("-- lunar: Using OpenGL backend")
+    target_sources(lunar PRIVATE
+        "src/render/gl_base.cpp"
+        "inc/lunar/render/internal/render_gl.hpp"
+    )
+
+    target_compile_definitions(lunar PRIVATE GLFW_INCLUDE_NONE)
+    target_compile_definitions(lunar PUBLIC LUNAR_OPENGL)
 endif()
 
 if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
+    FetchContent_Declare(vma GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git)
+    FetchContent_MakeAvailable(vma)
     find_package(Vulkan REQUIRED)
 
     message("-- lunar: Using Vulkan backend")
     target_sources(lunar PRIVATE
         "src/render/vk_draw.cpp"
         "src/render/vk_base.cpp"
+        "src/render/vk_image.cpp"
         "src/render/vk_shader.cpp"
+        "src/render/vk_window.cpp"
+        "src/render/vk_buffer.cpp"
         "inc/lunar/render/internal/render_vk.hpp"
+        "inc/lunar/render/internal/vk_base.hpp"
+        "inc/lunar/render/internal/vk_mesh.hpp"
+        "inc/lunar/render/internal/vk_buffer.hpp"
+        "inc/lunar/render/internal/vk_pipeline.hpp"
+        "inc/lunar/render/internal/vk_image.hpp"
     )
     target_compile_definitions(lunar PRIVATE
         VULKAN_HPP_NO_CONSTRUCTORS  
@@ -104,8 +197,8 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
         LUNAR_RUNTIME_SHADER_BUILD=${LUNAR_RUNTIME_SHADER_BUILD}
     )
     target_compile_definitions(lunar PUBLIC LUNAR_VULKAN)
-    target_include_directories(lunar SYSTEM INTERFACE Vulkan::Vulkan)
-    target_link_libraries(lunar PUBLIC Vulkan::Vulkan)
+    target_include_directories(lunar SYSTEM INTERFACE Vulkan::Vulkan VulkanMemoryAllocator)
+    target_link_libraries(lunar PUBLIC Vulkan::Vulkan VulkanMemoryAllocator)
 
     if(NOT ${LUNAR_RUNTIME_SHADER_BUILD})
         message("-- lunar: Compiling Vulkan shaders at build time")
@@ -136,6 +229,19 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
     endif()
 endif()
 
+if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/stb_image.h")
+    message("-- lunar: Downloading 'stb_image.h' file")
+    file(
+        DOWNLOAD 
+        https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_image.h 
+        "${CMAKE_CURRENT_LIST_DIR}/stb_image.h"
+    )
+else()
+    message("-- lunar: Found 'stb_image' header")
+endif()
+
+target_sources(lunar PRIVATE "stb_image.h")
+
 target_include_directories(lunar PUBLIC inc)
 target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw)
 target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw)
@@ -150,6 +256,11 @@ target_compile_definitions(lunar PUBLIC
     LUNAR_VER_MINOR=${lunar_VERSION_MINOR}
     LUNAR_VER_PATCH=${lunar_VERSION_PATCH}
 )
+
+if(MSVC)
+    target_compile_options(lunar PUBLIC /Zc:preprocessor)
+    message("-- lunar: Detected MSVC compiler")
+endif()
 
 if(${LUNAR_BUNDLE_RESOURCES})
     add_custom_target(lunar_bundler 
