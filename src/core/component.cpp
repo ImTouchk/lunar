@@ -5,14 +5,26 @@
 
 namespace Core
 {
+	Scene& Component::getScene()
+	{
+		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
+		return *_scene;
+	}
+
+	const Scene& Component::getScene() const
+	{
+		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
+		return *_scene;
+	}
+
 	GameObject& Component::getGameObject()
 	{
-		return _scene->getGameObject(_gameObject);
+		return getScene().getGameObject(_gameObject);
 	}
 
 	const GameObject& Component::getGameObject() const
 	{
-		return _scene->getGameObject(_gameObject);
+		return getScene().getGameObject(_gameObject);
 	}
 
 	TransformComponent& Component::getTransform()

@@ -6,6 +6,8 @@
 #include <string>
 #include <jni.h>
 
+namespace Render { class LUNAR_API RenderContext; }
+
 namespace Core
 {
 	enum class LUNAR_API ComponentUpdatePriority
@@ -33,13 +35,19 @@ namespace Core
 	public:
         Component() = default;
 
+		virtual void                    update()                                 {}
+		virtual void                    renderUpdate(Render::RenderContext& ctx) {}
+
+		Scene&                          getScene();
+		const Scene&                    getScene() const;
 		GameObject&                     getGameObject();
 		const GameObject&               getGameObject() const;
 		TransformComponent&             getTransform();
 		const TransformComponent&       getTransform() const;
-		virtual void                    update()            {}
+
 		virtual ComponentUpdatePriority _getClassPriority() { return ComponentUpdatePriority::eNormal; }
 		virtual ComponentClassFlags     _getClassFlags()    { return {}; }
+		virtual const char*             _getClassName()     { return typeid(*this).name(); }
 
 	protected:
 		Scene*                   _scene      = nullptr;
