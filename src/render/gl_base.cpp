@@ -40,14 +40,9 @@ namespace Render
 		glDeleteBuffers(1, &ubo);
 	}
 
-	void GLContext::draw(Core::Scene& scene, Camera& camera, RenderTarget* target)
+	void GLContext::begin(RenderTarget* target)
 	{
-		if (target->getType() != RenderTargetType::eWindow)
-			return; // TODO
-
-		auto& target_window = *static_cast<Render::Window*>(target);
-		if (target_window.isMinimized())
-			return;
+		_currentTarget = target;
 
 		if (ubo == 0)
 		{
@@ -68,6 +63,30 @@ namespace Render
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 #		endif
+	}
+
+	void GLContext::end()
+	{
+#		ifdef LUNAR_IMGUI
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#		endif
+
+		if (_currentTarget->getType() != RenderTargetType::eWindow)
+			return;
+
+		auto& target_window = *static_cast<Render::Window*>(_currentTarget);
+		glfwSwapBuffers(target_window.handle);
+	}
+
+	void GLContext::draw(Core::Scene& scene, Camera& camera)
+	{
+		if (_currentTarget->getType() != RenderTargetType::eWindow)
+			return; // TODO
+
+		auto& target_window = *static_cast<Render::Window*>(_currentTarget);
+		if (target_window.isMinimized())
+			return;
 
 		auto ubo_data = SceneGpuData
 		{
@@ -107,16 +126,8 @@ namespace Render
 		}
 
 
-#		ifdef LUNAR_IMGUI
 		//ImGui::ShowDemoWindow();
 		scene.renderUpdate(*this);
-
-		ImGui::Render();
-
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#		endif
-
-		glfwSwapBuffers(target_window.handle);
 	}
 
 	bool TextureBuilder::_glBuild()

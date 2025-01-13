@@ -13,7 +13,9 @@ namespace Render
 
 		void init() override;
 		void destroy() override;
-		void draw(Core::Scene& scene, Camera& camera, RenderTarget* target) override;
+		void draw(Core::Scene& scene, Camera& camera) override;
+		void begin(RenderTarget* target) override;
+		void end()   override;
 
 	private:
 		GLuint ubo = 0;
