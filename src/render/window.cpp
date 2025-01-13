@@ -221,4 +221,18 @@ namespace Render
 	{
 		glfwPollEvents();
 	}
+
+	int Window::getRenderWidth() const
+	{
+		int w, _;
+		glfwGetFramebufferSize(handle, &w, &_);
+		return w;
+	}
+
+	int Window::getRenderHeight() const
+	{
+		int _, h;
+		glfwGetFramebufferSize(handle, &_, &h);
+		return h;
+	}
 }
