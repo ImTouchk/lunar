@@ -95,39 +95,27 @@ private:
                 scene->deleteGameObject(object.getId());
             }
 
-            if (ImGui::CollapsingHeader("Transform"))
-            {
-                ImGui::Indent();
+            ImGui::SeparatorText("Transform");
 
-                auto& transform = object.getTransform();
+            auto& transform = object.getTransform();
                 
-                ImGui::InputFloat3("Position", &transform.position.x);
-                ImGui::InputFloat3("Rotation", &transform.rotation.x);
-                ImGui::InputFloat3("Scale",    &transform.scale.x);
-                
-                ImGui::Unindent();
-            }
+            ImGui::InputFloat3("Position", &transform.position.x);
+            ImGui::InputFloat3("Rotation", &transform.rotation.x);
+            ImGui::InputFloat3("Scale",    &transform.scale.x);
 
-            if (ImGui::CollapsingHeader("Components"))
-            {
-                ImGui::Indent();
-
-                auto components = object.getComponents();
-                for (auto& component : components)
-                    renderComponent(component.get());
-
-                ImGui::Unindent();
-            }
+            ImGui::SeparatorText("Components");
+            auto components = object.getComponents();
+            for (auto& component : components)
+                renderComponent(component.get());
 
             auto children = object.getChildren();
-            if (ImGui::CollapsingHeader("Children"))
-            {
-                ImGui::Indent();
-                for (auto& child : children)
-                    renderObjectTree(*child);
+            ImGui::SeparatorText("Children");
+            for (auto& child : children)
+                renderObjectTree(*child);
 
-                ImGui::Unindent();
-            }
+            if (children.size() == 0)
+                ImGui::Text("This object has no children.");
+
             ImGui::Unindent();
         }
         ImGui::TreePop();
@@ -136,21 +124,20 @@ private:
 public:
     void renderUpdate(Render::RenderContext& context) override
     {
-        auto& scene = getScene();
-        auto  title = std::format("Scene: {}", scene.getName());
+        auto& scene   = getScene();
+        auto& objects = scene.getGameObjects();
+        auto  title   = std::format("Scene: {}", scene.getName());
 
         ImGui::SetCurrentContext(context.getImGuiContext());
         ImGui::Begin(title.c_str());
 
         ImGui::Text("ID: %d", scene.getId());
+        ImGui::Text("Objects: %d", objects.size());
         
         ImGui::SeparatorText("GameObjects");
-        ImGui::BeginChild("GameObjects");
-        auto& objects = getScene().getGameObjects();
         for (auto& object : objects)
             if (object.getParentId() == -1)
                 renderObjectTree(object);
-        ImGui::EndChild();
 
         ImGui::End();
     }
