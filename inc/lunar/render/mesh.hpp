@@ -15,6 +15,13 @@
 
 namespace Render
 {
+	enum class LUNAR_API MeshPrimitive
+	{
+		eCube  = 0,
+		eQuad  = 1,
+		_count = 2,
+	};
+
 	class LUNAR_API Mesh
 	{
 	public:
@@ -39,7 +46,9 @@ namespace Render
 		//size_t vertexCount = 0;
 		size_t indicesCount = 0;
 
+		friend struct CubemapBuilder;
 		friend struct MeshBuilder;
+		friend class MeshRenderer;
 	};
 
 	struct LUNAR_API MeshBuilder
@@ -48,16 +57,17 @@ namespace Render
 		MeshBuilder() = default;
 		~MeshBuilder() = default;
 
-		MeshBuilder& setVertices(const std::span<Vertex>& vertices);
-		MeshBuilder& setIndices(const std::span<uint32_t>& indices);
+		MeshBuilder& setVertices(const std::span<const Vertex>& vertices);
+		MeshBuilder& setIndices(const std::span<const uint32_t>& indices);
 		MeshBuilder& useRenderContext(std::shared_ptr<RenderContext>& context);
+		MeshBuilder& fromGltfFile(const Fs::Path& path);
 		MeshBuilder& build();
 		Mesh getResult();
 
 	private:
 		std::shared_ptr<RenderContext> context  = nullptr;
-		std::span<Vertex>              vertices = {};
-		std::span<uint32_t>            indices  = {};
+		std::vector<Vertex>            vertices = {};
+		std::vector<uint32_t>          indices  = {};
 		Mesh                           result   = {};
 
 #		ifdef LUNAR_OPENGL

@@ -19,7 +19,8 @@ include(FetchContent)
 FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git)
 FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git)
 FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git)
-FetchContent_MakeAvailable(json glm glfw)
+FetchContent_Declare(fastgltf GIT_REPOSITORY https://github.com/spnda/fastgltf.git GIT_TAG main)
+FetchContent_MakeAvailable(json glm glfw fastgltf)
 
 find_package(JNI REQUIRED)
 
@@ -46,6 +47,9 @@ add_library(lunar SHARED
     "inc/lunar/core/gameobject.hpp"
     "inc/lunar/core/component.hpp"
     "inc/lunar/core/time.hpp"
+    "inc/lunar/core/input.hpp"
+    "inc/lunar/core/event.hpp"
+    "inc/lunar/core/scene_event.hpp"
 
     "inc/lunar/script/script_vm.hpp"
     "inc/lunar/script/script_api.hpp"
@@ -71,6 +75,8 @@ add_library(lunar SHARED
     "src/core/gameobject.cpp"
     "src/core/component.cpp"
     "src/core/time.cpp"
+    "src/core/input.cpp"
+    "src/core/event.cpp"
 
     "src/script/script_vm.cpp"
     "src/script/script_scene.cpp"
@@ -84,6 +90,7 @@ add_library(lunar SHARED
     "inc/lunar/render/shader.hpp"
     "inc/lunar/render/common.hpp"
     "inc/lunar/render/texture.hpp"
+    "inc/lunar/render/cubemap.hpp"
     "inc/lunar/render/material.hpp"
     "inc/lunar/render/render_context.hpp"
     "inc/lunar/render/render_components.hpp"
@@ -105,6 +112,7 @@ add_library(lunar SHARED
     "src/render/shader.cpp"
     "src/render/mesh.cpp"
     "src/render/texture.cpp"
+    "src/render/render_context.cpp"
 
     "src/stb_image.cpp"
 )
@@ -169,6 +177,10 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
     message("-- lunar: Using OpenGL backend")
     target_sources(lunar PRIVATE
         "src/render/gl_base.cpp"
+        "src/render/gl_texture.cpp"
+        "src/render/gl_shader.cpp"
+        "src/render/gl_draw.cpp"
+        "src/render/gl_cubemap.cpp"
         "inc/lunar/render/internal/render_gl.hpp"
     )
 
@@ -248,8 +260,8 @@ endif()
 target_sources(lunar PRIVATE "stb_image.h")
 
 target_include_directories(lunar PUBLIC inc)
-target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw)
-target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw)
+target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf)
+target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf)
 
 target_compile_definitions(lunar PRIVATE 
     LUNAR_LIBRARY_EXPORT

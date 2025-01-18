@@ -15,11 +15,23 @@
 
 namespace Render
 {
+	class LUNAR_API Texture;
+	class LUNAR_API Cubemap;
 	class LUNAR_API GraphicsShader : public Identifiable
 	{
 	public:
-		GraphicsShader() = default;
+		GraphicsShader()  = default;
 		~GraphicsShader() = default;
+
+		void use();
+		void uniform(const std::string_view& name, const int i);
+		void uniform(const std::string_view& name, const float f);
+		void uniform(const std::string_view& name, const glm::vec2& v2);
+		void uniform(const std::string_view& name, const glm::vec3& v3);
+		void uniform(const std::string_view& name, const glm::vec4& v4);
+		void uniform(const std::string_view& name, const glm::mat4& m4);
+		void bind(const std::string_view& name, size_t location, const Texture& texture);
+		void bind(size_t location, const Cubemap& cubemap);
 
 	private:
 #		ifdef LUNAR_VULKAN
@@ -33,6 +45,17 @@ namespace Render
 		friend class GLContext;
 #		endif
 
+		int getUniformLocation(const std::string_view& name);
+		
+		struct LayoutInfo
+		{
+			size_t nameHash = 0;
+			size_t location = 0;
+		};
+
+		std::vector<LayoutInfo> uniforms;
+
+		friend struct CubemapBuilder;
 		friend struct GraphicsShaderBuilder;
 	};
 

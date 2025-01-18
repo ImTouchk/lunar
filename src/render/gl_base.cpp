@@ -15,6 +15,8 @@
 #include <lunar/render/texture.hpp>
 #include <lunar/file/text_file.hpp>
 
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Render
 {
 	std::shared_ptr<RenderContext> CreateDefaultContext()
@@ -27,184 +29,60 @@ namespace Render
 		init();
 	}
 
+	GLuint GLContext::glGetCaptureFramebuffer()
+	{
+		return captureFbo;
+	}
+
+	GLuint GLContext::glGetCaptureRenderbuffer()
+	{
+		return captureRbo;
+	}
+
 	void GLContext::init()
 	{
 #ifdef LUNAR_IMGUI
-		IMGUI_CHECKVERSION();
-		_imguiContext = ImGui::CreateContext();
+		if (imguiContext == nullptr)
+		{
+			IMGUI_CHECKVERSION();
+			imguiContext = ImGui::CreateContext();
+		}
 #endif
+
+		if (glfwGetCurrentContext() == NULL)
+			return;
+		
+		glGenBuffers(2, &sceneUbo);
+		glBindBuffer(GL_UNIFORM_BUFFER, sceneUbo);
+		glBufferData(GL_UNIFORM_BUFFER, 256, NULL, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_UNIFORM_BUFFER, lightsUbo);
+		glBufferData(GL_UNIFORM_BUFFER, 512, NULL, GL_STATIC_DRAW);
+
+		glGenFramebuffers(1, &captureFbo);
+		glGenRenderbuffers(1, &captureRbo);
+
+		auto shader_builder = GraphicsShaderBuilder();
+		skyboxShader  = new GraphicsShader();
+		*skyboxShader = shader_builder
+			.fromVertexSourceFile(Fs::dataDirectory().append("shader-src/skybox.vert"))
+			.fromFragmentSourceFile(Fs::dataDirectory().append("shader-src/skybox.frag"))
+			.build();
+
+		loadPrimitives();
+
+		DEBUG_LOG("Context data loaded.");
 	}
+
 
 	void GLContext::destroy()
 	{
-		glDeleteBuffers(1, &ubo);
-	}
+		delete skyboxShader;
 
-	void GLContext::begin(RenderTarget* target)
-	{
-		_currentTarget = target;
-
-		if (ubo == 0)
-		{
-			glGenBuffers(1, &ubo);
-			glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-			glBufferData(GL_UNIFORM_BUFFER, sizeof(SceneGpuData), NULL, GL_STATIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-			glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
-			DEBUG_LOG("Created uniform buffer object.");
-		}
-
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		glClearColor(1.0f, 1.f, 1.f, 1.f);
-
-#		ifdef LUNAR_IMGUI
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-#		endif
-	}
-
-	void GLContext::end()
-	{
-#		ifdef LUNAR_IMGUI
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#		endif
-
-		if (_currentTarget->getType() != RenderTargetType::eWindow)
-			return;
-
-		auto& target_window = *static_cast<Render::Window*>(_currentTarget);
-		glfwSwapBuffers(target_window.handle);
-	}
-
-	void GLContext::draw(Core::Scene& scene, Camera& camera)
-	{
-		if (_currentTarget->getType() != RenderTargetType::eWindow)
-			return; // TODO
-
-		auto& target_window = *static_cast<Render::Window*>(_currentTarget);
-		if (target_window.isMinimized())
-			return;
-
-		auto ubo_data = SceneGpuData
-		{
-			.view       = camera.getViewMatrix(),
-			.projection = camera.getProjectionMatrix(target_window.getRenderWidth(), target_window.getRenderHeight()),
-			.model      = {},
-		};
-
-		for (auto& object : scene.getGameObjects())
-		{
-			MeshRenderer* mesh_renderer = object.getComponent<MeshRenderer>();
-			if (mesh_renderer == nullptr)
-				continue;
-
-			const auto& transform = object.getTransform();
-			auto&       mesh      = mesh_renderer->mesh;
-			auto&       shader    = mesh_renderer->shader;
-			auto&       material  = mesh.material;
-
-			if (shader._glHandle != 0)
-				glUseProgram(shader._glHandle);
-			// TODO: else ? 
-
-			ubo_data.model = mesh_renderer->getModelMatrix();
-			glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(SceneGpuData), &ubo_data);
-
-			if (material.colorMap._glHandle != 0)
-			{
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, material.colorMap._glHandle);
-			}
-			// TODO: else ?
-
-			glBindVertexArray(mesh._glVao);
-			glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
-		}
-
-
-		//ImGui::ShowDemoWindow();
-		scene.renderUpdate(*this);
-	}
-
-	bool TextureBuilder::_glBuild()
-	{
-		auto& handle = result._glHandle;
-	
-		glGenTextures(1, &handle);
-		glBindTexture(GL_TEXTURE_2D, handle);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-		GLint min_filter = (filtering == TextureFiltering::eNearest) ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR;
-		GLint mag_filter = (filtering == TextureFiltering::eNearest) ? GL_NEAREST : GL_LINEAR;
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
-		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)dstFormat, width, height, 0, (GLint)srcFormat, GL_UNSIGNED_BYTE, rawBytes);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		
-		return true;
-	}
-
-	GraphicsShader GraphicsShaderBuilder::_glBuild()
-	{
-		auto shader = GraphicsShader();
-		
-		auto compile_shader = [](GLenum type, const Fs::Path& path) -> GLint
-		{
-			auto file = Fs::TextFile(path);
-			const char* data = file.content.data();
-
-			GLint data_size;
-			data_size = file.content.size();
-
-			GLint shader;
-			shader = glCreateShader(type);
-			glShaderSource(shader, 1, &data, &data_size);
-			glCompileShader(shader);
-
-			GLint success;
-			glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-			if (!success)
-			{
-				GLchar error_message[512];
-				glGetShaderInfoLog(shader, 512, nullptr, error_message);
-				DEBUG_ERROR("Failed to compile shader: {}", error_message);
-				shader = -1;
-			}
-
-			return shader;
-		};
-
-		GLint vertex_shader   = compile_shader(GL_VERTEX_SHADER, vertexPath);
-		GLint fragment_shader = compile_shader(GL_FRAGMENT_SHADER, fragmentPath);
-		if (vertex_shader == -1 || fragment_shader == -1)
-		{
-			return shader;
-		}
-
-		shader._glHandle = glCreateProgram();
-		glAttachShader(shader._glHandle, vertex_shader);
-		glAttachShader(shader._glHandle, fragment_shader);
-		glLinkProgram(shader._glHandle);
-
-		glDeleteShader(vertex_shader);
-		glDeleteShader(fragment_shader);
-
-		GLint success;
-		glGetProgramiv(shader._glHandle, GL_LINK_STATUS, &success);
-		if (!success)
-		{
-			GLchar error_message[512];
-			glGetProgramInfoLog(shader._glHandle, 512, nullptr, error_message);
-			DEBUG_ERROR("Failed to link shader program: {}", error_message);
-		}
-
-		return shader;
+		unloadPrimitives();
+		glDeleteBuffers(2, &sceneUbo);
+		glDeleteRenderbuffers(1, &captureRbo);
+		glDeleteFramebuffers(1, &captureFbo);
 	}
 
 	void MeshBuilder::_glBuild()
@@ -218,14 +96,18 @@ namespace Render
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 		glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv_x));
 		glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv_y));
+		glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+		glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
 		glEnableVertexAttribArray(3);
 		glEnableVertexAttribArray(4);
+		glEnableVertexAttribArray(5);
+		glEnableVertexAttribArray(6);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, result._glEbo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
@@ -248,7 +130,9 @@ namespace Render
 		glfwGetFramebufferSize(handle, &w, &h);
 
 		glViewport(0, 0, w, h);
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
 
 #		ifdef LUNAR_IMGUI
 		ImGui::SetCurrentContext(renderCtx->getImGuiContext());

@@ -109,8 +109,8 @@ namespace Core
 	{
 		for (auto& component : components)
 		{
-			if (component->_getClassFlags() & ComponentClassFlagBits::eUpdateable)
-				component->update();
+			//if (component->_getClassFlags() & ComponentClassFlagBits::eUpdateable)
+			component->update();
 		}
 		//for (auto& component_ptr : components)
 		//{
@@ -124,8 +124,7 @@ namespace Core
 	{
 		for (auto& component : components)
 		{
-			if (component->_getClassFlags() & ComponentClassFlagBits::eRenderable)
-				component->renderUpdate(context);
+			component->renderUpdate(context);
 		}
 	}
 

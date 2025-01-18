@@ -7,3 +7,5 @@
 #include <lunar/render/render_context.hpp>
 #include <lunar/render/render_components.hpp>
 #include <lunar/render/common.hpp>
+#include <lunar/render/material.hpp>
+#include <lunar/render/cubemap.hpp>

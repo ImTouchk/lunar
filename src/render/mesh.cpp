@@ -5,23 +5,136 @@
 #	include <lunar/render/internal/render_vk.hpp>
 #endif
 
+#include <fastgltf/core.hpp>
+#include <fastgltf/tools.hpp>
+#include <fastgltf/glm_element_traits.hpp>
+
 namespace Render
 {
-	MeshBuilder& MeshBuilder::setVertices(const std::span<Vertex>& vertices)
+	MeshBuilder& MeshBuilder::setVertices(const std::span<const Vertex>& vertices)
 	{
-		this->vertices = vertices;
+		this->vertices = { vertices.begin(), vertices.end() };
 		return *this;
 	}
 
-	MeshBuilder& MeshBuilder::setIndices(const std::span<uint32_t>& indices)
+	MeshBuilder& MeshBuilder::setIndices(const std::span<const uint32_t>& indices)
 	{
-		this->indices = indices;
+		this->indices = { indices.begin(), indices.end() };
 		return *this;
 	}
 
 	MeshBuilder& MeshBuilder::useRenderContext(std::shared_ptr<RenderContext>& context)
 	{
 		this->context = context;
+		return *this;
+	}
+
+	MeshBuilder& MeshBuilder::fromGltfFile(const Fs::Path& path)
+	{
+		auto options = fastgltf::Options::LoadGLBBuffers | 
+						fastgltf::Options::LoadExternalBuffers | 
+						fastgltf::Options::LoadExternalImages;
+
+		auto parser  = fastgltf::Parser {};
+		auto data    = fastgltf::GltfDataBuffer::FromPath(path);
+		if (data.error() != fastgltf::Error::None)
+		{
+			DEBUG_ERROR("Couldn't open GLTF file at '{}'.", path.generic_string());
+			return *this;
+		}
+
+		auto asset = parser.loadGltf(data.get(), path.parent_path(), options);
+		// todo; error
+
+		auto& meshes = asset->meshes;
+		if (meshes.size() > 1)
+			DEBUG_WARN("File '{}' contains more than one mesh. Only parsing the first one.", path.generic_string());
+		
+		if (meshes.size() <= 0)
+		{
+			DEBUG_ERROR("File '{}' does not contain any meshes.", path.generic_string());
+			return *this;
+		}
+		
+		auto& mesh = meshes[0];
+
+		for (auto&& p : mesh.primitives)
+		{
+			size_t initial_idx    = vertices.size();
+			auto&  index_accessor = asset->accessors[p.indicesAccessor.value()];
+			
+			indices.reserve(index_accessor.count);
+			fastgltf::iterateAccessor<uint32_t>(asset.get(), index_accessor, [&](uint32_t idx) {
+				indices.emplace_back(idx + initial_idx);
+			});
+
+			auto& pos_accessor = asset->accessors[p.findAttribute("POSITION")->accessorIndex];
+			vertices.resize(vertices.size() + pos_accessor.count);
+
+			fastgltf::iterateAccessorWithIndex<glm::vec3>(asset.get(), pos_accessor, [&](glm::vec3 v, size_t idx) {
+				auto& vertex = vertices[initial_idx + idx];
+				vertex.position = v;
+				vertex.normal   = { 0.f, 0.f, 0.f };
+				vertex.uv_x     = 0.f;
+				vertex.uv_y     = 0.f;
+				vertex.color    = glm::vec4 { 1.f };
+			});
+
+			auto normals = p.findAttribute("NORMAL");
+			if (normals != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(
+					asset.get(),
+					asset->accessors[normals->accessorIndex],
+					[&](glm::vec3 v, size_t idx) { 
+						vertices[initial_idx + idx].normal = v; 
+					}
+				);
+				DEBUG_LOG("?");
+			}
+
+			auto tangents = p.findAttribute("TANGENT");
+			if (tangents != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(
+					asset.get(),
+					asset->accessors[tangents->accessorIndex],
+					[&](glm::vec4 v, size_t idx) {
+						auto& vertex = vertices[initial_idx];
+						vertex.tangent   = v;
+						vertex.bitangent = glm::cross(vertex.normal, vertex.tangent);
+					}
+				);
+			}
+
+			auto uv = p.findAttribute("TEXCOORD_0");
+			if (uv != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec2>(
+					asset.get(),
+					asset->accessors[uv->accessorIndex],
+					[&](glm::vec2 v, size_t idx) { 
+						vertices[initial_idx + idx].uv_x = v.x;  
+						vertices[initial_idx + idx].uv_y = v.y;  
+					}
+				);
+			}
+
+			auto colors = p.findAttribute("COLOR_0");
+			if (colors != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(
+					asset.get(),
+					asset->accessors[colors->accessorIndex],
+					[&](glm::vec4 v, size_t idx) {
+						vertices[initial_idx + idx].color = v;
+					}
+				);
+			}
+		}
+
+		// TODO: textures, materials
+
 		return *this;
 	}
 
@@ -53,5 +166,94 @@ namespace Render
 	Mesh MeshBuilder::getResult()
 	{
 		return std::move(result);
+	}
+
+	const std::vector<Vertex>& GetCubeVertices()
+	{
+		const static auto vertices = std::vector<Vertex>
+		{
+			Vertex{ { -1.f,-1.f,-1.f}, 0, { 0, 0, 0 }, 0, { 1.f, 0.f, 0.f, 1.f } },
+			Vertex{ {  1.f, 1.f,-1.f}, 1, { 0, 0, 0 }, 1, { 0.f, 0.f, 1.f, 1.f } },
+			Vertex{ {  1.f,-1.f,-1.f}, 1, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ {  1.f, 1.f,-1.f}, 1, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f,-1.f,-1.f}, 0, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f, 1.f,-1.f}, 0, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+
+			Vertex{ { -1.f,-1.f, 1.f}, 0, { 0, 0, 0 }, 0, { 1.f, 0.f, 0.f, 1.f } },
+			Vertex{ {  1.f,-1.f, 1.f}, 1, { 0, 0, 0 }, 1, { 0.f, 0.f, 1.f, 1.f } },
+			Vertex{ {  1.f, 1.f, 1.f}, 1, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ {  1.f, 1.f, 1.f}, 1, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f, 1.f, 1.f}, 0, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f,-1.f, 1.f}, 0, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+
+			Vertex{ { -1.f, 1.f, 1.f}, 1, { 0, 0, 0 }, 0, { 1.f, 0.f, 0.f, 1.f } },
+			Vertex{ { -1.f, 1.f,-1.f}, 1, { 0, 0, 0 }, 1, { 0.f, 0.f, 1.f, 1.f } },
+			Vertex{ { -1.f,-1.f,-1.f}, 0, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f,-1.f,-1.f}, 0, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f,-1.f, 1.f}, 0, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f, 1.f, 1.f}, 1, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+
+			Vertex{ {  1.f, 1.f, 1.f}, 1, { 0, 0, 0 }, 0, { 1.f, 0.f, 0.f, 1.f } },
+			Vertex{ {  1.f,-1.f,-1.f}, 0, { 0, 0, 0 }, 1, { 0.f, 0.f, 1.f, 1.f } },
+			Vertex{ {  1.f, 1.f,-1.f}, 1, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ {  1.f,-1.f,-1.f}, 0, { 0, 0, 0 }, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ {  1.f, 1.f, 1.f}, 1, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ {  1.f,-1.f, 1.f}, 0, { 0, 0, 0 }, 0, { 0.f, 1.f, 0.f, 1.f } },
+
+			Vertex{ { -1.f,-1.f,-1.f}, 0, { 0, 0, 1.f}, 1, { 1.f, 0.f, 0.f, 1.f } },
+			Vertex{ {  1.f,-1.f,-1.f}, 1, { 0, 0, 1.f}, 1, { 0.f, 0.f, 1.f, 1.f } },
+			Vertex{ {  1.f,-1.f, 1.f}, 1, { 0, 0, 1.f}, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ {  1.f,-1.f, 1.f}, 1, { 0, 0, 1.f}, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f,-1.f, 1.f}, 0, { 0, 0, 1.f}, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f,-1.f,-1.f}, 0, { 0, 0, 1.f}, 1, { 0.f, 1.f, 0.f, 1.f } },
+
+			Vertex{ { -1.f, 1.f,-1.f}, 0, { 0, 0, 1.f}, 1, { 1.f, 0.f, 0.f, 1.f } },
+			Vertex{ {  1.f, 1.f, 1.f}, 1, { 0, 0, 1.f}, 0, { 0.f, 0.f, 1.f, 1.f } },
+			Vertex{ {  1.f, 1.f,-1.f}, 1, { 0, 0, 1.f}, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ {  1.f, 1.f, 1.f}, 1, { 0, 0, 1.f}, 0, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f, 1.f,-1.f}, 0, { 0, 0, 1.f}, 1, { 0.f, 1.f, 0.f, 1.f } },
+			Vertex{ { -1.f, 1.f, 1.f}, 0, { 0, 0, 1.f}, 0, { 0.f, 1.f, 0.f, 1.f } },
+		};
+
+		return vertices;
+	}
+
+	const std::vector<uint32_t>& GetCubeIndices()
+	{
+		const static auto indices = std::vector<uint32_t>
+		{
+			0, 1, 2, 3, 4, 5,
+			6, 7, 8, 9, 10, 11,
+			12, 13, 14, 15, 16, 17,
+			18, 19, 20, 21, 22, 23,
+			24, 25, 26, 27, 28, 29,
+			30, 31, 32, 33, 34, 35
+		};
+
+		return indices;
+	}
+
+	const std::vector<Vertex>& GetQuadVertices()
+	{
+		const static auto vertices = std::vector<Vertex>
+		{
+			Vertex { { -1.f, 1.f, 0.f }, 0.f, { 0.f, 0.f, 0.f }, 1.f, { 0.f, 0.f, 0.f, 0.f } },
+			Vertex { { -1.f,-1.f, 0.f }, 0.f, { 0.f, 0.f, 0.f }, 0.f, { 0.f, 0.f, 0.f, 0.f } },
+			Vertex { {  1.f, 1.f, 0.f }, 1.f, { 0.f, 0.f, 0.f }, 1.f, { 0.f, 0.f, 0.f, 0.f } },
+			Vertex { {  1.f,-1.f, 0.f }, 1.f, { 0.f, 0.f, 0.f }, 0.f, { 0.f, 0.f, 0.f, 0.f } },
+		};
+
+		return vertices;
+	}
+
+	const std::vector<uint32_t>& GetQuadIndices()
+	{
+		const static auto indices = std::vector<uint32_t>
+		{
+			0, 1, 2,
+			2, 1, 3
+		};
+
+		return indices;
 	}
 }

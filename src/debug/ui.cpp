@@ -1,20 +1,21 @@
 #include <lunar/debug/ui.hpp>
 #include <lunar/core/time.hpp>
+#include <lunar/core/input.hpp>
 
 namespace Debug
 {
-    void DrawComponentPanel(Core::Component* component)
+    void DrawComponentPanel(Render::RenderContext& ctx, Core::Component* component)
     {
         auto title = std::format("Component: {}", component->_getClassName());
         if (ImGui::CollapsingHeader(title.c_str()))
         {
             ImGui::Indent();
-
+            component->drawDebugUI(ctx);
             ImGui::Unindent();
         }
     }
 
-    void DrawGameObjectPanel(Core::GameObject& object)
+    void DrawGameObjectPanel(Render::RenderContext& ctx, Core::GameObject& object)
     {
         auto title = std::format("GameObject: {} (ID: {})", object.getName(), object.getId());
 
@@ -40,7 +41,7 @@ namespace Debug
             ImGui::SeparatorText("Components");
             auto components = object.getComponents();
             for (auto& component : components)
-                DrawComponentPanel(component.get());
+                DrawComponentPanel(ctx, component.get());
 
             if (components.size() == 0)
                 ImGui::Text("This object has no components.");
@@ -48,7 +49,7 @@ namespace Debug
             auto children = object.getChildren();
             ImGui::SeparatorText("Children");
             for (auto& child : children)
-                DrawGameObjectPanel(*child);
+                DrawGameObjectPanel(ctx, *child);
 
             if (children.size() == 0)
                 ImGui::Text("This object has no children.");
@@ -58,7 +59,7 @@ namespace Debug
         ImGui::TreePop();
     }
 
-	void DrawSceneHierarchyPanel(Core::Scene& scene, Render::RenderContext& context)
+	void DrawSceneHierarchyPanel(Render::RenderContext& context, Core::Scene& scene)
 	{
         auto& objects = scene.getGameObjects();
         auto  title   = std::format("Scene: {}", scene.getName());
@@ -72,7 +73,7 @@ namespace Debug
         ImGui::SeparatorText("GameObjects");
         for (auto& object : objects)
             if (object.getParentId() == -1)
-                DrawGameObjectPanel(object);
+                DrawGameObjectPanel(context, object);
 
         ImGui::End();
 	}
@@ -81,6 +82,7 @@ namespace Debug
     {
         ImGui::SetCurrentContext(context.getImGuiContext());
         ImGui::Begin("General Info");
+        ImGui::SeparatorText("General");
         ImGui::Text("Application: %s (v%d.%d.%d)", APP_NAME, APP_VER_MAJOR, APP_VER_MINOR, APP_VER_PATCH);
         ImGui::Text("Engine: lunar (v%d.%d.%d)", LUNAR_VER_MAJOR, LUNAR_VER_MINOR, LUNAR_VER_PATCH);
         
@@ -88,6 +90,7 @@ namespace Debug
         ImGui::SameLine();
         ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", LUNAR_DEBUG_BUILD ? "TRUE" : "FALSE");
 
+        ImGui::SeparatorText("Rendering");
         ImGui::Text("Render backend: ");
         ImGui::SameLine();
         ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", LUNAR_RENDER_BACKEND);
@@ -111,8 +114,13 @@ namespace Debug
 
         ImGui::TextColored(fps_color, "%d", time_context->fps_avg.load());
 
+        auto& handler  = Input::GetGlobalHandler();
+        auto  axis     = handler.getAxis();
+        auto  rotation = handler.getRotation();
+        ImGui::SeparatorText("Input");
+        ImGui::Text("Axis: { %f, %f }", axis.x, axis.y);
+        ImGui::Text("Rotation: { %f, %f }", rotation.x, rotation.y);
 
-        
         ImGui::End();
     }
 }
