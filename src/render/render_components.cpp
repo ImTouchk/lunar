@@ -10,8 +10,8 @@ namespace Render
 		static const glm::vec3 worldUp = { 0.f, 1.f, 0.f };
 
 		auto& transform = getTransform();
-		auto& rotation  = transform.rotation;
 		auto& position  = transform.position;
+		auto& rotation  = transform.rotation;
 
 		glm::vec3 new_front = {
 			glm::cos(glm::radians(rotation.x)) * glm::cos(glm::radians(rotation.y)),
@@ -40,6 +40,25 @@ namespace Render
 		return glm::lookAt(transform.position, transform.position + front, up);
 	}
 
+	const glm::vec3& Camera::getFront() const
+	{
+		return front;
+	}
+
+	const glm::vec3& Camera::getRight() const
+	{
+		return right;
+	}
+
+	void Camera::drawDebugUI(RenderContext& context)
+	{
+		ImGui::SetCurrentContext(context.getImGuiContext());
+		ImGui::InputFloat3("Front", &front.x);
+		ImGui::InputFloat3("Right", &right.x);
+		ImGui::InputFloat3("Up",    &up.x);
+		ImGui::InputFloat("FOV",    &fov, 1.f);
+	}
+
 	glm::mat4 MeshRenderer::getModelMatrix() const
 	{
 		const auto& transform = getTransform();
@@ -48,6 +67,26 @@ namespace Render
 		auto rot_quat    = glm::quat(glm::radians(transform.rotation));
 		auto rotation    = glm::mat4(rot_quat);
 		return translation * rotation * scale;
+	}
+
+	void MeshRenderer::drawDebugUI(RenderContext& context)
+	{
+		ImGui::SetCurrentContext(context.getImGuiContext());
+		ImGui::SeparatorText("Mesh");
+		ImGui::Text("Triangles: %d", mesh.indicesCount / 3);
+		ImGui::Text("Indices: %d", mesh.indicesCount);
+		ImGui::SeparatorText("Material");
+		ImGui::BulletText("Color map");
+		ImGui::Image(mesh.material.albedo._glHandle, { 128, 128 });
+		ImGui::DragFloat("Roughness", &mesh.material.roughness, 0.01f, 0.01f, 1.f);
+		ImGui::DragFloat("Metallic", &mesh.material.metallic, 0.01f, 0.01f, 1.f);
+		ImGui::DragFloat("AO", &mesh.material.ao, 0.01f, 0.01f, 1.f);
+	}
+
+	void Light::drawDebugUI(RenderContext& context)
+	{
+		ImGui::SetCurrentContext(context.getImGuiContext());
+		ImGui::ColorEdit3("Color", &color[0]);
 	}
 
 	//MeshRenderer::MeshRenderer(const ShaderBuilder& shaderBuilder)

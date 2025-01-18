@@ -14,9 +14,13 @@ namespace Render
 	public:
 		Camera() = default;
 
-		void update() override;
-		glm::mat4 getViewMatrix() const;
-		glm::mat4 getProjectionMatrix(int renderWidth, int renderHeight) const;
+		void             update() override;
+		glm::mat4        getViewMatrix() const;
+		glm::mat4        getProjectionMatrix(int renderWidth, int renderHeight) const;
+		const glm::vec3& getFront() const;
+		const glm::vec3& getRight() const;
+
+		void             drawDebugUI(Render::RenderContext&) override;
 
 	private:
 		glm::vec3      front      = { 0.f, 0.f, -1.f };
@@ -32,9 +36,19 @@ namespace Render
 		MeshRenderer() = default;
 
 		glm::mat4 getModelMatrix() const;
+		void      drawDebugUI(Render::RenderContext&) override;
+
 
 		GraphicsShader shader = {};
 		Mesh           mesh   = {};
+	};
+
+	class LUNAR_API Light : public Core::Component
+	{
+	public:
+		void drawDebugUI(Render::RenderContext&) override;
+
+		glm::vec3 color = { 1.f, 0.f, 0.f };
 	};
 
 	//class LUNAR_API MeshRenderer : public Core::Component
