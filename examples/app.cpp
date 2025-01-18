@@ -68,94 +68,36 @@ public:
     float x, y;
 };
 
-class UISceneHierarchy : public Core::Component
+class SimpleMovement : public Core::Component
 {
-private:
-    void renderComponent(Core::Component* component)
+    void update() override
     {
-        auto title = std::format("Component: {}", component->_getClassName());
-        if (ImGui::CollapsingHeader(title.c_str()))
-        {
-            ImGui::Indent();
+        auto& transform  = getTransform();
+        auto* camera     = getGameObject().getComponent<Render::Camera>();
+        float delta_time = Time::DeltaTime();
+        float speed      = Input::GetAction("sprint") ? 8 * 4 : 8;
+        auto  axis       = Input::GetAxis();
+        auto  rotation   = Input::GetRotation();
+        auto& right      = camera->getRight();
+        auto& front      = camera->getFront();
 
-            ImGui::Unindent();
-        }
+        transform.position += right * axis.x * delta_time * speed;
+        transform.position += front * axis.y * delta_time * speed;
+        transform.rotation += glm::vec3 { rotation.x, rotation.y, 0.f };
+        transform.rotation  = glm::clamp(transform.rotation, { -90.f, -90.f, 0.f }, { 90.f, 90.f, 90.f });
     }
 
-    void renderObjectTree(Core::GameObject& object)
+    void drawDebugUI(Render::RenderContext& ctx) override
     {
-        auto title    = std::format("GameObject: {} (ID: {})", object.getName(), object.getId());
-
-        ImGui::TreePush(object.getName().c_str());
-        if (ImGui::CollapsingHeader(title.c_str()))
-        {
-            ImGui::Indent();
-
-            if (ImGui::Button("Delete"))
-            {
-                auto* scene = object.getParentScene();
-                scene->deleteGameObject(object.getId());
-            }
-
-            ImGui::SeparatorText("Transform");
-
-            auto& transform = object.getTransform();
-                
-            ImGui::InputFloat3("Position", &transform.position.x);
-            ImGui::InputFloat3("Rotation", &transform.rotation.x);
-            ImGui::InputFloat3("Scale",    &transform.scale.x);
-
-            ImGui::SeparatorText("Components");
-            auto components = object.getComponents();
-            for (auto& component : components)
-                renderComponent(component.get());
-
-            if (components.size() == 0)
-                ImGui::Text("This object has no components.");
-
-            auto children = object.getChildren();
-            ImGui::SeparatorText("Children");
-            for (auto& child : children)
-                renderObjectTree(*child);
-
-            if (children.size() == 0)
-                ImGui::Text("This object has no children.");
-
-            ImGui::Unindent();
-        }
-        ImGui::TreePop();
+        ImGui::SetCurrentContext(ctx.getImGuiContext());
+        ImGui::Text("Test!");
     }
-    
-public:
-    void renderUpdate(Render::RenderContext& context) override
+
+    Core::ComponentClassFlags _getClassFlags() override
     {
-        return;
-
-        auto& scene   = getScene();
-        auto& objects = scene.getGameObjects();
-        auto  title   = std::format("Scene: {}", scene.getName());
-
-        ImGui::SetCurrentContext(context.getImGuiContext());
-        ImGui::Begin(title.c_str());
-
-        ImGui::Text("ID: %d", scene.getId());
-        ImGui::Text("Objects: %d", objects.size());
-        
-        ImGui::SeparatorText("GameObjects");
-        for (auto& object : objects)
-            if (object.getParentId() == -1)
-                renderObjectTree(object);
-
-        ImGui::End();
+        return Core::ComponentClassFlagBits::eUpdateable |
+            Core::ComponentClassFlagBits::eUiDrawable;
     }
-
-    Core::ComponentClassFlags _getClassFlags() 
-    { 
-        return 
-            Core::ComponentClassFlagBits::eNone |
-            Core::ComponentClassFlagBits::eRenderable; 
-    }
-
 };
 
 int main(int argc, char* argv[])
@@ -173,10 +115,11 @@ int main(int argc, char* argv[])
         .useClassSerializer<Test2Comp>("test2Comp")
         .fromJsonFile(Fs::dataDirectory().append("main_scene.json"))
         .create();
-
-
-    scene->getGameObject("Skibidi Toilet").addComponent<UISceneHierarchy>();
+    
     scene->setMainCamera(scene->getGameObject("Skibidi Toilet").addComponent<Render::Camera>());
+    scene->getGameObject("Skibidi Toilet")
+        .addComponent<SimpleMovement>();
+
     scene->createGameObject("Bruh Moment", &scene->getGameObject("Test Object"));
 
     DEBUG_LOG("{}", scene->getName());
@@ -187,6 +130,8 @@ int main(int argc, char* argv[])
         .setRenderContext(render_ctx)
         .loadFromConfigFile(Fs::baseDirectory().append("window.cfg"))
         .create();
+
+    render_ctx->init();
 
     //auto script_vm = Script::VirtualMachineBuilder()
         //.useNativePackageLoader()
@@ -212,49 +157,86 @@ int main(int argc, char* argv[])
 
     auto mesh_builder = Render::MeshBuilder();
 
-    mesh_builder
-        .useRenderContext(render_ctx)
-        .setVertices(vertices)
-        .setIndices(indices)
-        .build();
+    //mesh_builder
+    //    .useRenderContext(render_ctx)
+    //    .setVertices(vertices)
+    //    .setIndices(indices)
+    //    .build();
 
-    mesh_renderer.mesh   = mesh_builder.getResult();
+    mesh_renderer.mesh   = mesh_builder
+        .useRenderContext(render_ctx)
+        .fromGltfFile(Fs::dataDirectory().append("models/house.gltf"))
+        .build()
+        .getResult();
+
     mesh_renderer.shader = Render::GraphicsShaderBuilder()
         .useRenderContext(render_ctx)
-        .fromVertexSourceFile(Fs::dataDirectory().append("shader-src/default_gl.vert"))
-        .fromFragmentSourceFile(Fs::dataDirectory().append("shader-src/default_gl.frag"))
+        .fromVertexSourceFile(Fs::dataDirectory().append("shader-src/pbr.vert"))
+        .fromFragmentSourceFile(Fs::dataDirectory().append("shader-src/pbr.frag"))
         .build();
 
+    scene->getGameObject("Light")
+        .addComponent<Render::Light>();
+
+    auto cubemap_builder = Render::CubemapBuilder();
+    auto cubemap = cubemap_builder
+        .useRenderContext(render_ctx)
+        .fromHDRFile(Fs::dataDirectory().append("skybox/sky.hdr"))
+        .build()
+        .getResult();
 
     std::vector<uint32_t> bytes = {};
     for (size_t x = 0; x < 16; x++) {
         for (size_t y = 0; y < 16; y++) {            
-            if ((x % 2) ^ (y % 2))
-                bytes.push_back(0xFFFF00FF);
-            else
-                bytes.push_back(0xFF000000);
+            //if ((x % 2) ^ (y % 2))
+            //    bytes.push_back(0xFFFF00FF);
+            //else
+            //    bytes.push_back(0xFF000000);
+            bytes.push_back(0xFFFFFFFFFF);
         }
     }
     
     auto texture_builder = Render::TextureBuilder();
     auto texture = texture_builder
         .fromByteArray(Render::TextureFormat::eRGBA, 16, 16, bytes.data())
+        .setByteFormat(Render::TextureByteFormat::eUnsignedByte)
         .setFiltering(Render::TextureFiltering::eNearest)
         .build()
         .getResult();
 
-    mesh_renderer.mesh.material.colorMap = texture;
+    mesh_renderer.mesh.material.albedo = texture;
+    game_window.registerAction("toggle_menu", { { "keyboard.esc" } });
+    game_window.registerAction("sprint", { { "keyboard.shift" } });
+
+    scene->addEventListener<Core::Events::SceneObjectDeleted>([](auto& e) {
+        
+        DEBUG_LOG("Event triggered | deleted {}", e.gameObject.getName());
+    });
+    
+    Input::SetGlobalHandler(game_window);
 
     while (!game_window.shouldClose())
     {
         Render::Window::pollEvents();
         Time::Update();
-        
+
+        if (Input::GetActionUp("toggle_menu"))
+            game_window.toggleCursor();
+
+        scene->update();
+
         render_ctx->begin(game_window);
-        Debug::DrawSceneHierarchyPanel(*scene, *render_ctx); 
-        Debug::DrawGeneralInfoPanel(*render_ctx);
+        render_ctx->clear(1.f, 1.f, 1.f, 1.f);
+        render_ctx->setCamera(*scene->getMainCamera());
+        render_ctx->draw(cubemap);
         render_ctx->draw(scene);
+
+        Debug::DrawSceneHierarchyPanel(*render_ctx, *scene); 
+        Debug::DrawGeneralInfoPanel(*render_ctx);
+
         render_ctx->end();
+
+        game_window.update();
     }
 
     return 1;
