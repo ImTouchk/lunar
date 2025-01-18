@@ -22,6 +22,7 @@ namespace Core
 		eNone       = 0,
 		eUpdateable = 1 << 0,
 		eRenderable = 1 << 1,
+		eUiDrawable = 1 << 2
 	};
 
 	using ComponentClassFlags = uint64_t;
@@ -35,8 +36,9 @@ namespace Core
 	public:
         Component() = default;
 
-		virtual void                    update()                                 {}
-		virtual void                    renderUpdate(Render::RenderContext& ctx) {}
+		virtual void                    update()                             {}
+		virtual void                    renderUpdate(Render::RenderContext&) {}
+		virtual void                    drawDebugUI(Render::RenderContext&);
 
 		Scene&                          getScene();
 		const Scene&                    getScene() const;

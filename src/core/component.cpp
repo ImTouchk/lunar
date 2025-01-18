@@ -2,9 +2,16 @@
 #include <lunar/core/gameobject.hpp>
 #include <lunar/core/component.hpp>
 #include <lunar/script/script_vm.hpp>
+#include <lunar/render/render_context.hpp>
 
 namespace Core
 {
+	void Component::drawDebugUI(Render::RenderContext& context)
+	{
+		ImGui::SetCurrentContext(context.getImGuiContext());
+		ImGui::Text("This component does not have a dedicated debug UI menu.");
+	}
+
 	Scene& Component::getScene()
 	{
 		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
