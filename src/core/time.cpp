@@ -16,12 +16,22 @@ namespace Time
 		context.deltaTime   = context.currentTime - context.lastTime;
 
 		context.frames      = context.frames + 1;
-		context.fps_sum    += glm::round(1.f / context.deltaTime);
-		context.fps_avg     = context.fps_sum / context.frames;
+
+		if (context.currentTime - context.timer >= 1.f)
+		{
+			context.fps    = context.frames / (context.currentTime - context.timer);
+			context.timer  = context.currentTime.load();
+			context.frames = 0;
+		}
 	}
 
 	TimeContext GetGlobalContext()
 	{
 		return &TIME_CONTEXT;
+	}
+
+	double DeltaTime()
+	{
+		return TIME_CONTEXT.deltaTime;
 	}
 }
