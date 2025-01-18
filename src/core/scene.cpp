@@ -168,7 +168,11 @@ namespace Core
 	{
 		// TODO: Rethink this function; it somehow messes up the ids of all objects
 		
-		auto& object   = getGameObject(id);
+		auto& object       = getGameObject(id);
+
+		auto  delete_event = Events::SceneObjectDeleted(*this, object);
+		triggerEvent(SceneEventType::eObjectDeleted, delete_event);
+
 		auto  children = object.getChildren();
 		for (size_t i = 0; i < children.size(); i++)
 			deleteGameObject(children[i]->getId());
@@ -192,7 +196,10 @@ namespace Core
 
 	GameObject& Scene::createGameObject(const std::string_view& name, GameObject* parent)
 	{
-		return objects.emplace_back(name, this, parent);
+		auto& created_object = objects.emplace_back(name, this, parent);
+		auto  created_event  = Events::SceneObjectCreated(*this, created_object);
+		triggerEvent(SceneEventType::eObjectCreated, created_event);
+		return created_object;
 	}
 
     GameObject& Scene::getGameObject(Identifiable::NativeType id)
@@ -276,5 +283,20 @@ namespace Core
 	{
 		for (auto& object : getGameObjects())
 			object.renderUpdate(context);
+	}
+
+	void Scene::addEventListener(SceneEventType type, EventListener listener)
+	{
+		_addEventListener(static_cast<size_t>(type), listener);
+	}
+
+	void Scene::removeEventListener(SceneEventType type, EventListener listener)
+	{
+		_removeEventListener(static_cast<size_t>(type), listener);
+	}
+
+	void Scene::triggerEvent(SceneEventType type, Event& e)
+	{
+		_triggerEvent(static_cast<size_t>(type), e);
 	}
 }

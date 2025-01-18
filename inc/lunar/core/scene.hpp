@@ -1,5 +1,6 @@
 #pragma once
 #include <lunar/core/gameobject.hpp>
+#include <lunar/core/scene_event.hpp>
 #include <lunar/file/json_file.hpp>
 #include <lunar/utils/identifiable.hpp>
 #include <nlohmann/json.hpp>
@@ -13,7 +14,7 @@ namespace Render { class LUNAR_API Camera; }
 
 namespace Core
 {
-	class LUNAR_API Scene : public Identifiable
+	class LUNAR_API Scene : public Identifiable, public EventHandler
 	{
 	public:
 		Scene(
@@ -37,8 +38,19 @@ namespace Core
 		void                     deleteGameObject(Identifiable::NativeType id);
 		Render::Camera*          getMainCamera();
 		void                     setMainCamera(Render::Camera& camera);
+		void                     addEventListener(SceneEventType type, EventListener listener);
+		void                     removeEventListener(SceneEventType type, EventListener listener);
+
+		template<typename T>
+		inline void              addEventListener(EventListener_T<T> listener)
+		{
+			auto type = imp::GetSceneEventType<T>();
+			addEventListener(type, [listener](Core::Event& e) { listener(static_cast<T&>(e)); });
+		}
 
 	private:
+		void triggerEvent(SceneEventType type, Event& e);
+
 		Identifiable::NativeType mainCamera = -1;
 		size_t nameHash = SIZE_MAX;
 		std::string name = "Untitled Scene";
