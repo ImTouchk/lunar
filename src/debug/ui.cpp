@@ -104,15 +104,15 @@ namespace Debug
         ImGui::SameLine();
 
         auto* time_context = Time::GetGlobalContext();
-        auto  fps_color = (time_context->fps_avg < 30) 
+        auto  fps_color = (time_context->fps < 30)
             ? ImVec4(1, 0, 0, 1) 
             : (
-                (time_context->fps_avg < 60) 
+                (time_context->fps < 60) 
                     ? ImVec4(1, 1, 0, 1) 
                     : ImVec4(0, 1, 0, 1)
             );
 
-        ImGui::TextColored(fps_color, "%d", time_context->fps_avg.load());
+        ImGui::TextColored(fps_color, "%d", time_context->fps.load());
 
         auto& handler  = Input::GetGlobalHandler();
         auto  axis     = handler.getAxis();
