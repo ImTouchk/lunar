@@ -4,7 +4,9 @@
 #include <lunar/render/render_target.hpp>
 #include <lunar/utils/identifiable.hpp>
 #include <lunar/file/config_file.hpp>
+#include <lunar/core/input.hpp>
 #include <lunar/api.hpp>
+#include <unordered_map>
 
 #ifdef LUNAR_VULKAN
 #	include <lunar/render/internal/render_vk.hpp>
@@ -44,7 +46,18 @@ namespace Render
 	};
 #	endif
 
-	class LUNAR_API Window : public Identifiable, public RenderTarget
+	enum class LUNAR_API KeyState : int
+	{
+		eNone     = 0,
+		eReleased = 1 << 0,
+		eHeld     = 1 << 1,
+		ePressed  = 1 << 2,
+	};
+
+	inline KeyState operator|(KeyState a, KeyState b) { return static_cast<KeyState>(static_cast<int>(a) | static_cast<int>(b)); }
+	inline bool     operator&(KeyState a, KeyState b) { return (static_cast<int>(a) & static_cast<int>(b)) > 0; }
+
+	class LUNAR_API Window : public Identifiable, public RenderTarget, public Core::InputHandler
 	{
 	public:
 		Window(
@@ -57,16 +70,26 @@ namespace Render
 
 		~Window();
 
-		void init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context);
-		void destroy();
+		void      init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context);
+		void      destroy();
+		void      close();
+		void      update() override;
+		bool      shouldClose() const;
+		bool      isMinimized() const;
+		bool      exists() const;
+		void      lockCursor();
+		void      unlockCursor();
+		void      toggleCursor();
+		bool      isCursorLocked() const;
 
-		void close();
-		bool shouldClose() const;
-		bool isMinimized() const;
-		bool exists() const;
+		int       getRenderWidth() const override;
+		int       getRenderHeight() const override;
 
-		int getRenderWidth() const override;
-		int getRenderHeight() const override;
+		bool      getActionDown(const std::string_view& name) const override;
+		bool      getActionUp(const std::string_view& name) const override;
+		bool      getAction(const std::string_view& name) const override;
+		glm::vec2 getAxis()     const override;
+		glm::vec2 getRotation() const override;
 
 		static void pollEvents();
 
@@ -88,9 +111,23 @@ namespace Render
 		void endVkFrame();
 #		endif
 	protected:
-		GLFWwindow* handle;
-		std::shared_ptr<RenderContext> renderCtx;
-		bool initialized;
+		GLFWwindow*                       handle      = nullptr;
+		std::shared_ptr<RenderContext>    renderCtx   = nullptr;
+		bool                              initialized = false;
+		std::unordered_map<int, KeyState> keys        = {};
+		glm::vec2                         axis        = { 0, 0 };
+		glm::vec2                         rotation    = { 0, 0 };
+		glm::vec2                         lastMouse   = { 0, 0 };
+		bool                              mouseInside = false;
+		bool                              mouseLocked = false;
+
+		bool checkActionValue(const std::string_view& name, KeyState required) const;
+
+		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
+		friend void Glfw_KeyCallback(GLFWwindow*, int, int, int, int);
+		friend void Glfw_MouseBtnCallback(GLFWwindow*, int, int, int);
+		friend void Glfw_CursorPosCb(GLFWwindow*, double, double);
+		friend void Glfw_CursorEnterCb(GLFWwindow*, int);
 
 #		ifdef LUNAR_OPENGL
 		void _glInitialize();
@@ -119,8 +156,6 @@ namespace Render
 		void _vkDestroySwap();
 		void _vkUpdateSwapExtent();
 		void _vkHandleResize(int width, int height);
-
-		friend void Glfw_FramebufferSizeCb(GLFWwindow*, int, int);
 
 		friend class VulkanContext;
 #		endif
