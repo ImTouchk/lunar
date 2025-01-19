@@ -11,10 +11,11 @@ namespace Render
 		GLContext();
 		virtual ~GLContext() = default;
 
-		void init()                   override;
-		void destroy()                override;
-		void draw(Core::Scene& scene) override;
-		void draw(const Mesh& mesh)   override;
+		void init()                       override;
+		void destroy()                    override;
+		void draw(Core::Scene& scene)     override;
+		void draw(const Texture& texture) override;
+		void draw(const Mesh& mesh)       override;
 		void draw(const Mesh& mesh, const GraphicsShader& shader, const Material& material) override;
 		void draw(const Cubemap& cubemap)              override;
 		void clear(float r, float g, float b, float a) override;

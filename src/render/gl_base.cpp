@@ -63,6 +63,12 @@ namespace Render
 		glGenRenderbuffers(1, &captureRbo);
 
 		auto shader_builder = GraphicsShaderBuilder();
+		unlitShader   = new GraphicsShader();
+		*unlitShader  = shader_builder
+			.fromVertexSourceFile(Fs::dataDirectory().append("shader-src/screen.vert"))
+			.fromFragmentSourceFile(Fs::dataDirectory().append("shader-src/unlit.frag"))
+			.build();
+
 		skyboxShader  = new GraphicsShader();
 		*skyboxShader = shader_builder
 			.fromVertexSourceFile(Fs::dataDirectory().append("shader-src/skybox.vert"))
@@ -77,6 +83,7 @@ namespace Render
 
 	void GLContext::destroy()
 	{
+		delete unlitShader;
 		delete skyboxShader;
 
 		unloadPrimitives();

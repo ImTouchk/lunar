@@ -15,6 +15,7 @@ namespace Render
 	class LUNAR_API GraphicsShader;
 	class LUNAR_API Mesh;
 	class LUNAR_API Cubemap;
+	class LUNAR_API Texture;
 	class LUNAR_API Material;
 	enum class LUNAR_API MeshPrimitive;
 
@@ -28,6 +29,7 @@ namespace Render
 		virtual void destroy() = 0;
 		virtual void draw(Core::Scene& scene) = 0;
 		virtual void draw(const Cubemap& cubemap) = 0;
+		virtual void draw(const Texture& texture) = 0;
 		virtual void draw(const Mesh& mesh) = 0;
 		virtual void draw(const Mesh& mesh, const GraphicsShader& shader, const Material& material) = 0;
 		virtual void clear(float r, float g, float b, float a) = 0;
@@ -60,6 +62,7 @@ namespace Render
 		RenderTarget*   currentTarget   = nullptr;
 		Mesh*           primitiveMeshes = nullptr;
 		GraphicsShader* skyboxShader    = nullptr;
+		GraphicsShader* unlitShader     = nullptr;
 		const Camera*   camera          = nullptr;
 		const Cubemap*  cubemap         = nullptr;
 		SceneLightData  sceneLightData  = {};

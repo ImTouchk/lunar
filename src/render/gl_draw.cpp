@@ -29,15 +29,18 @@ namespace Render
 		int width  = target->getRenderWidth();
 		int height = target->getRenderHeight();
 
-		glViewport(0, 0, width, height);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
 		if (IsRenderTargetOfType<Texture>(target))
 		{
+			auto& texture = static_cast<Texture&>(*target);
+
 			glBindFramebuffer(GL_FRAMEBUFFER, captureFbo);
 			glBindRenderbuffer(GL_RENDERBUFFER, captureRbo);
 			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.glGetHandle(), 0);
 		}
+
+		glViewport(0, 0, width, height);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 #		ifdef LUNAR_IMGUI
 		ImGui_ImplOpenGL3_NewFrame();
@@ -97,6 +100,15 @@ namespace Render
 	{
 		glBindVertexArray(mesh._glVao);
 		glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
+	}
+
+	void GLContext::draw(const Texture& texture)
+	{
+		const auto& quad = getPrimitiveMesh(MeshPrimitive::eQuad);
+
+		unlitShader->use();
+		unlitShader->bind("source", 0, texture);
+		draw(quad);
 	}
 
 	void GLContext::draw(Core::Scene& scene)
