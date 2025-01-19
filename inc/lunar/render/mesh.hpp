@@ -13,6 +13,8 @@
 #	include <lunar/render/internal/vk_mesh.hpp>
 #endif
 
+namespace fastgltf { class Mesh; class Asset; class Material; }
+
 namespace Render
 {
 	enum class LUNAR_API MeshPrimitive
@@ -21,6 +23,7 @@ namespace Render
 		eQuad  = 1,
 		_count = 2,
 	};
+
 
 	class LUNAR_API Mesh
 	{
@@ -40,8 +43,8 @@ namespace Render
 		GLuint _glVao;
 		GLuint _glVbo;
 		GLuint _glEbo;
+		GLuint glSsbo;
 
-		friend class GLContext;
 #endif
 		//size_t vertexCount = 0;
 		size_t indicesCount = 0;
@@ -49,6 +52,7 @@ namespace Render
 		friend struct CubemapBuilder;
 		friend struct MeshBuilder;
 		friend class MeshRenderer;
+		friend class RenderContext;
 	};
 
 	struct LUNAR_API MeshBuilder
@@ -65,10 +69,14 @@ namespace Render
 		Mesh getResult();
 
 	private:
-		std::shared_ptr<RenderContext> context  = nullptr;
-		std::vector<Vertex>            vertices = {};
-		std::vector<uint32_t>          indices  = {};
-		Mesh                           result   = {};
+		std::shared_ptr<RenderContext> context      = nullptr;
+		std::vector<Vertex>            vertices     = {};
+		std::vector<uint32_t>          indices      = {};
+		Mesh                           result       = {};
+		GpuMaterialData                resMaterials = {};
+		
+		void aggregateMesh(const fastgltf::Asset& asset, const fastgltf::Mesh& mesh);
+		void aggregateMaterials(const fastgltf::Asset& asset);
 
 #		ifdef LUNAR_OPENGL
 		void _glBuild();

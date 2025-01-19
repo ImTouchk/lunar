@@ -1,4 +1,5 @@
 #include <lunar/render/mesh.hpp>
+#include <lunar/render/material.hpp>
 
 #ifdef LUNAR_VULKAN
 #	include <lunar/render/internal/vk_mesh.hpp>
@@ -29,6 +30,101 @@ namespace Render
 		return *this;
 	}
 
+	void MeshBuilder::aggregateMaterials(const fastgltf::Asset& asset)
+	{
+		resMaterials.count = asset.materials.size();
+		for (size_t i = 0; i < asset.materials.size(); i++)
+		{ 
+			auto material_builder     = MaterialBuilder();
+			resMaterials.materials[i] = material_builder
+				.useRenderContext(context)
+				.fromGltfObject(asset.materials[i])
+				.build()
+				.getGpuResult();
+		}
+	}
+
+	void MeshBuilder::aggregateMesh(const fastgltf::Asset& asset, const fastgltf::Mesh& mesh)
+	{
+		for (auto&& p : mesh.primitives)
+		{
+			size_t initial_idx = vertices.size();
+			auto& index_accessor = asset.accessors[p.indicesAccessor.value()];
+
+			int material_idx = p.materialIndex.value_or(-1);
+
+			indices.reserve(index_accessor.count);
+			fastgltf::iterateAccessor<uint32_t>(asset, index_accessor, [&](uint32_t idx) {
+				indices.emplace_back(idx + initial_idx);
+			});
+
+			auto& pos_accessor = asset.accessors[p.findAttribute("POSITION")->accessorIndex];
+			vertices.resize(vertices.size() + pos_accessor.count);
+
+			fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, pos_accessor, [&](glm::vec3 v, size_t idx) {
+				auto& vertex = vertices[initial_idx + idx];
+				vertex.position   = v;
+				vertex.normal     = { 0.f, 0.f, 0.f };
+				vertex.uv_x       = 0.f;
+				vertex.uv_y       = 0.f;
+				vertex.color      = glm::vec4{ 1.f };
+			});
+
+			auto normals = p.findAttribute("NORMAL");
+			if (normals != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(
+					asset,
+					asset.accessors[normals->accessorIndex],
+					[&](glm::vec3 v, size_t idx) {
+						vertices[initial_idx + idx].normal = v;
+					}
+				);
+				DEBUG_LOG("?");
+			}
+
+			auto tangents = p.findAttribute("TANGENT");
+			if (tangents != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(
+					asset,
+					asset.accessors[tangents->accessorIndex],
+					[&](glm::vec4 v, size_t idx) {
+						auto& vertex = vertices[initial_idx];
+						vertex.tangent = v;
+						vertex.bitangent = glm::cross(vertex.normal, vertex.tangent);
+					}
+				);
+			}
+
+			auto uv = p.findAttribute("TEXCOORD_0");
+			if (uv != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec2>(
+					asset,
+					asset.accessors[uv->accessorIndex],
+					[&](glm::vec2 v, size_t idx) {
+						vertices[initial_idx + idx].uv_x = v.x;
+						vertices[initial_idx + idx].uv_y = v.y;
+					}
+				);
+			}
+
+			auto colors = p.findAttribute("COLOR_0");
+			if (colors != p.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(
+					asset,
+					asset.accessors[colors->accessorIndex],
+					[&](glm::vec4 v, size_t idx) {
+						vertices[initial_idx + idx].color = v;
+					}
+				);
+			}
+		}
+
+	}
+
 	MeshBuilder& MeshBuilder::fromGltfFile(const Fs::Path& path)
 	{
 		auto options = fastgltf::Options::LoadGLBBuffers | 
@@ -47,91 +143,17 @@ namespace Render
 		// todo; error
 
 		auto& meshes = asset->meshes;
-		if (meshes.size() > 1)
-			DEBUG_WARN("File '{}' contains more than one mesh. Only parsing the first one.", path.generic_string());
 		
 		if (meshes.size() <= 0)
 		{
-			DEBUG_ERROR("File '{}' does not contain any meshes.", path.generic_string());
+			DEBUG_WARN("File '{}' does not contain any meshes.", path.generic_string());
 			return *this;
 		}
-		
-		auto& mesh = meshes[0];
 
-		for (auto&& p : mesh.primitives)
-		{
-			size_t initial_idx    = vertices.size();
-			auto&  index_accessor = asset->accessors[p.indicesAccessor.value()];
-			
-			indices.reserve(index_accessor.count);
-			fastgltf::iterateAccessor<uint32_t>(asset.get(), index_accessor, [&](uint32_t idx) {
-				indices.emplace_back(idx + initial_idx);
-			});
+		aggregateMaterials(asset.get());
 
-			auto& pos_accessor = asset->accessors[p.findAttribute("POSITION")->accessorIndex];
-			vertices.resize(vertices.size() + pos_accessor.count);
-
-			fastgltf::iterateAccessorWithIndex<glm::vec3>(asset.get(), pos_accessor, [&](glm::vec3 v, size_t idx) {
-				auto& vertex = vertices[initial_idx + idx];
-				vertex.position = v;
-				vertex.normal   = { 0.f, 0.f, 0.f };
-				vertex.uv_x     = 0.f;
-				vertex.uv_y     = 0.f;
-				vertex.color    = glm::vec4 { 1.f };
-			});
-
-			auto normals = p.findAttribute("NORMAL");
-			if (normals != p.attributes.end())
-			{
-				fastgltf::iterateAccessorWithIndex<glm::vec3>(
-					asset.get(),
-					asset->accessors[normals->accessorIndex],
-					[&](glm::vec3 v, size_t idx) { 
-						vertices[initial_idx + idx].normal = v; 
-					}
-				);
-				DEBUG_LOG("?");
-			}
-
-			auto tangents = p.findAttribute("TANGENT");
-			if (tangents != p.attributes.end())
-			{
-				fastgltf::iterateAccessorWithIndex<glm::vec4>(
-					asset.get(),
-					asset->accessors[tangents->accessorIndex],
-					[&](glm::vec4 v, size_t idx) {
-						auto& vertex = vertices[initial_idx];
-						vertex.tangent   = v;
-						vertex.bitangent = glm::cross(vertex.normal, vertex.tangent);
-					}
-				);
-			}
-
-			auto uv = p.findAttribute("TEXCOORD_0");
-			if (uv != p.attributes.end())
-			{
-				fastgltf::iterateAccessorWithIndex<glm::vec2>(
-					asset.get(),
-					asset->accessors[uv->accessorIndex],
-					[&](glm::vec2 v, size_t idx) { 
-						vertices[initial_idx + idx].uv_x = v.x;  
-						vertices[initial_idx + idx].uv_y = v.y;  
-					}
-				);
-			}
-
-			auto colors = p.findAttribute("COLOR_0");
-			if (colors != p.attributes.end())
-			{
-				fastgltf::iterateAccessorWithIndex<glm::vec4>(
-					asset.get(),
-					asset->accessors[colors->accessorIndex],
-					[&](glm::vec4 v, size_t idx) {
-						vertices[initial_idx + idx].color = v;
-					}
-				);
-			}
-		}
+		for (auto& mesh : meshes)
+			aggregateMesh(asset.get(), mesh);
 
 		// TODO: textures, materials
 

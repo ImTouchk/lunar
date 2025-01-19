@@ -19,7 +19,7 @@
 
 namespace Render
 {
-	void GLContext::begin(RenderTarget* target)
+	void RenderContext::begin(RenderTarget* target)
 	{
 		currentTarget = target;
 
@@ -49,12 +49,12 @@ namespace Render
 #		endif
 	}
 
-	void GLContext::clear(float r, float g, float b, float a)
+	void RenderContext::clear(float r, float g, float b, float a)
 	{
 		glClearColor(r, g, b, a);
 	}
 
-	void GLContext::end()
+	void RenderContext::end()
 	{
 #		ifdef LUNAR_IMGUI
 		ImGui::Render();
@@ -73,7 +73,7 @@ namespace Render
 		}
 	}
 
-	void GLContext::draw(const Cubemap& cubemap)
+	void RenderContext::draw(const Cubemap& cubemap)
 	{
 		const auto& cube       = getPrimitiveMesh(MeshPrimitive::eCube);
 		auto        view       = camera->getViewMatrix();
@@ -91,18 +91,18 @@ namespace Render
 		this->cubemap = &cubemap;
 	}
 
-	void GLContext::draw(const Mesh& mesh, const GraphicsShader& shader, const Material& material)
+	void RenderContext::draw(const Mesh& mesh, const GraphicsShader& shader, const Material& material)
 	{
 
 	}
 
-	void GLContext::draw(const Mesh& mesh)
+	void RenderContext::draw(const Mesh& mesh)
 	{
 		glBindVertexArray(mesh._glVao);
 		glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, 0);
 	}
 
-	void GLContext::draw(const Texture& texture)
+	void RenderContext::draw(const Texture& texture)
 	{
 		const auto& quad = getPrimitiveMesh(MeshPrimitive::eQuad);
 
@@ -111,7 +111,7 @@ namespace Render
 		draw(quad);
 	}
 
-	void GLContext::draw(Core::Scene& scene)
+	void RenderContext::draw(Core::Scene& scene)
 	{
 		scene.renderUpdate(*this);
 

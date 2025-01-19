@@ -10,6 +10,10 @@
 #	include <imgui.h>
 #endif
 
+#ifdef LUNAR_OPENGL
+#include <glad/gl.h>
+#endif
+
 namespace Render
 {
 	class LUNAR_API GraphicsShader;
@@ -23,21 +27,23 @@ namespace Render
 	class LUNAR_API RenderContext
 	{
 	public:
-		virtual ~RenderContext() = default;
+		RenderContext();
+		~RenderContext();
 
-		virtual void init() = 0;
-		virtual void destroy() = 0;
-		virtual void draw(Core::Scene& scene) = 0;
-		virtual void draw(const Cubemap& cubemap) = 0;
-		virtual void draw(const Texture& texture) = 0;
-		virtual void draw(const Mesh& mesh) = 0;
-		virtual void draw(const Mesh& mesh, const GraphicsShader& shader, const Material& material) = 0;
-		virtual void clear(float r, float g, float b, float a) = 0;
-		virtual void begin(RenderTarget* target)  = 0;
-		virtual void end()   = 0;
+		void init();
+		void destroy();
+		void draw(Core::Scene& scene);
+		void draw(const Cubemap& cubemap);
+		void draw(const Texture& texture);
+		void draw(const Mesh& mesh);
+		void draw(const Mesh& mesh, const GraphicsShader& shader, const Material& material);
+		void clear(float r, float g, float b, float a);
+		void begin(RenderTarget* target);
+		void end();
 
 		RenderTarget* getCurrentTarget();
 		void          setCamera(const Camera& camera);
+		void          loadMaterial(Material& material);
 		const Mesh&   getPrimitiveMesh(MeshPrimitive primitive) const;
 
 		//virtual void draw(Core::Scene& scene, RenderTarget* target) = 0;
@@ -48,6 +54,11 @@ namespace Render
 
 #ifdef LUNAR_IMGUI
 		ImGuiContext* getImGuiContext();
+#endif
+
+#ifdef LUNAR_OPENGL
+		GLuint glGetCaptureFramebuffer();
+		GLuint glGetCaptureRenderbuffer();
 #endif
 
 	protected:
@@ -63,9 +74,17 @@ namespace Render
 		Mesh*           primitiveMeshes = nullptr;
 		GraphicsShader* skyboxShader    = nullptr;
 		GraphicsShader* unlitShader     = nullptr;
+		Material*       materials       = nullptr;
 		const Camera*   camera          = nullptr;
 		const Cubemap*  cubemap         = nullptr;
 		SceneLightData  sceneLightData  = {};
+
+#ifdef LUNAR_OPENGL
+		GLuint          captureFbo = 0;
+		GLuint          captureRbo = 0;
+		GLuint          sceneUbo   = 0;
+		GLuint          lightsUbo  = 0;
+#endif
 	};
 
 	LUNAR_API std::shared_ptr<RenderContext> CreateDefaultContext();

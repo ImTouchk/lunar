@@ -60,10 +60,11 @@ namespace Render
 #ifdef LUNAR_OPENGL
 		GLuint _glHandle = 0;
 
-		friend class GLContext;
 #endif
 
-		friend class TextureBuilder;
+		friend class RenderContext;
+		friend struct MaterialBuilder;
+		friend struct TextureBuilder;
 		friend class MeshRenderer;
 		friend class GraphicsShader;
 	};

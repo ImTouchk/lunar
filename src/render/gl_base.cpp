@@ -21,25 +21,31 @@ namespace Render
 {
 	std::shared_ptr<RenderContext> CreateDefaultContext()
 	{
-		return std::make_shared<GLContext>();
+		return std::make_shared<RenderContext>();
 	}
 
-	GLContext::GLContext()
+	RenderContext::RenderContext()
 	{
 		init();
 	}
 
-	GLuint GLContext::glGetCaptureFramebuffer()
+	RenderContext::~RenderContext()
+	{
+		if (primitiveMeshes != nullptr)
+			destroy();
+	}
+
+	GLuint RenderContext::glGetCaptureFramebuffer()
 	{
 		return captureFbo;
 	}
 
-	GLuint GLContext::glGetCaptureRenderbuffer()
+	GLuint RenderContext::glGetCaptureRenderbuffer()
 	{
 		return captureRbo;
 	}
 
-	void GLContext::init()
+	void RenderContext::init()
 	{
 #ifdef LUNAR_IMGUI
 		if (imguiContext == nullptr)
@@ -81,7 +87,7 @@ namespace Render
 	}
 
 
-	void GLContext::destroy()
+	void RenderContext::destroy()
 	{
 		delete unlitShader;
 		delete skyboxShader;

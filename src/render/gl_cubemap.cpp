@@ -33,7 +33,6 @@ namespace Render
 
 	bool CubemapBuilder::_glBuild()
 	{
-		auto& gl_ctx = static_cast<GLContext&>(*context.get());
 		auto& handle = result._glHandle;
 
 		if (isHdr)
@@ -52,12 +51,11 @@ namespace Render
 	{
 		const auto& quad_mesh = context->getPrimitiveMesh(MeshPrimitive::eQuad);
 
-		auto& gl_ctx       = static_cast<GLContext&>(*context.get());
 		auto& handle       = result._glHandle;
 		auto& brdf_texture = result._glBrdf;
 
-		GLuint capture_fbo = gl_ctx.glGetCaptureFramebuffer();
-		GLuint capture_rbo = gl_ctx.glGetCaptureRenderbuffer();
+		GLuint capture_fbo = context->glGetCaptureFramebuffer();
+		GLuint capture_rbo = context->glGetCaptureRenderbuffer();
 
 		glGenTextures(1, &brdf_texture);
 		glBindTexture(GL_TEXTURE_2D, brdf_texture);
@@ -92,12 +90,11 @@ namespace Render
 	{
 		const auto& cube_mesh = context->getPrimitiveMesh(MeshPrimitive::eCube);
 
-		auto& gl_ctx        = static_cast<GLContext&>(*context.get());
 		auto& handle        = result._glHandle;
 		auto& prefilter_map = result._glPrefilter;
 
-		GLuint capture_fbo = gl_ctx.glGetCaptureFramebuffer();
-		GLuint capture_rbo = gl_ctx.glGetCaptureRenderbuffer();
+		GLuint capture_fbo = context->glGetCaptureFramebuffer();
+		GLuint capture_rbo = context->glGetCaptureRenderbuffer();
 
 		glGenTextures(1, &prefilter_map);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, prefilter_map);
@@ -156,12 +153,11 @@ namespace Render
 	{
 		const auto& cube_mesh = context->getPrimitiveMesh(MeshPrimitive::eCube);
 		
-		auto& gl_ctx         = static_cast<GLContext&>(*context.get());
 		auto& handle         = result._glHandle;
 		auto& irradiance_map = result._glIrradiance;
 
-		GLuint capture_fbo = gl_ctx.glGetCaptureFramebuffer();
-		GLuint capture_rbo = gl_ctx.glGetCaptureRenderbuffer();
+		GLuint capture_fbo = context->glGetCaptureFramebuffer();
+		GLuint capture_rbo = context->glGetCaptureRenderbuffer();
 
 		glGenTextures(1, &irradiance_map);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map);
@@ -207,7 +203,6 @@ namespace Render
 
 	void CubemapBuilder::equirectToCubemap()
 	{
-		auto& gl_ctx          = static_cast<GLContext&>(*context.get());
 		auto& handle          = result._glHandle;
 		auto  texture_builder = TextureBuilder();
 		auto  staging         = texture_builder
@@ -220,8 +215,8 @@ namespace Render
 			.build()
 			.getResult();
 
-		GLuint capture_fbo = gl_ctx.glGetCaptureFramebuffer();
-		GLuint capture_rbo = gl_ctx.glGetCaptureRenderbuffer();
+		GLuint capture_fbo = context->glGetCaptureFramebuffer();
+		GLuint capture_rbo = context->glGetCaptureRenderbuffer();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo);
 		glBindRenderbuffer(GL_RENDERBUFFER, capture_rbo);

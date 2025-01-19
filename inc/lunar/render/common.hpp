@@ -48,8 +48,35 @@ namespace Render
 		int isCubemapHdr;
 	};
 
+	struct LUNAR_API GpuMaterial
+	{
+		int   albedoMap;
+		float metallic;
+		float roughness;
+		float ao;
+	};
+
+	struct LUNAR_API GpuMaterialData
+	{
+		int         count         = 0;
+		GpuMaterial materials[15] = {};
+	};
+
 	LUNAR_API const std::vector<Vertex>& GetCubeVertices();
 	LUNAR_API const std::vector<uint32_t>& GetCubeIndices();
 	LUNAR_API const std::vector<Vertex>& GetQuadVertices();
 	LUNAR_API const std::vector<uint32_t>& GetQuadIndices();
+
+	class LUNAR_API Mesh_T;
+	class LUNAR_API Cubemap_T;
+	class LUNAR_API Texture_T;
+	class LUNAR_API GraphicsShader_T;
+
+	namespace v2
+	{
+		using Mesh           = Mesh_T*;
+		using Cubemap        = Cubemap_T*;
+		using GraphicsShader = GraphicsShader_T*;
+		
+	}
 }
