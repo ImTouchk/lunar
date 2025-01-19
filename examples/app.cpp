@@ -212,6 +212,16 @@ int main(int argc, char* argv[])
         
         DEBUG_LOG("Event triggered | deleted {}", e.gameObject.getName());
     });
+
+    texture_builder = {};
+    auto test_tex   = texture_builder
+        .setSize(1920, 1080)
+        .setByteFormat(Render::TextureByteFormat::eUnsignedByte)
+        .setDstFormat(Render::TextureFormat::eRGBA)
+        .setSrcFormat(Render::TextureFormat::eRGBA)
+        .setFiltering(Render::TextureFiltering::eLinear)
+        .build()
+        .getResult();
     
     Input::SetGlobalHandler(game_window);
 
@@ -225,15 +235,19 @@ int main(int argc, char* argv[])
 
         scene->update();
 
-        render_ctx->begin(game_window);
+        render_ctx->begin(test_tex);
         render_ctx->clear(1.f, 1.f, 1.f, 1.f);
         render_ctx->setCamera(*scene->getMainCamera());
         render_ctx->draw(cubemap);
         render_ctx->draw(scene);
+        render_ctx->end();
 
+        // -----
+
+        render_ctx->begin(game_window);
+        render_ctx->draw(test_tex);
         Debug::DrawSceneHierarchyPanel(*render_ctx, *scene); 
         Debug::DrawGeneralInfoPanel(*render_ctx);
-
         render_ctx->end();
 
         game_window.update();
