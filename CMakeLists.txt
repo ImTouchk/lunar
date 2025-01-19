@@ -133,6 +133,10 @@ if(${LUNAR_EXPERIMENTAL})
     target_compile_definitions(lunar PUBLIC LUNAR_EXPERIMENTAL)
 endif()
 
+add_subdirectory(reactphysics3d)
+target_link_libraries(lunar PUBLIC reactphysics3d)
+#target_include_directories(lunar PUBLIC reactphysics3d)
+
 if(${LUNAR_USE_IMGUI})
     message("-- lunar: Using imgui library")
     add_library(imgui STATIC)
