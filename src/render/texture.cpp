@@ -21,6 +21,12 @@ namespace Render
 		return *this;
 	}
 
+	TextureBuilder& TextureBuilder::setSrcFormat(TextureFormat format)
+	{
+		this->srcFormat = format;
+		return *this;
+	}
+
 	TextureBuilder& TextureBuilder::setByteFormat(TextureByteFormat format)
 	{
 		this->byteFormat = format;
@@ -68,6 +74,9 @@ namespace Render
 
 	TextureBuilder& TextureBuilder::build()
 	{
+		result.width  = width;
+		result.height = height;
+
 #ifdef LUNAR_OPENGL
 		_glBuild();
 #endif

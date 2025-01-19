@@ -22,16 +22,12 @@ namespace Render
 {
 	int Texture::getRenderWidth() const
 	{
-		GLint width;
-		glGetTextureParameteriv(_glHandle, GL_TEXTURE_WIDTH, &width);
-		return (int)width;
+		return width;
 	}
 
 	int Texture::getRenderHeight() const
 	{
-		GLint height;
-		glGetTextureParameteriv(_glHandle, GL_TEXTURE_HEIGHT, &height);
-		return (int)height;
+		return height;
 	}
 
 	void Texture::bind(size_t location)

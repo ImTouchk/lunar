@@ -54,6 +54,9 @@ namespace Render
 		GLuint glGetHandle();
 #endif
 	private:
+		int width  = -1;
+		int height = -1;
+
 #ifdef LUNAR_OPENGL
 		GLuint _glHandle = 0;
 
@@ -72,6 +75,7 @@ namespace Render
 		~TextureBuilder() = default;
 
 		TextureBuilder& setSize(int width, int height);
+		TextureBuilder& setSrcFormat(TextureFormat format);
 		TextureBuilder& setDstFormat(TextureFormat format);
 		TextureBuilder& setByteFormat(TextureByteFormat format);
 		TextureBuilder& setFiltering(TextureFiltering filtering);
@@ -89,7 +93,7 @@ namespace Render
 		int                            height     = 0;
 		int                            channels   = 0;
 		void*                          rawBytes   = nullptr;
-		TextureFormat                  srcFormat  = TextureFormat::eUnknown;
+		TextureFormat                  srcFormat  = TextureFormat::eRGB;
 		TextureByteFormat              byteFormat = TextureByteFormat::eUnknown;
 		TextureFormat                  dstFormat  = TextureFormat::eRGBA;
 		TextureFiltering               filtering  = TextureFiltering::eLinear;
