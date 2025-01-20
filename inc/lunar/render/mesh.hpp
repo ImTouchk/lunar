@@ -1,18 +1,11 @@
 #pragma once
-#include <lunar/render/render_context.hpp>
 #include <lunar/render/common.hpp>
 #include <lunar/render/material.hpp>
 #include <lunar/api.hpp>
 #include <span>
 
-#include <lunar/render/imp.hpp>
-
 #ifdef LUNAR_OPENGL
 #	include <glad/gl.h>
-#endif
-
-#ifdef LUNAR_VULKAN
-#	include <lunar/render/internal/vk_mesh.hpp>
 #endif
 
 namespace fastgltf { class Mesh; class Asset; class Material; }
@@ -88,11 +81,9 @@ namespace fastgltf { class Mesh; class Asset; class Material; }
 
 namespace lunar::Render
 {
-	using Vertex = ::Render::Vertex;
-
 	enum class LUNAR_API MeshTopology
 	{
-		eTriangles = 0,
+		eTriangles = GL_TRIANGLES,
 	};
 
 	class LUNAR_API GpuMesh_T
@@ -112,6 +103,7 @@ namespace lunar::Render
 		GpuVertexArrayObject getVertexArray();
 		size_t               getVertexCount()  const;
 		size_t               getIndicesCount() const;
+		MeshTopology         getTopology()     const;
 
 	private:
 		GpuVertexArrayObject vertexArray  = nullptr;

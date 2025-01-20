@@ -323,6 +323,11 @@ namespace lunar::Render
 		return indexCount;
 	}
 
+	MeshTopology GpuMesh_T::getTopology() const
+	{
+		return meshTopology;
+	}
+
 	GpuMeshBuilder& GpuMeshBuilder::useRenderContext(RenderContext_T* context)
 	{
 		this->context = context;
