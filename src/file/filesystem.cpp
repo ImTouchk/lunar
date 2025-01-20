@@ -2,6 +2,16 @@
 
 namespace Fs
 {
+	Path fromData(const std::string_view& path)
+	{
+		return dataDirectory().append(path);
+	}
+
+	Path fromBase(const std::string_view& base)
+	{
+		return baseDirectory().append(base);
+	}
+
 	Path baseDirectory()
 	{
 		return std::filesystem::current_path();

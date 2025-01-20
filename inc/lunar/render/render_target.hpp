@@ -1,9 +1,9 @@
 #pragma once
 #include <concepts>
 
-namespace Render
+namespace lunar
 {
-	class RenderTarget
+	class LUNAR_API RenderTarget
 	{
 	public:
 		virtual int getRenderWidth() const = 0;

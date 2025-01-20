@@ -5,7 +5,7 @@
 #include <concepts>
 #include <vector>
 
-namespace Core
+namespace lunar
 {
 	struct LUNAR_API Event {};
 

@@ -4,91 +4,135 @@
 #include <lunar/script/script_vm.hpp>
 #include <lunar/render/render_context.hpp>
 
-namespace Core
+namespace lunar
 {
-	void Component::drawDebugUI(Render::RenderContext& context)
-	{
-		ImGui::SetCurrentContext(context.getImGuiContext());
-		ImGui::Text("This component does not have a dedicated debug UI menu.");
-	}
-
-	Scene& Component::getScene()
-	{
-		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
-		return *_scene;
-	}
-
-	const Scene& Component::getScene() const
-	{
-		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
-		return *_scene;
-	}
-
-	GameObject& Component::getGameObject()
-	{
-		return getScene().getGameObject(_gameObject);
-	}
-
-	const GameObject& Component::getGameObject() const
-	{
-		return getScene().getGameObject(_gameObject);
-	}
-
-	TransformComponent& Component::getTransform()
-	{
-		return getGameObject().getTransform();
-	}
-
-	const TransformComponent& Component::getTransform() const
-	{
-		return getGameObject().getTransform();
-	}
-
-	ScriptComponent::ScriptComponent(const std::string_view& name)
-		: scriptName(name),
-		instance(nullptr),
-		onLoad(nullptr), 
-		onUnload(nullptr), 
-		onUpdate(nullptr)
-	{
-		auto& vm = Script::getMainVm();
-		auto* env = vm.getJniEnv();
-		jclass klass = env->FindClass(name.data());
-		onLoad = env->GetMethodID(klass, "onLoad", "()V");
-		onUnload = env->GetMethodID(klass, "onUnload", "()V");
-		onUpdate = env->GetMethodID(klass, "onUpdate", "()V");
-
-		jmethodID constructor = env->GetMethodID(klass, "<init>", "()V");
-		instance = env->NewObject(klass, constructor);
-		env->CallVoidMethod(instance, onLoad);
-	}
-
-	ScriptComponent::ScriptComponent()
-		: scriptName(""),
-		instance(nullptr),
-		onLoad(nullptr), 
-		onUnload(nullptr), 
-		onUpdate(nullptr)
+	Component_T::Component_T(GameObject parent) noexcept
+		: gameObject(parent),
+		scene(parent->getScene())
 	{
 	}
 
-	ScriptComponent::~ScriptComponent()
+	const char* Component_T::getClassName() const
 	{
-		if (scriptName != "")
-			Script::getMainVm()
-				.getJniEnv()
-					->CallVoidMethod(instance, onUnload);
+		return typeid(*this).name();
 	}
 
-	const std::string& ScriptComponent::getScriptName() const
+	GameObject Component_T::getGameObject()
 	{
-		return scriptName;
+		return gameObject;
 	}
 
-	void ScriptComponent::update()
+	const GameObject Component_T::getGameObject() const
 	{
-		Script::getMainVm()
-			.getJniEnv()
-			->CallVoidMethod(instance, onUpdate);
+		return gameObject;
+	}
+
+	Scene_T* Component_T::getScene()
+	{
+		return scene;
+	}
+
+	const Scene_T* Component_T::getScene() const
+	{
+		return scene;
+	}
+
+	Transform* Component_T::getTransform()
+	{
+		return transform;
+	}
+
+	const Transform* Component_T::getTransform() const
+	{
+		return transform;
 	}
 }
+
+//namespace Core
+//{
+//	void Component::drawDebugUI(Render::RenderContext& context)
+//	{
+//		ImGui::SetCurrentContext(context.getImGuiContext());
+//		ImGui::Text("This component does not have a dedicated debug UI menu.");
+//	}
+//
+//	Scene& Component::getScene()
+//	{
+//		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
+//		return *_scene;
+//	}
+//
+//	const Scene& Component::getScene() const
+//	{
+//		DEBUG_ASSERT(_scene != nullptr, "Component object was not properly initialized");
+//		return *_scene;
+//	}
+//
+//	GameObject& Component::getGameObject()
+//	{
+//		return getScene().getGameObject(_gameObject);
+//	}
+//
+//	const GameObject& Component::getGameObject() const
+//	{
+//		return getScene().getGameObject(_gameObject);
+//	}
+//
+//	TransformComponent& Component::getTransform()
+//	{
+//		return getGameObject().getTransform();
+//	}
+//
+//	const TransformComponent& Component::getTransform() const
+//	{
+//		return getGameObject().getTransform();
+//	}
+//
+//	ScriptComponent::ScriptComponent(const std::string_view& name)
+//		: scriptName(name),
+//		instance(nullptr),
+//		onLoad(nullptr), 
+//		onUnload(nullptr), 
+//		onUpdate(nullptr)
+//	{
+//		auto& vm = Script::getMainVm();
+//		auto* env = vm.getJniEnv();
+//		jclass klass = env->FindClass(name.data());
+//		onLoad = env->GetMethodID(klass, "onLoad", "()V");
+//		onUnload = env->GetMethodID(klass, "onUnload", "()V");
+//		onUpdate = env->GetMethodID(klass, "onUpdate", "()V");
+//
+//		jmethodID constructor = env->GetMethodID(klass, "<init>", "()V");
+//		instance = env->NewObject(klass, constructor);
+//		env->CallVoidMethod(instance, onLoad);
+//	}
+//
+//	ScriptComponent::ScriptComponent()
+//		: scriptName(""),
+//		instance(nullptr),
+//		onLoad(nullptr), 
+//		onUnload(nullptr), 
+//		onUpdate(nullptr)
+//	{
+//	}
+//
+//	ScriptComponent::~ScriptComponent()
+//	{
+//		if (scriptName != "")
+//			Script::getMainVm()
+//				.getJniEnv()
+//					->CallVoidMethod(instance, onUnload);
+//	}
+//
+//	const std::string& ScriptComponent::getScriptName() const
+//	{
+//		return scriptName;
+//	}
+//
+//	void ScriptComponent::update()
+//	{
+//		Script::getMainVm()
+//			.getJniEnv()
+//			->CallVoidMethod(instance, onUpdate);
+//	}
+//}

@@ -1,5 +1,6 @@
 #pragma once
 #include <lunar/api.hpp>
+#include <lunar/core/handle.hpp>
 #include <glm/glm.hpp>
 
 #ifdef LUNAR_VULKAN
@@ -11,9 +12,9 @@ namespace Render
 	struct LUNAR_API Vertex
 	{
 		glm::vec3 position;
-		float uv_x;
+		float     uv_x;
 		glm::vec3 normal;
-		float uv_y;
+		float     uv_y;
 		glm::vec4 color;
 		glm::vec3 tangent;
 		glm::vec3 bitangent;
@@ -67,16 +68,22 @@ namespace Render
 	LUNAR_API const std::vector<Vertex>& GetQuadVertices();
 	LUNAR_API const std::vector<uint32_t>& GetQuadIndices();
 
-	class LUNAR_API Mesh_T;
-	class LUNAR_API Cubemap_T;
-	class LUNAR_API Texture_T;
-	class LUNAR_API GraphicsShader_T;
+}
 
-	namespace v2
-	{
-		using Mesh           = Mesh_T*;
-		using Cubemap        = Cubemap_T*;
-		using GraphicsShader = GraphicsShader_T*;
-		
-	}
+namespace lunar::Render
+{
+	class LUNAR_API GpuVertexArrayObject_T;
+	class LUNAR_API GpuBuffer_T;
+	class LUNAR_API GpuProgram_T;
+	class LUNAR_API GpuTexture_T;
+	class LUNAR_API GpuCubemap_T;
+	class LUNAR_API GpuMesh_T;
+	class LUNAR_API RenderContext_T;
+	LUNAR_HANDLE(GpuVertexArrayObject);
+	LUNAR_HANDLE(GpuBuffer);
+	LUNAR_HANDLE(GpuProgram);
+	LUNAR_HANDLE(GpuTexture);
+	LUNAR_HANDLE(GpuCubemap);
+	LUNAR_HANDLE(GpuMesh);
+	LUNAR_SHARED_HANDLE(RenderContext);
 }

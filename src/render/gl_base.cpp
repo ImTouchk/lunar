@@ -130,32 +130,4 @@ namespace Render
 		result.indicesCount = indices.size();
 	}
 
-	void Window::_glInitialize()
-	{
-		glfwMakeContextCurrent(handle);
-		int version = gladLoadGL(glfwGetProcAddress);
-		if (version == 0)
-			DEBUG_ERROR("Failed to initialize OpenGL context.");
-		else
-			DEBUG_LOG("Loaded OpenGL version {}.{}", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
-
-		int w, h;
-		glfwGetFramebufferSize(handle, &w, &h);
-
-		glViewport(0, 0, w, h);
-		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-
-#		ifdef LUNAR_IMGUI
-		ImGui::SetCurrentContext(renderCtx->getImGuiContext());
-		ImGui::StyleColorsDark();
-
-		ImGuiIO& io = ImGui::GetIO();
-		io.FontGlobalScale = 1.f;
-
-		ImGui_ImplGlfw_InitForOpenGL(handle, true);
-		ImGui_ImplOpenGL3_Init();
-#		endif
-	}
 }

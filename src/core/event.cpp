@@ -1,7 +1,7 @@
 #include <lunar/core/event.hpp>
 #include <lunar/debug.hpp>
 
-namespace Core
+namespace lunar
 {
 	void EventHandler::_addEventListener(size_t type, EventListener listener)
 	{

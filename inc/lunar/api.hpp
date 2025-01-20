@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
 #include <string_view>
+#include <concepts>
 #include <memory>
+#include <list>
 
 #ifndef APP_NAME
 #	define APP_NAME "UntitledLunarApp"
@@ -41,6 +43,31 @@
 
 // TODO: add possibility to enable/disable this flag
 #define LUNAR_JVM_VERBOSE 0
+
+namespace lunar
+{
+	template<typename BitType>
+	class LUNAR_API Flags
+	{
+	public:
+		using MaskType = std::underlying_type<BitType>::type;
+
+		constexpr Flags() noexcept : mask(0) {}
+		constexpr Flags(BitType bit) noexcept : mask(static_cast<MaskType>(bit)) {}
+		constexpr Flags(const Flags<BitType>& other) noexcept = default;
+		constexpr explicit Flags(MaskType flags) noexcept : mask(flags) {}
+
+		constexpr bool           operator&(BitType bit) const { return mask & static_cast<MaskType>(bit); }
+		constexpr Flags<BitType> operator|(BitType bit) const { return Flags<BitType>(mask | static_cast<MaskType>(bit)); }
+		constexpr Flags<BitType> operator|(const Flags<BitType>& other) const { return Flags<BitType>(mask | other.mask); }
+		constexpr operator MaskType() const { return mask; }
+		
+	private:
+		MaskType mask;
+	};
+}
+	
+#define LUNAR_FLAGS(Name, Underlying) using Name = lunar::Flags<Underlying>
 
 namespace Lunar::imp
 {

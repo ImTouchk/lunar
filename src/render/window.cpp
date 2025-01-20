@@ -15,7 +15,7 @@
 #include <GLFW/glfw3.h>
 #include <atomic>
 
-namespace Render
+namespace lunar::Render
 {
 	std::atomic<bool> _JOYSTICK_CONNECTED[16];
 
@@ -62,7 +62,7 @@ namespace Render
 		return *this;
 	}
 
-	WindowBuilder& WindowBuilder::setRenderContext(std::shared_ptr<RenderContext>& context)
+	WindowBuilder& WindowBuilder::setRenderContext(RenderContext context)
 	{
 		renderContext = context;
 		return *this;
@@ -70,7 +70,7 @@ namespace Render
 
 	WindowBuilder& WindowBuilder::setDefaultRenderContext()
 	{
-		renderContext = CreateDefaultContext();
+		renderContext = nullptr;
 		return *this;
 	}
 
@@ -157,12 +157,11 @@ namespace Render
 		int height,
 		bool fullscreen,
 		const char* title,
-		std::shared_ptr<RenderContext> context
+		RenderContext context
 	) : handle(nullptr),
 		renderCtx(context),
 		initialized(false),
-		RenderTarget(),
-		Identifiable()
+		RenderTarget()
 	{
 		init(width, height, fullscreen, title, renderCtx);
 	}
@@ -172,7 +171,7 @@ namespace Render
 		destroy();
 	}
 
-	void Window::init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context)
+	void Window::init(int width, int height, bool fullscreen, const char* title, RenderContext context)
 	{
 		if (initialized)
 			return;
@@ -325,24 +324,24 @@ namespace Render
 		return h;
 	}
 
-	inline int GetKeyId(Core::imp::ActionData* key)
+	inline int GetKeyId(imp::ActionData* key)
 	{
 		switch (key->type)
 		{
-		case Core::imp::ActionType::eKey:     return key->value;
-		case Core::imp::ActionType::eMouse:   return key->value | (1 << 31);
-		case Core::imp::ActionType::eGamepad: return key->value | (1 << 30);
+		case imp::ActionType::eKey:     return key->value;
+		case imp::ActionType::eMouse:   return key->value | (1 << 31);
+		case imp::ActionType::eGamepad: return key->value | (1 << 30);
 		default: return key->value;
 		}
 	}
 
-	inline bool IsKeyPressed(GLFWwindow* handle, Core::imp::ActionData* key)
+	inline bool IsKeyPressed(GLFWwindow* handle, imp::ActionData* key)
 	{
 		switch (key->type)
 		{
-		case Core::imp::ActionType::eKey:     return glfwGetKey(handle, key->value) == GLFW_PRESS;
-		case Core::imp::ActionType::eMouse:   return glfwGetMouseButton(handle, key->value) == GLFW_PRESS;
-		case Core::imp::ActionType::eGamepad:
+		case imp::ActionType::eKey:     return glfwGetKey(handle, key->value) == GLFW_PRESS;
+		case imp::ActionType::eMouse:   return glfwGetMouseButton(handle, key->value) == GLFW_PRESS;
+		case imp::ActionType::eGamepad:
 		{
 			GLFWgamepadstate state;
 			glfwGetGamepadState(GLFW_JOYSTICK_1, &state); // TOOD: multiple joysticks?
@@ -470,5 +469,7 @@ namespace Render
 		//		GetAxisValue(state, GLFW_GAMEPAD_AXIS_RIGHT_Y, deadzoneRight)
 		//	};
 		//}
+
+		glfwSwapBuffers(handle);
 	}
 }

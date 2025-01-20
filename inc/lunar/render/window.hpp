@@ -1,8 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
-#include <lunar/render/render_context.hpp>
+#include <lunar/render/context.hpp>
 #include <lunar/render/render_target.hpp>
-#include <lunar/utils/identifiable.hpp>
 #include <lunar/file/config_file.hpp>
 #include <lunar/core/input.hpp>
 #include <lunar/api.hpp>
@@ -13,7 +12,7 @@
 #	include <vulkan/vulkan.hpp>
 #endif
 
-namespace Render
+namespace lunar::Render
 {
 #	ifdef LUNAR_VULKAN
 	constexpr size_t FRAME_OVERLAP = 2;
@@ -57,7 +56,7 @@ namespace Render
 	inline KeyState operator|(KeyState a, KeyState b) { return static_cast<KeyState>(static_cast<int>(a) | static_cast<int>(b)); }
 	inline bool     operator&(KeyState a, KeyState b) { return (static_cast<int>(a) & static_cast<int>(b)) > 0; }
 
-	class LUNAR_API Window : public Identifiable, public RenderTarget, public Core::InputHandler
+	class LUNAR_API Window : public RenderTarget, public InputHandler
 	{
 	public:
 		Window(
@@ -65,12 +64,12 @@ namespace Render
 			int height,
 			bool fullscreen,
 			const char* title,
-			std::shared_ptr<RenderContext> context
+			RenderContext context
 		);
 
 		~Window();
 
-		void      init(int width, int height, bool fullscreen, const char* title, std::shared_ptr<RenderContext>& context);
+		void      init(int width, int height, bool fullscreen, const char* title, RenderContext context);
 		void      destroy();
 		void      close();
 		void      update() override;
@@ -112,7 +111,7 @@ namespace Render
 #		endif
 	protected:
 		GLFWwindow*                       handle      = nullptr;
-		std::shared_ptr<RenderContext>    renderCtx   = nullptr;
+		RenderContext                     renderCtx   = nullptr;
 		bool                              initialized = false;
 		std::unordered_map<int, KeyState> keys        = {};
 		glm::vec2                         axis        = { 0, 0 };
@@ -133,7 +132,6 @@ namespace Render
 		void _glInitialize();
 #		endif
 
-		friend class RenderContext;
 #		ifdef LUNAR_VULKAN
 		vk::SurfaceKHR _vkSurface;
 		vk::SurfaceFormatKHR _vkSurfaceFmt;
@@ -169,7 +167,7 @@ namespace Render
 		WindowBuilder& setSize(int width, int height);
 		WindowBuilder& setFullscreen(bool value = true);
 		WindowBuilder& setTitle(const std::string_view& title);
-		WindowBuilder& setRenderContext(std::shared_ptr<RenderContext>& context);
+		WindowBuilder& setRenderContext(RenderContext context);
 		WindowBuilder& setDefaultRenderContext();
 		WindowBuilder& loadFromConfigFile(const Fs::Path& path);
 		Window create();
@@ -178,6 +176,6 @@ namespace Render
 		int w = 800, h = 600;
 		bool fs = false;
 		std::string_view title = "lunar";
-		std::shared_ptr<RenderContext> renderContext = nullptr;
+		RenderContext renderContext = nullptr;
 	};
 }

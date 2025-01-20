@@ -16,7 +16,13 @@
 
 #include <lunar/core/time.hpp>
 
+#include <lunar/utils/collections.hpp>
+
 #include <imgui.h>
+#include <vector>
+//#include <reactphysics3d/configuration.h>
+//#include <reactphysics3d/reactphysics3d.h>
+
 
 class Test2Comp : public Core::Component
 {
@@ -138,11 +144,6 @@ int main(int argc, char* argv[])
         //.enableVerbose()
         //.create();
 
-    Terra::transpileCode(
-        Fs::dataDirectory().append("test.tvs"),
-        Terra::TranspilerOutput::eVulkanGLSL
-    );
-
     auto& mesh_renderer = scene->getGameObject("Test Object").addComponent<Render::MeshRenderer>();
 
     auto vertices = std::vector<Render::Vertex>
@@ -213,17 +214,10 @@ int main(int argc, char* argv[])
         DEBUG_LOG("Event triggered | deleted {}", e.gameObject.getName());
     });
 
-    texture_builder = {};
-    auto test_tex   = texture_builder
-        .setSize(1920, 1080)
-        .setByteFormat(Render::TextureByteFormat::eUnsignedByte)
-        .setDstFormat(Render::TextureFormat::eRGBA)
-        .setSrcFormat(Render::TextureFormat::eRGBA)
-        .setFiltering(Render::TextureFiltering::eLinear)
-        .build()
-        .getResult();
-    
     Input::SetGlobalHandler(game_window);
+
+    Time::Update();
+    DEBUG_LOG("Game started in {} seconds.", Time::GetGlobalContext()->currentTime.load());
 
     while (!game_window.shouldClose())
     {
@@ -235,17 +229,11 @@ int main(int argc, char* argv[])
 
         scene->update();
 
-        render_ctx->begin(test_tex);
+        render_ctx->begin(game_window);
         render_ctx->clear(1.f, 1.f, 1.f, 1.f);
         render_ctx->setCamera(*scene->getMainCamera());
         render_ctx->draw(cubemap);
         render_ctx->draw(scene);
-        render_ctx->end();
-
-        // -----
-
-        render_ctx->begin(game_window);
-        render_ctx->draw(test_tex);
         Debug::DrawSceneHierarchyPanel(*render_ctx, *scene); 
         Debug::DrawGeneralInfoPanel(*render_ctx);
         render_ctx->end();

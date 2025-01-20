@@ -24,96 +24,22 @@ FetchContent_MakeAvailable(json glm glfw fastgltf)
 
 find_package(JNI REQUIRED)
 
-add_library(lunar SHARED
-    "inc/lunar/utils/argument_parser.hpp"
-    "inc/lunar/file/filesystem.hpp"
-    "inc/lunar/file/text_file.hpp"
-    "inc/lunar/file/json_file.hpp"
-    "inc/lunar/file/config_file.hpp"
-    "inc/lunar/file/file_tracker.hpp"
-
-    "inc/lunar/utils/lexer.hpp"
-    "inc/lunar/utils/stopwatch.hpp"
-    "inc/lunar/utils/identifiable.hpp"
-    "inc/lunar/debug/log.hpp"
-    "inc/lunar/debug/assert.hpp"
-    "inc/lunar/debug/ui.hpp"
-    "inc/lunar/debug.hpp"
-    
-
-    "inc/lunar/ui/stylesheet.hpp"
-
-    "inc/lunar/core/scene.hpp"
-    "inc/lunar/core/gameobject.hpp"
-    "inc/lunar/core/component.hpp"
-    "inc/lunar/core/time.hpp"
-    "inc/lunar/core/input.hpp"
-    "inc/lunar/core/event.hpp"
-    "inc/lunar/core/scene_event.hpp"
-
-    "inc/lunar/script/script_vm.hpp"
-    "inc/lunar/script/script_api.hpp"
-    "inc/lunar/script/api/scene.hpp"
-    "inc/lunar/script/api/math.hpp"
-
-    "inc/lunar/api.hpp"
-
-    "src/utils/stopwatch.cpp"
-    "src/utils/argument_parser.cpp"
-    "src/utils/identifiable.cpp"
-    "src/file/filesystem.cpp"
-    "src/file/text_file.cpp"
-    "src/file/json_file.cpp"
-    "src/file/config_file.cpp"
-    "src/file/binary_file.cpp"
-    "src/file/file_tracker.cpp"
-    "src/utils/lexer.cpp"
-    "src/debug/log.cpp"
-    "src/debug/ui.cpp"
-    "src/ui/stylesheet.cpp"
-    "src/core/scene.cpp"
-    "src/core/gameobject.cpp"
-    "src/core/component.cpp"
-    "src/core/time.cpp"
-    "src/core/input.cpp"
-    "src/core/event.cpp"
-
-    "src/script/script_vm.cpp"
-    "src/script/script_scene.cpp"
-    "src/script/script_gameobject.cpp"
-    "src/script/script_transform.cpp"
-    "src/script/vm_utils.cpp"
-
-    "inc/lunar/render/mesh.hpp"
-    "inc/lunar/render/image.hpp"
-    "inc/lunar/render/window.hpp"
-    "inc/lunar/render/shader.hpp"
-    "inc/lunar/render/common.hpp"
-    "inc/lunar/render/texture.hpp"
-    "inc/lunar/render/cubemap.hpp"
-    "inc/lunar/render/material.hpp"
-    "inc/lunar/render/render_context.hpp"
-    "inc/lunar/render/render_components.hpp"
-    "src/render/render_components.cpp"
-    
-    "inc/lunar/render/terra.hpp"
-    "inc/lunar/render/terra/expression.hpp"
-    "inc/lunar/render/terra/statement.hpp"
-    "inc/lunar/render/terra/parser.hpp"
-    "inc/lunar/render/terra/transpiler.hpp"
-    
-    "src/render/terra/parser.cpp"
-    "src/render/terra/transpiler.cpp"
-    "src/render/terra/type_checker.cpp"
-    "src/render/terra/vk_transpiler.cpp"
-
-    "src/render/image.cpp"
-    "src/render/window.cpp"
-    "src/render/shader.cpp"
+file(GLOB LUNAR_SRC 
+    "inc/lunar/file/*.hpp"
+    "inc/lunar/debug/*.hpp"
+    "inc/lunar/core/*.hpp"
+    "src/core/*.cpp"
+    "src/debug/*.cpp"
+    "src/file/*.cpp"
+)
+message(${LUNAR_SRC})
+add_library(lunar SHARED)
+target_sources(lunar PRIVATE 
+    ${LUNAR_SRC} 
+    "src/render/context.cpp"
     "src/render/mesh.cpp"
-    "src/render/texture.cpp"
-    "src/render/render_context.cpp"
-
+    "src/render/program.cpp"
+    "src/render/window.cpp"
     "src/stb_image.cpp"
 )
 
@@ -180,12 +106,16 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
 
     message("-- lunar: Using OpenGL backend")
     target_sources(lunar PRIVATE
-        "src/render/gl_base.cpp"
-        "src/render/gl_texture.cpp"
-        "src/render/gl_shader.cpp"
-        "src/render/gl_draw.cpp"
-        "src/render/gl_cubemap.cpp"
-        "inc/lunar/render/internal/render_gl.hpp"
+        "inc/lunar/render/imp/gl/base.hpp"
+        "inc/lunar/render/imp/gl/buffer.hpp"
+        "inc/lunar/render/imp/gl/program.hpp"
+        "inc/lunar/render/imp/gl/texture.hpp"
+        "src/render/gl/buffer.cpp"
+        "src/render/gl/program.cpp"
+        "src/render/gl/texture.cpp"
+        "src/render/gl/cubemap.cpp"
+        "src/render/gl/init.cpp"
+        "src/render/gl/draw.cpp"
     )
 
     target_compile_definitions(lunar PRIVATE GLFW_INCLUDE_NONE)
@@ -267,9 +197,7 @@ target_include_directories(lunar PUBLIC inc)
 target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf)
 target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf)
 
-target_compile_definitions(lunar PRIVATE 
-    LUNAR_LIBRARY_EXPORT
-)
+target_compile_definitions(lunar PRIVATE LUNAR_LIBRARY_EXPORT)
 
 target_compile_definitions(lunar PUBLIC 
     LUNAR_RENDER_BACKEND="${LUNAR_RENDER_BACKEND}"
@@ -292,7 +220,7 @@ if(${LUNAR_BUNDLE_RESOURCES})
 endif()
 
 if(${LUNAR_BUILD_EXAMPLE})
-    add_executable(lunar-example "examples/app.cpp")
+    add_executable(lunar-example "examples/refactor.cpp")
     target_include_directories(lunar-example INTERFACE lunar)
     target_link_libraries(lunar-example PUBLIC lunar)
     message("-- lunar: Building example app.")

@@ -1,6 +1,7 @@
 #pragma once
 #include <lunar/api.hpp>
 #include <filesystem>
+#include <string_view>
 
 namespace Fs
 {
@@ -8,6 +9,9 @@ namespace Fs
 
 	LUNAR_API Path baseDirectory();
 	LUNAR_API Path dataDirectory();
+	
+	LUNAR_API Path fromData(const std::string_view& path);
+	LUNAR_API Path fromBase(const std::string_view& path);
 
 	LUNAR_API bool fileExists(const Path& path);
 

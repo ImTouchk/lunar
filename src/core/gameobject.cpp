@@ -6,127 +6,187 @@
 #include <functional>
 #include <map>
 
-namespace Core
+namespace lunar
 {
-	GameObject::GameObject(const std::string_view& name, Scene* scene, GameObject* parent) 
+	GameObject_T::GameObject_T(Scene_T* scene, const std::string_view& name, GameObject parent) noexcept
 		: name(name),
-		nameHash(Lunar::imp::fnv1a_hash(this->name)),
-		components(),
-		transform(),
+		parent(parent),
 		scene(scene),
-		parent(parent != nullptr ? parent->id : -1),
-		Identifiable()
+		transform()
 	{
+
 	}
 
-	GameObject::GameObject()
-		: name(),
-		nameHash(),
-		components(),
-		transform(),
-		scene(nullptr),
-		parent(),
-		Identifiable(-1)
-	{
-	}
-
-	GameObject::~GameObject()
-	{
-	}
-
-	GameObject* GameObject::getParent()
-	{
-		if (parent != -1)
-			return &scene->getGameObject(parent);
-
-		return nullptr;
-	}
-
-	std::span<std::shared_ptr<Component>> GameObject::getComponents()
-	{
-		return components;
-	}
-
-	void GameObject::addComponent(std::shared_ptr<Component> constructed)
-	{
-		constructed->_scene = scene;
-		constructed->_gameObject = id;
-		components.emplace_back(constructed);
-	}
-
-	Component* GameObject::getComponent(const std::type_info& ty)
-	{
-		for (auto& component : components)
-			if (typeid(*component).hash_code() == ty.hash_code())
-				return component.get();
-
-		return nullptr;
-	}
-
-	std::vector<GameObject*> GameObject::getChildren()
-	{
-		auto children = std::vector<GameObject*> {};
-		auto& gameObjects = getParentScene()->getGameObjects();
-		for (auto& object : gameObjects)
-		{
-			if (object.getParentId() == id)
-				children.push_back(&object);
-		}
-		return std::move(children);
-	}
-
-	Identifiable::NativeType GameObject::getParentId() const
-	{
-		return parent;
-	}
-
-	TransformComponent& GameObject::getTransform()
-	{
-		return transform;
-	}
-
-	const TransformComponent& GameObject::getTransform() const
-	{
-		return transform;
-	}
-
-    size_t GameObject::getNameHash() const
-    {
-        return nameHash;
-    }
-
-    const std::string &GameObject::getName() const
-    {
-        return name;
-    }
-
-	Scene* GameObject::getParentScene()
+	Scene_T* GameObject_T::getScene()
 	{
 		return scene;
 	}
 
-	void GameObject::update()
+	Component GameObject_T::getComponent(const std::type_info& ty)
 	{
-		for (auto& component : components)
-		{
-			//if (component->_getClassFlags() & ComponentClassFlagBits::eUpdateable)
-			component->update();
-		}
-		//for (auto& component_ptr : components)
-		//{
-		//	Component* component = component_ptr.get();
-		//	if (component->isUpdateable())
-		//		component->update();
-		//}
+		for (auto& component : scene->components)
+			if (typeid(*component).hash_code() == ty.hash_code() && component->getGameObject() == this)
+				return component;
+
+		return nullptr;
 	}
 
-	void GameObject::renderUpdate(Render::RenderContext& context)
+	std::vector<Component> GameObject_T::getComponents()
 	{
-		for (auto& component : components)
-		{
-			component->renderUpdate(context);
-		}
+		auto list = std::vector<Component>();
+		for (auto& component : scene->components)
+			if (component->getGameObject() == this)
+				list.emplace_back(component);
+		return list;
 	}
+
+	std::string_view GameObject_T::getName() const
+	{
+		return name;
+	}
+
+	GameObject GameObject_T::getParent()
+	{
+		return parent;
+	}
+
+	Component& GameObject_T::addComponent(Component created)
+	{
+		return getScene()->components.emplace_back(created);
+	}
+
+	Transform& GameObject_T::getTransform()
+	{
+		return transform;
+	}
+
+	const Transform& GameObject_T::getTransform() const
+	{
+		return transform;
+	}
+}
+
+namespace Core
+{
+	//GameObject::GameObject(const std::string_view& name, Scene* scene, GameObject* parent) 
+	//	: name(name),
+	//	nameHash(Lunar::imp::fnv1a_hash(this->name)),
+	//	components(),
+	//	transform(),
+	//	scene(scene),
+	//	parent(parent != nullptr ? parent->id : -1),
+	//	Identifiable()
+	//{
+	//}
+
+	//GameObject::GameObject()
+	//	: name(),
+	//	nameHash(),
+	//	components(),
+	//	transform(),
+	//	scene(nullptr),
+	//	parent(),
+	//	Identifiable(-1)
+	//{
+	//}
+
+	//GameObject::~GameObject()
+	//{
+	//}
+
+	//GameObject* GameObject::getParent()
+	//{
+	//	if (parent != -1)
+	//		return &scene->getGameObject(parent);
+
+	//	return nullptr;
+	//}
+
+	//std::span<std::shared_ptr<Component>> GameObject::getComponents()
+	//{
+	//	return components;
+	//}
+
+	//void GameObject::addComponent(std::shared_ptr<Component> constructed)
+	//{
+	//	constructed->_scene = scene;
+	//	constructed->_gameObject = id;
+	//	components.emplace_back(constructed);
+	//}
+
+	//Component* GameObject::getComponent(const std::type_info& ty)
+	//{
+	//	for (auto& component : components)
+	//		if (typeid(*component).hash_code() == ty.hash_code())
+	//			return component.get();
+
+	//	return nullptr;
+	//}
+
+	//std::vector<GameObject*> GameObject::getChildren()
+	//{
+	//	auto children = std::vector<GameObject*> {};
+	//	auto& gameObjects = getParentScene()->getGameObjects();
+	//	for (auto& object : gameObjects)
+	//	{
+	//		if (object.getParentId() == id)
+	//			children.push_back(&object);
+	//	}
+	//	return std::move(children);
+	//}
+
+	//Identifiable::NativeType GameObject::getParentId() const
+	//{
+	//	return parent;
+	//}
+
+	//TransformComponent& GameObject::getTransform()
+	//{
+	//	return transform;
+	//}
+
+	//const TransformComponent& GameObject::getTransform() const
+	//{
+	//	return transform;
+	//}
+
+ //   size_t GameObject::getNameHash() const
+ //   {
+ //       return nameHash;
+ //   }
+
+ //   const std::string &GameObject::getName() const
+ //   {
+ //       return name;
+ //   }
+
+	//Scene* GameObject::getParentScene()
+	//{
+	//	return scene;
+	//}
+
+	//void GameObject::update()
+	//{
+	//	for (auto& component : components)
+	//	{
+	//		//if (component->_getClassFlags() & ComponentClassFlagBits::eUpdateable)
+	//		component->update();
+	//	}
+	//	//for (auto& component_ptr : components)
+	//	//{
+	//	//	Component* component = component_ptr.get();
+	//	//	if (component->isUpdateable())
+	//	//		component->update();
+	//	//}
+	//}
+
+	//void GameObject::renderUpdate(Render::RenderContext& context)
+	//{
+	//	for (auto& component : components)
+	//	{
+	//		component->renderUpdate(context);
+	//	}
+	//}
 
 	//void GameObject::fromJson(nlohmann::json& json)
 	//{

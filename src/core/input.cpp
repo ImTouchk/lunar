@@ -1,7 +1,7 @@
 #include <lunar/core/input.hpp>
 #include <lunar/debug/assert.hpp>
 
-namespace Core
+namespace lunar
 {
 	namespace imp
 	{
@@ -83,17 +83,17 @@ namespace Core
 	}
 }
 
-namespace Input
+namespace lunar::Input
 {
-	Core::InputHandler* GLOBAL_HANDLER = nullptr;
+	InputHandler* GLOBAL_HANDLER = nullptr;
 
-	Core::InputHandler& GetGlobalHandler()
+	InputHandler& GetGlobalHandler()
 	{
 		DEBUG_ASSERT(GLOBAL_HANDLER != nullptr, "Global handler was not set");
 		return *GLOBAL_HANDLER;
 	}
 
-	void SetGlobalHandler(Core::InputHandler& handler)
+	void SetGlobalHandler(InputHandler& handler)
 	{
 		GLOBAL_HANDLER = &handler;
 		return;
@@ -126,7 +126,7 @@ namespace Input
 
 }
 
-namespace Core
+namespace lunar
 {
 	void InputHandler::registerAction(const std::string_view& name, const std::initializer_list<InputCombo>& combos)
 	{
