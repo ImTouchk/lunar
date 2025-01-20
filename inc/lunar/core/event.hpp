@@ -27,10 +27,12 @@ namespace lunar
 
 	class LUNAR_API EventHandler
 	{
+	public:
+		void addEventListener(size_t type, EventListener listener);
+		void removeEventListener(size_t type, EventListener listener);
+
 	protected:
-		void _addEventListener(size_t type, EventListener listener);
-		void _removeEventListener(size_t type, EventListener listener);
-		void _triggerEvent(size_t type, Event& e);
+		void triggerEvent(size_t type, Event& e);
 			
 		std::unordered_map<size_t, imp::EventListeners> listeners;
 	};

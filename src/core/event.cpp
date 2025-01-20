@@ -3,7 +3,7 @@
 
 namespace lunar
 {
-	void EventHandler::_addEventListener(size_t type, EventListener listener)
+	void EventHandler::addEventListener(size_t type, EventListener listener)
 	{
 		auto& e_type_data = listeners[type];
 		for (size_t i = 0; i < imp::MAX_LISTENERS; i++)
@@ -28,7 +28,7 @@ namespace lunar
 		return (size_t)*fn_ptr;
 	}
 
-	void EventHandler::_removeEventListener(size_t type, EventListener listener)
+	void EventHandler::removeEventListener(size_t type, EventListener listener)
 	{
 		size_t address = getAddress(listener);
 
@@ -46,7 +46,7 @@ namespace lunar
 		DEBUG_ASSERT(true, "removeEventListener called on invalid function");
 	}
 
-	void EventHandler::_triggerEvent(size_t type, Event& e)
+	void EventHandler::triggerEvent(size_t type, Event& e)
 	{
 		auto it = listeners.find(type);
 		if (it == listeners.end())
