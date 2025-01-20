@@ -18,10 +18,12 @@ namespace lunar
 	public:
 		Handle(std::nullptr_t)                      noexcept : ref(nullptr), idx(0) {}
 		Handle(vector<T>& collection, size_t index) noexcept : ref(&collection), idx(index) {}
+		Handle(vector<T>& collection, T* object)    noexcept : ref(&collection), idx((size_t)(object - collection.data())) {}
 		Handle()                                    noexcept = default;
 		~Handle()                                   noexcept = default;
 
-		T* operator->()                 { return &(ref->operator[](idx)); }
+		T*       operator->()           { return &(ref->operator[](idx)); }
+		const T* operator->() const     { return &(ref->operator[](idx)); }
 		T&       get()                  { return ref->operator[](idx); }
 		const T& get()       const      { return ref->operator[](idx); }
 		bool     operator==(T* pointer) { return pointer == (ref->data() + idx); }
@@ -45,6 +47,12 @@ namespace lunar
 	inline Handle<T> make_handle(vector<T>& collection)
 	{
 		return Handle<T>(collection, collection.size() - 1);
+	}
+
+	template<typename T>
+	inline Handle<T> make_handle(vector<T>& collection, T* object)
+	{
+		return Handle<T>(collection, object);
 	}
 }
 
