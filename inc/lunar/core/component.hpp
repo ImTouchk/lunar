@@ -26,23 +26,25 @@ namespace lunar
 		Component_T()                  noexcept = default;
 		virtual ~Component_T()         noexcept = default;
 
+		virtual void     start()                {};
 		virtual void     update()               {};
 		const char*      getClassName()  const;
 		const GameObject getGameObject() const;
 		GameObject       getGameObject();
 		Scene_T*         getScene();
 		const Scene_T*   getScene()      const;
-		Transform*       getTransform();
-		const Transform* getTransform()  const;
+		Transform&       getTransform();
+		const Transform& getTransform()  const;
 
 	protected:
 		GameObject gameObject = nullptr;
 		Scene_T*   scene      = nullptr;
-		Transform* transform  = nullptr;
+
+		friend class GameObject_T;
 	};
 	
 	template<typename T>
-	concept IsComponentType = std::derived_from<T, Component> && !std::is_same_v<T, Component>;
+	concept IsComponentType = std::derived_from<T, Component_T> && !std::is_same_v<T, Component_T>;
 }
 
 //namespace Core

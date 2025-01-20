@@ -9,17 +9,6 @@
 
 namespace lunar::Render
 {
-	static const glm::mat4 CUBEMAP_PROJ    = glm::perspective(glm::radians(90.f), 1.f, 0.1f, 10.f);
-	static const glm::mat4 CUBEMAP_VIEWS[] =
-	{
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f),  glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f),  glm::vec3(0.0f,  0.0f,  1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f),  glm::vec3(0.0f,  0.0f, -1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f),  glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f),  glm::vec3(0.0f, -1.0f,  0.0f))
-	};
-
 	void RenderContext_T::begin(RenderTarget* target)
 	{
 		//this->renderCamera = &camera;
@@ -54,7 +43,7 @@ namespace lunar::Render
 	{
 		GpuVertexArrayObject vertex_arr = mesh->getVertexArray();
 		vertex_arr->bind();
-		glDrawElements(GL_TRIANGLES, mesh->getVertexCount(), GL_UNSIGNED_INT, 0);
+		glDrawElements((GLenum)mesh->getTopology(), mesh->getVertexCount(), GL_UNSIGNED_INT, 0);
 	}
 
 	void RenderContext_T::draw(GpuProgram program, GpuTexture texture)

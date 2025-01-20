@@ -29,14 +29,14 @@ namespace lunar
 		const Transform&       getTransform() const;
 		
 		template<typename T> requires IsComponentType<T>
-		T&                     getComponent() { return static_cast<T&>(*(getComponent(typeid(T)).get())); }
+		T*                     getComponent() { return static_cast<T*>(getComponent(typeid(T)).get()); }
 
 		Component&             addComponent(Component created);
 		template <typename T, class... _Valty> requires IsComponentType<T>
 		T&                     addComponent(_Valty&&... ctor_values)
 		{
 			DEBUG_ASSERT(getComponent<T>() == nullptr, "There can exist only one component of type <T> on a single gameobject.");
-			auto new_component = std::make_shared<T>(this, std::forward<_Valty>(ctor_values)...);
+			auto new_component = std::make_shared<T>(std::forward<_Valty>(ctor_values)...);
 			addComponent(new_component);
 			return *new_component;
 		}

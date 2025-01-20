@@ -2,7 +2,6 @@
 #include <lunar/core/gameobject.hpp>
 #include <lunar/core/component.hpp>
 #include <lunar/script/script_vm.hpp>
-#include <lunar/render/render_context.hpp>
 
 namespace lunar
 {
@@ -37,14 +36,14 @@ namespace lunar
 		return scene;
 	}
 
-	Transform* Component_T::getTransform()
+	Transform& Component_T::getTransform()
 	{
-		return transform;
+		return getGameObject()->getTransform();
 	}
 
-	const Transform* Component_T::getTransform() const
+	const Transform& Component_T::getTransform() const
 	{
-		return transform;
+		return getGameObject()->getTransform();
 	}
 }
 

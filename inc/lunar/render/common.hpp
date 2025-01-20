@@ -7,7 +7,7 @@
 #	include <vulkan/vulkan.hpp>
 #endif
 
-namespace Render
+namespace lunar::Render
 {
 	struct LUNAR_API Vertex
 	{
@@ -62,12 +62,6 @@ namespace Render
 		int         count         = 0;
 		GpuMaterial materials[15] = {};
 	};
-
-	LUNAR_API const std::vector<Vertex>& GetCubeVertices();
-	LUNAR_API const std::vector<uint32_t>& GetCubeIndices();
-	LUNAR_API const std::vector<Vertex>& GetQuadVertices();
-	LUNAR_API const std::vector<uint32_t>& GetQuadIndices();
-
 }
 
 namespace lunar::Render

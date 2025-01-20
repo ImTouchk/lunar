@@ -17,6 +17,7 @@ namespace Render { class LUNAR_API Camera; }
 
 namespace lunar
 {
+	class LUNAR_API Camera;
 	class LUNAR_API Scene_T : public EventHandler
 	{
 	public:
@@ -24,6 +25,9 @@ namespace lunar
 		Scene_T()                             noexcept = default;
 		~Scene_T()                            noexcept;
 
+		void       update();
+		Camera*    getMainCamera();
+		void       setMainCamera(Camera* camera);
 		GameObject getGameObject(size_t number);
 		GameObject getGameObject(const std::string_view& name);
 		GameObject createGameObject
@@ -37,6 +41,7 @@ namespace lunar
 		vector<GameObject_T> objects      = {};
 		vector<Component>    components   = {};
 		rp3d::PhysicsWorld*  physicsWorld = nullptr;
+		Camera*              mainCamera   = nullptr;
 
 		friend class GameObject_T;
 	};

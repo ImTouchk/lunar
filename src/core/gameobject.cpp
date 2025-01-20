@@ -1,4 +1,3 @@
-#include <lunar/render/render_context.hpp>
 #include <lunar/core/gameobject.hpp>
 #include <lunar/core/component.hpp>
 #include <lunar/core/scene.hpp>
@@ -52,7 +51,11 @@ namespace lunar
 
 	Component& GameObject_T::addComponent(Component created)
 	{
-		return getScene()->components.emplace_back(created);
+		auto& comp = getScene()->components.emplace_back(created);
+		comp->gameObject = make_handle(scene->objects, this);
+		comp->scene      = scene;
+		comp->start();
+		return comp;
 	}
 
 	Transform& GameObject_T::getTransform()

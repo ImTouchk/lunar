@@ -1,8 +1,7 @@
 #include <lunar/core/scene.hpp>
 #include <lunar/core/time.hpp>
-#include <lunar/render/render_components.hpp>
-#include <lunar/render/render_context.hpp>
 #include <lunar/debug/log.hpp>
+#include <lunar/render/components.hpp>
 
 namespace lunar
 {
@@ -36,6 +35,22 @@ namespace lunar
 	{
 		objects.emplace_back(this, name, parent);
 		return make_handle(objects);
+	}
+
+	void Scene_T::setMainCamera(Camera* camera)
+	{
+		this->mainCamera = camera;
+	}
+
+	Camera* Scene_T::getMainCamera()
+	{
+		return mainCamera;
+	}
+
+	void Scene_T::update()
+	{
+		for (auto& component : components)
+			component->update();
 	}
 }
 

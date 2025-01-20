@@ -23,11 +23,11 @@
 //		void             drawDebugUI(Render::RenderContext&) override;
 //
 //	private:
-//		glm::vec3      front      = { 0.f, 0.f, -1.f };
-//		glm::vec3      right      = { 1.f, 0.f, 0.f };
-//		glm::vec3      up         = { 0.f, 1.f, 0.f };
-//		glm::vec3      view       = {};
-//		float          fov        = 60.f;
+		//glm::vec3      front      = { 0.f, 0.f, -1.f };
+		//glm::vec3      right      = { 1.f, 0.f, 0.f };
+		//glm::vec3      up         = { 0.f, 1.f, 0.f };
+		//glm::vec3      view       = {};
+		//float          fov        = 60.f;
 //	};
 //
 //	class LUNAR_API MeshRenderer : public Core::Component
