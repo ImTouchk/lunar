@@ -11,6 +11,21 @@ namespace lunar::Render
 	LUNAR_HANDLE_IMPL(GpuBuffer);
 	LUNAR_HANDLE_IMPL(GpuMesh);
 	LUNAR_HANDLE_IMPL(GpuCubemap);
+	LUNAR_HANDLE_IMPL(Window);
+
+	Window RenderContext_T::createWindow
+	(
+		int                     width,
+		int                     height,
+		bool                    fullscreen,
+		const std::string_view& name,
+		int                     msaa,
+		bool                    vsync
+	)
+	{
+		windows.emplace_back(this, width, height, fullscreen, name, msaa, vsync);
+		return make_handle(windows);
+	}
 
 	GpuTexture RenderContext_T::createTexture
 	(
@@ -227,5 +242,18 @@ namespace lunar::Render
 
 		defaultProgramsBuilt = true;
 		DEBUG_LOG("Built default GPU programs.");
+	}
+
+	/*
+		Global render context
+	*/
+
+	namespace imp
+	{
+		GlobalRenderContext& GetGlobalRenderContext()
+		{
+			static GlobalRenderContext context = {};
+			return context;
+		}
 	}
 }

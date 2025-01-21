@@ -39,6 +39,7 @@ target_sources(lunar PRIVATE
     "src/render/context.cpp"
     "src/render/mesh.cpp"
     "src/render/program.cpp"
+    "src/render/components.cpp"
     "src/render/window.cpp"
     "src/stb_image.cpp"
 )

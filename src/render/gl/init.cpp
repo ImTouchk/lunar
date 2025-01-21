@@ -9,9 +9,21 @@ namespace lunar::Render
 {
 	RenderContext_T::RenderContext_T() noexcept
 	{
-		IMGUI_CHECKVERSION();
-		imguiContext = ImGui::CreateContext();
-		
+		/*
+			If the vector exceeds capacity, all the window user pointers passed
+			to GLFW will suddenly be invalidated and will probably make the
+			program crash.
+
+			I think 5 windows is a reasonable amount of windows to set as the maximum.
+		*/
+		windows.reserve(5);
+
+		/* 
+			Calling the function assures the static variable inside of it (i.e.: the global
+			context) gets initialized.
+		*/
+		imp::GetGlobalRenderContext();
+
 		loadDefaultPrograms();
 		loadDefaultMeshes();
 
@@ -24,41 +36,14 @@ namespace lunar::Render
 		cubemaps.clear();
 		meshes.clear();
 		programs.clear();
+		textures.clear();
 		buffers.clear();
 		vertexArrays.clear();
+		windows.clear();
 
 		glDeleteFramebuffers(1, &frameBuffer);
 		glDeleteRenderbuffers(1, &renderBuffer);
-	}
 
-	void Window::_glInitialize()
-	{
-		glfwMakeContextCurrent(handle);
-		int version = gladLoadGL(glfwGetProcAddress);
-		if (version == 0)
-			DEBUG_ERROR("Failed to initialize OpenGL context.");
-		else
-			DEBUG_LOG("Loaded OpenGL version {}.{}", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
-
-		int w, h;
-		glfwGetFramebufferSize(handle, &w, &h);
-
-		glViewport(0, 0, w, h);
-		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-
-		return;
-
-//#		ifdef LUNAR_IMGUI
-//		ImGui::SetCurrentContext(renderCtx->getImGuiContext());
-//		ImGui::StyleColorsDark();
-//
-//		ImGuiIO& io = ImGui::GetIO();
-//		io.FontGlobalScale = 1.f;
-//
-//		ImGui_ImplGlfw_InitForOpenGL(handle, true);
-//		ImGui_ImplOpenGL3_Init();
-//#		endif
+		glfwDestroyWindow(headless);
 	}
 }

@@ -1,16 +1,18 @@
 #pragma once
 #include <lunar/api.hpp>
 #include <lunar/utils/collections.hpp>
+#include <lunar/render/imp.hpp>
 #include <lunar/render/common.hpp>
 #include <lunar/render/render_target.hpp>
-#include <lunar/render/imp.hpp>
 #include <lunar/render/program.hpp>
 #include <lunar/render/mesh.hpp>
+#include <lunar/render/window.hpp>
 
 #include <vector>
 #include <span>
 
 #include <imgui.h>
+
 
 namespace lunar::Render
 {
@@ -32,6 +34,15 @@ namespace lunar::Render
 		GpuProgram  getProgram(size_t number);
 		GpuProgram  getProgram(GpuDefaultPrograms program);
 
+		Window               createWindow
+		(
+			int                     width,
+			int                     height,
+			bool                    fullscreen,
+			const std::string_view& name,
+			int                     msaa,
+			bool                    vsync
+		);
 		GpuVertexArrayObject createVertexArray();
 		GpuBuffer            createBuffer
 		(
@@ -90,8 +101,8 @@ namespace lunar::Render
 		vector<GpuTexture_T>           textures             = {};
 		vector<GpuMesh_T>              meshes               = {};
 		vector<GpuCubemap_T>           cubemaps             = {};
+		vector<Window_T>               windows              = {};
 		RenderTarget*                  target               = nullptr;
-		ImGuiContext*                  imguiContext         = nullptr;
 		bool                           inFrameScope         = false;
 		bool                           defaultProgramsBuilt = false;
 		bool                           defaultMeshesBuilt   = false;
@@ -103,6 +114,18 @@ namespace lunar::Render
 #		ifdef LUNAR_OPENGL
 		GLuint                         frameBuffer  = 0;
 		GLuint                         renderBuffer = 0;
+		GLFWwindow*                    headless     = nullptr;
 #		endif
 	};
+
+	namespace imp
+	{
+		struct LUNAR_API GlobalRenderContext
+		{
+			bool              initialized = false;
+			GLFWGlobalContext glfw        = {};
+		};
+
+		GlobalRenderContext& GetGlobalRenderContext();
+	}
 }

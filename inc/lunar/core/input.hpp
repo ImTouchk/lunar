@@ -13,10 +13,10 @@ namespace lunar
 	{
 		enum class LUNAR_API ActionType
 		{
-			eUnknown = 0,
-			eKey     = 1,
-			eMouse   = 2,
-			eGamepad = 3,
+			eNone    = 0,
+			eKey     = 1 << 0,
+			eMouse   = 1 << 1,
+			eGamepad = 1 << 2,
 		};
 
 		struct LUNAR_API ActionData
@@ -56,6 +56,17 @@ namespace lunar
 		float                                           deadzoneRight    = 0.f;
 		float                                           mouseSensitivity = 1.f;
 	};
+
+	enum class LUNAR_API KeyState : int
+	{
+		eNone     = 0,
+		eReleased = 1 << 0,
+		eHeld     = 1 << 1,
+		ePressed  = 1 << 2,
+	};
+
+	inline bool     operator&(KeyState a, KeyState b) { return (bool)(static_cast<int>(a) & static_cast<int>(b));     }
+	inline KeyState operator|(KeyState a, KeyState b) { return (KeyState)(static_cast<int>(a) | static_cast<int>(b)); }
 }
 
 namespace lunar::Input

@@ -11,350 +11,192 @@
 
 #include <lunar/file/config_file.hpp>
 #include <lunar/render/window.hpp>
+#include <lunar/render/context.hpp>
 #include <lunar/debug.hpp>
-#include <GLFW/glfw3.h>
+
 #include <atomic>
+#include <GLFW/glfw3.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 namespace lunar::Render
 {
-	std::atomic<bool> _JOYSTICK_CONNECTED[16];
+	void GLFW_FramebufferSizeCb(GLFWwindow*, int, int);
+	void GLFW_KeyCallback(GLFWwindow*, int, int, int, int);
+	void GLFW_MouseBtnCallback(GLFWwindow*, int, int, int);
+	void GLFW_CursorPosCb(GLFWwindow*, double, double);
+	void GLFW_CursorEnterCb(GLFWwindow*, int);
 
-	WindowBuilder& WindowBuilder::setWidth(int width)
+	Window_T::Window_T
+	(
+		RenderContext_T*        context,
+		int                     width,
+		int                     height,
+		bool                    fullscreen,
+		const std::string_view& title,
+		int                     msaa,
+		bool                    vsync
+	) noexcept : width(width),
+		height(height),
+		fullscreen(fullscreen),
+		title(title),
+		msaa(msaa),
+		vsync(true),
+		context(context)
 	{
-		w = width;
-		return *this;
-	}
+		glfwWindowHint(GLFW_SAMPLES, msaa);
 
-	WindowBuilder& WindowBuilder::setHeight(int height)
-	{
-		h = height;
-		return *this;
-	}
-
-	WindowBuilder& WindowBuilder::setSize(int width, int height)
-	{
-		w = width;
-		h = height;
-		return *this;
-	}
-
-	WindowBuilder& WindowBuilder::setFullscreen(bool value)
-	{
-		fs = value;
-		return *this;
-	}
-
-	WindowBuilder& WindowBuilder::setTitle(const std::string_view& title)
-	{
-		this->title = title;
-		return *this;
-	}
-
-	WindowBuilder& WindowBuilder::loadFromConfigFile(const Fs::Path& path)
-	{
-		auto config = Fs::ConfigFile(path);
-		setSize(
-			config.get_or<int>("width", 800),
-			config.get_or<int>("height", 600)
-		);
-
-		setFullscreen(config.get_or<int>("fullscreen", 0));
-		return *this;
-	}
-
-	WindowBuilder& WindowBuilder::setRenderContext(RenderContext context)
-	{
-		renderContext = context;
-		return *this;
-	}
-
-	WindowBuilder& WindowBuilder::setDefaultRenderContext()
-	{
-		renderContext = nullptr;
-		return *this;
-	}
-
-	Window WindowBuilder::create()
-	{
-		return Window(w, h, fs, title.data(), renderContext);
-	}
-
-	std::atomic<int> GlfwUsers = 0;
-
-	inline Window& Glfw_CastUserPtr(GLFWwindow* window)
-	{
-		return *reinterpret_cast<Window*>(
-			glfwGetWindowUserPointer(window)
-		);
-	}
-
-	void Glfw_JoystickCallback(int jid, int ev)
-	{
-		if (!glfwJoystickIsGamepad(jid))
-			return;
-
-		// TODO
-		switch (ev)
-		{
-		case GLFW_CONNECTED:
-		case GLFW_DISCONNECTED:
-			_JOYSTICK_CONNECTED[jid] = ev == GLFW_CONNECTED;
-		}
-	}
-
-	void Glfw_MouseBtnCallback(GLFWwindow* handle, int button, int action, int mods)
-	{
-		static_assert(sizeof(int) == sizeof(int32_t));
-
-		auto& window = Glfw_CastUserPtr(handle);
-		window.keys[button | (int)(1 << 31)] = (action == GLFW_PRESS) ? KeyState::ePressed : KeyState::eReleased;
-	}
-
-	void Glfw_KeyCallback(GLFWwindow* handle, int key, int scancode, int action, int mods)
-	{
-		auto& window = Glfw_CastUserPtr(handle);
-		window.keys[key] = (action == GLFW_PRESS) ? KeyState::ePressed : KeyState::eReleased;
-	}
-
-	void Glfw_FramebufferSizeCb(GLFWwindow* handle, int width, int height)
-	{
-		auto& window = Glfw_CastUserPtr(handle);
-#		ifdef LUNAR_VULKAN
-		window._vkHandleResize(width, height);
-#		endif
-
-#		ifdef LUNAR_OPENGL
-		// TODO: switch to window context (need a public window.getNative() function)
-		glViewport(0, 0, width, height);
-#		endif
-	}
-
-	void Glfw_CursorPosCb(GLFWwindow* handle, double x, double y)
-	{
-		auto& window = Glfw_CastUserPtr(handle);
-		if (not window.mouseInside)
-			return;
-
-		auto current = glm::vec2 { x, y };
-
-		if (window.isCursorLocked())
-		{
-			auto delta = (current - window.lastMouse) * window.mouseSensitivity;
-			window.rotation += glm::vec2{ delta.x, -delta.y };
-		}
-
-		window.lastMouse = current;
-	}
-
-	void Glfw_CursorEnterCb(GLFWwindow* handle, int entered)
-	{
-		auto& window = Glfw_CastUserPtr(handle);
-		window.mouseInside = entered;
-	}
-
-	Window::Window(
-		int width,
-		int height,
-		bool fullscreen,
-		const char* title,
-		RenderContext context
-	) : handle(nullptr),
-		renderCtx(context),
-		initialized(false),
-		RenderTarget()
-	{
-		init(width, height, fullscreen, title, renderCtx);
-	}
-
-	Window::~Window()
-	{
-		destroy();
-	}
-
-	void Window::init(int width, int height, bool fullscreen, const char* title, RenderContext context)
-	{
-		if (initialized)
-			return;
-
-		if (GlfwUsers == 0 && glfwInit() == GLFW_FALSE)
-			DEBUG_ERROR("Failed to initialize glfw.");
-		else if (++GlfwUsers == 1)
-		{
-			int major, minor, rev;
-			glfwGetVersion(&major, &minor, &rev);
-			DEBUG_LOG("Loaded glfw version {}.{}.{}", major, minor, rev);
-		}
-
-#		ifdef LUNAR_VULKAN
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-#		endif
-
-#		ifdef LUNAR_OPENGL
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // for Mac
-#		endif
-
-		handle = glfwCreateWindow(
-			width, height,
-			title,
+		this->handle = glfwCreateWindow(
+			this->width, 
+			this->height,
+			this->title.c_str(),
 			(fullscreen)
 				? glfwGetPrimaryMonitor() // TODO: monitor selection
 				: nullptr,
-			nullptr
+			imp::GetGlobalRenderContext()
+				.glfw.headless
 		);
 
-		if (handle == nullptr)
-			DEBUG_ERROR("Failed to create a new window.");
-		else
-			DEBUG_LOG("Window created successfully.");
-
-		glfwSetWindowUserPointer(handle, this);
-		glfwSetFramebufferSizeCallback(handle, Glfw_FramebufferSizeCb);
-		glfwSetKeyCallback(handle, Glfw_KeyCallback);
-		glfwSetMouseButtonCallback(handle, Glfw_MouseBtnCallback);
-		glfwSetCursorPosCallback(handle, Glfw_CursorPosCb);
-		glfwSetCursorEnterCallback(handle, Glfw_CursorEnterCb);
-		glfwSetJoystickCallback(Glfw_JoystickCallback);
-
 		if (glfwRawMouseMotionSupported())
-			glfwSetInputMode(handle, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-
-		//glfwSwapInterval(2);
-		
-		initialized = true;
-
-#		ifdef LUNAR_VULKAN
-		_vkInitialize();
-#		endif
-
-#		ifdef LUNAR_OPENGL
-		_glInitialize();
-#		endif
-	}
-
-	void Window::destroy()
-	{
-		if (!initialized)
-			return;
-
-#		ifdef LUNAR_VULKAN
-		_vkDestroy();
-#		endif	
-
-		glfwDestroyWindow(handle);
-		if (--GlfwUsers == 0)
 		{
-			glfwTerminate();
-			DEBUG_LOG("Terminated glfw library.");
+			glfwSetInputMode(handle, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+			DEBUG_LOG("Raw mouse motion support found.");
 		}
 
-		initialized = false;
-		handle = nullptr;
+		if (vsync)
+		{
+			glfwSwapInterval(2);
+		}
+
+		glfwSetWindowUserPointer(handle, this);
+
+		glfwSetFramebufferSizeCallback(handle, GLFW_FramebufferSizeCb);
+		glfwSetKeyCallback(handle,             GLFW_KeyCallback);
+		glfwSetMouseButtonCallback(handle,     GLFW_MouseBtnCallback);
+		glfwSetCursorPosCallback(handle,       GLFW_CursorPosCb);
+		glfwSetCursorEnterCallback(handle,     GLFW_CursorEnterCb);
+
+		IMGUI_CHECKVERSION();
+		imguiContext = ImGui::CreateContext();
+		ImGui::SetCurrentContext(imguiContext);
+		ImGui_ImplGlfw_InitForOpenGL(handle, true);
+		ImGui_ImplOpenGL3_Init();
+
+		DEBUG_LOG("Window initialized.");
 	}
 
-	void Window::close()
+	Window_T::~Window_T() noexcept
 	{
-		DEBUG_INIT_CHECK();
+		if (handle != nullptr)
+		{
+			glfwDestroyWindow(handle);
+			DEBUG_LOG("Window destroyed.");
+		}
+	}
+
+	void Window_T::close()
+	{
 		glfwSetWindowShouldClose(handle, GLFW_TRUE);
 	}
 
-	bool Window::exists() const
-	{
-		return handle != nullptr;
-	}
-
-	bool Window::shouldClose() const
-	{
-		DEBUG_INIT_CHECK();
-		return glfwWindowShouldClose(handle);
-	}
-
-	bool Window::isMinimized() const
-	{
-		DEBUG_INIT_CHECK();
-		int w, h;
-		glfwGetFramebufferSize(handle, &w, &h);
-		return w == 0 || h == 0;
-	}
-
-	void Window::lockCursor()
-	{
-		glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		mouseLocked = true;
-	}
-
-	void Window::unlockCursor()
-	{
-		glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		mouseLocked = false;
-	}
-
-	void Window::toggleCursor()
-	{
-		switch (mouseLocked)
-		{
-		case true:  unlockCursor(); return;
-		case false: lockCursor();   return;
-		}
-	}
-
-	bool Window::isCursorLocked() const
-	{
-		return mouseLocked;
-	}
-
-	void Window::pollEvents()
+	void Window_T::pollEvents()
 	{
 		glfwPollEvents();
 	}
 
-	int Window::getRenderWidth() const
+	int Window_T::getRenderWidth() const
 	{
-		int w, _;
-		glfwGetFramebufferSize(handle, &w, &_);
-		return w;
+		return width;
 	}
 
-	int Window::getRenderHeight() const
+	int Window_T::getRenderHeight() const
 	{
-		int _, h;
-		glfwGetFramebufferSize(handle, &_, &h);
-		return h;
+		return height;
 	}
 
-	inline int GetKeyId(imp::ActionData* key)
+	bool Window_T::isActive() const
+	{
+		return handle != nullptr && glfwWindowShouldClose(handle) == GLFW_FALSE;
+	}
+
+	bool Window_T::isMinimized() const
+	{
+		return width == 0 || height == 0;
+	}
+
+	/*
+		Input handling
+	*/
+
+	bool Window_T::isCursorLocked() const
+	{
+		return mouseLocked;
+	}
+
+	void Window_T::setCursorLocked(bool value)
+	{
+		glfwSetInputMode(handle, GLFW_CURSOR, value ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+		mouseLocked = value;
+	}
+
+	void Window_T::toggleCursorLocked()
+	{
+		switch (mouseLocked)
+		{
+		case true:  setCursorLocked(false); return;
+		case false: setCursorLocked(true);  return;
+		}
+	}
+
+	inline void SetAxisValue(GLFWwindow* handle, int lower, int upper, float& value)
+	{
+		int first = glfwGetKey(handle, lower);
+		int second = glfwGetKey(handle, upper);
+
+		value = 0.f;
+		if (first == GLFW_PRESS)
+			value += -1.f;
+		if (second == GLFW_PRESS)
+			value += 1.f;
+	}
+
+	void Window_T::update()
+	{
+		rotation = { 0, 0 };
+
+		for (auto& [key, value] : keys)
+		{
+			switch (value)
+			{
+			case KeyState::ePressed:  value = KeyState::eHeld; break;
+			case KeyState::eReleased: value = KeyState::eNone; break;
+			default: break;
+			}
+		}
+
+		SetAxisValue(handle, GLFW_KEY_A, GLFW_KEY_D, axis.x);
+		SetAxisValue(handle, GLFW_KEY_S, GLFW_KEY_W, axis.y);
+
+		glfwSwapBuffers(handle);
+	}
+
+	inline int GetKeyId(::lunar::imp::ActionData* key)
 	{
 		switch (key->type)
 		{
-		case imp::ActionType::eKey:     return key->value;
-		case imp::ActionType::eMouse:   return key->value | (1 << 31);
-		case imp::ActionType::eGamepad: return key->value | (1 << 30);
+		case ::lunar::imp::ActionType::eKey:     return key->value;
+		case ::lunar::imp::ActionType::eMouse:   return key->value | (1 << 31);
+		case ::lunar::imp::ActionType::eGamepad: return key->value | (1 << 30);
 		default: return key->value;
 		}
 	}
 
-	inline bool IsKeyPressed(GLFWwindow* handle, imp::ActionData* key)
+	bool Window_T::checkActionValue(const std::string_view& name, KeyState required) const
 	{
-		switch (key->type)
-		{
-		case imp::ActionType::eKey:     return glfwGetKey(handle, key->value) == GLFW_PRESS;
-		case imp::ActionType::eMouse:   return glfwGetMouseButton(handle, key->value) == GLFW_PRESS;
-		case imp::ActionType::eGamepad:
-		{
-			GLFWgamepadstate state;
-			glfwGetGamepadState(GLFW_JOYSTICK_1, &state); // TOOD: multiple joysticks?
-			return state.buttons[key->value] == GLFW_PRESS;
-		}
-		default:
+		if (!actions.contains(name))
 			return false;
-		}
-	}
 
-	bool Window::checkActionValue(const std::string_view& name, KeyState required) const
-	{
-		DEBUG_ASSERT(actions.contains(name), "Input action does not exist");
 		auto& options = actions.at(name);
 
 		for (size_t i = 0; i < 4; i++)
@@ -383,93 +225,155 @@ namespace lunar::Render
 		return false;
 	}
 
-	bool Window::getAction(const std::string_view& name) const
+	bool Window_T::getAction(const std::string_view& name) const
 	{
 		return checkActionValue(name, KeyState::ePressed | KeyState::eHeld | KeyState::eReleased);
 	}
 
-	bool Window::getActionUp(const std::string_view& name) const
+	bool Window_T::getActionUp(const std::string_view& name) const
 	{
 		return checkActionValue(name, KeyState::eReleased);
 	}
 
-	bool Window::getActionDown(const std::string_view& name) const
+	bool Window_T::getActionDown(const std::string_view& name) const
 	{
 		return checkActionValue(name, KeyState::ePressed);
 	}
 
-	glm::vec2 Window::getAxis() const
+	glm::vec2 Window_T::getAxis() const
 	{
 		return axis;
 	}
 
-	glm::vec2 Window::getRotation() const
+	glm::vec2 Window_T::getRotation() const
 	{
 		return rotation;
 	}
 
-	inline float GetAxisValue(GLFWgamepadstate& state, size_t n, float deadzone)
+	/*
+		Event handlers
+	*/
+
+	inline Window_T& GetWindowHandle(GLFWwindow* raw)
 	{
-		float value = state.axes[n];
-		if (value < -deadzone || value > deadzone)
-			return value;
-		else
-			return 0.f;
+		void* pointer = glfwGetWindowUserPointer(raw);
+		Window_T* handle = static_cast<Window_T*>(pointer);
+		return *handle;
 	}
 
-	inline void SetAxisValue(GLFWwindow* handle, int lower, int upper, float& value)
+	void GLFW_MouseBtnCallback(GLFWwindow* handle, int button, int action, int mods)
 	{
-		int first  = glfwGetKey(handle, lower);
-		int second = glfwGetKey(handle, upper);
+		static_assert(sizeof(int) == sizeof(int32_t));
 
-		value = 0.f;
-		if (first == GLFW_PRESS)
-			value += -1.f;
-		if (second == GLFW_PRESS)
-			value += 1.f;
+		auto& window = GetWindowHandle(handle);
+
+		window.keys[button | (int)(1 << 31)] = (action == GLFW_PRESS) 
+			? KeyState::ePressed 
+			: KeyState::eReleased;
 	}
 
-	void Window::update()
+	void GLFW_KeyCallback(GLFWwindow* handle, int key, int scancode, int action, int mods)
 	{
-		rotation = { 0, 0 };
+		auto& window = GetWindowHandle(handle);
+		window.keys[key] = (action == GLFW_PRESS) 
+			? KeyState::ePressed 
+			: KeyState::eReleased;
+	}
 
-		for (auto& [key, value] : keys)
+	void GLFW_FramebufferSizeCb(GLFWwindow* handle, int width, int height)
+	{
+		auto& window  = GetWindowHandle(handle);
+		window.width  = width;
+		window.height = height;
+	}
+
+	void GLFW_CursorPosCb(GLFWwindow* handle, double x, double y)
+	{
+		auto& window = GetWindowHandle(handle);
+		if (not window.mouseInside)
+			return;
+
+		auto current = glm::vec2 { x, y };
+
+		if (window.isCursorLocked())
 		{
-			switch (value)
-			{
-			case KeyState::ePressed:  value = KeyState::eHeld; break;
-			case KeyState::eReleased: value = KeyState::eNone; break;
-			default: break;
-			}
+			auto delta = (current - window.lastMouse) * window.mouseSensitivity;
+			window.rotation += glm::vec2{ delta.x, -delta.y };
 		}
 
-		SetAxisValue(handle, GLFW_KEY_A, GLFW_KEY_D, axis.x);
-		SetAxisValue(handle, GLFW_KEY_S, GLFW_KEY_W, axis.y);
+		window.lastMouse = current;
+	}
 
-		//for (size_t i = 0; i < 16; i++)
-		//{
-		//	if (not _JOYSTICK_CONNECTED[i])
-		//		continue;
+	void GLFW_CursorEnterCb(GLFWwindow* handle, int entered)
+	{
+		auto& window = GetWindowHandle(handle);
+		window.mouseInside = entered;
+	}
 
-		//	GLFWgamepadstate state;
-		//	glfwGetGamepadState(i, &state);
-		//	
-		//	for (int j = 0; j < 16; j++)
-		//		keys[j | (1 << 30)] = state.buttons[j] == GLFW_PRESS ? ;
+	/*
+		Global GLFW context
+	*/
 
-		//	axis = 
-		//	{
-		//		GetAxisValue(state, GLFW_GAMEPAD_AXIS_LEFT_X, deadzoneLeft),
-		//		GetAxisValue(state, GLFW_GAMEPAD_AXIS_LEFT_Y, deadzoneRight)
-		//	};
+	namespace imp
+	{
+		GLFWGlobalContext::~GLFWGlobalContext() noexcept
+		{
+			glfwDestroyWindow(headless);
+			glfwTerminate();
+			DEBUG_LOG("Context destroyed.");
+		}
 
-		//	rotation =
-		//	{
-		//		GetAxisValue(state, GLFW_GAMEPAD_AXIS_RIGHT_X, deadzoneLeft),
-		//		GetAxisValue(state, GLFW_GAMEPAD_AXIS_RIGHT_Y, deadzoneRight)
-		//	};
-		//}
+		GLFWGlobalContext::GLFWGlobalContext() noexcept
+		{
+			glfwInit();
 
-		glfwSwapBuffers(handle);
+			int major, minor, patch;
+			glfwGetVersion(&major, &minor, &patch);
+
+			DEBUG_LOG("GLFW initialized (version: {}.{}.{})", major, minor, patch);
+
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // for Mac
+			glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+			this->headless = glfwCreateWindow(640, 480, "", nullptr, nullptr);
+			glfwMakeContextCurrent(this->headless);
+
+			int version = gladLoadGL(glfwGetProcAddress);
+			DEBUG_LOG("OpenGL context initialized (version: {}.{})", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
+
+			glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+
+			glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+			glEnable(GL_DEPTH_TEST);
+			glDepthFunc(GL_LEQUAL);
+		}
 	}
 }
+
+//WindowBuilder& WindowBuilder::setTitle(const std::string_view& title)
+//{
+//	this->title = title;
+//	return *this;
+//}
+//
+//WindowBuilder& WindowBuilder::loadFromConfigFile(const Fs::Path& path)
+//{
+//	auto config = Fs::ConfigFile(path);
+//	setSize(
+//		config.get_or<int>("width", 800),
+//		config.get_or<int>("height", 600)
+//	);
+//
+//	setFullscreen(config.get_or<int>("fullscreen", 0));
+//	return *this;
+//}
+//
+//WindowBuilder& WindowBuilder::setRenderContext(RenderContext context)
+//{
+//	renderContext = context;
+//	return *this;
+//}
