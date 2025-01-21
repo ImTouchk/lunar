@@ -26,12 +26,12 @@ namespace lunar
 		return gameObject;
 	}
 
-	Scene_T* Component_T::getScene()
+	Scene* Component_T::getScene()
 	{
 		return scene;
 	}
 
-	const Scene_T* Component_T::getScene() const
+	const Scene* Component_T::getScene() const
 	{
 		return scene;
 	}

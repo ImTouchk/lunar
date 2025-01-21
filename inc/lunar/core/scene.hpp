@@ -18,12 +18,12 @@ namespace Render { class LUNAR_API Camera; }
 namespace lunar
 {
 	class LUNAR_API Camera;
-	class LUNAR_API Scene_T : public EventHandler
+	class LUNAR_API Scene : public EventHandler
 	{
 	public:
-		Scene_T(const std::string_view& name) noexcept;
-		Scene_T()                             noexcept = default;
-		~Scene_T()                            noexcept;
+		Scene(const std::string_view& name) noexcept;
+		Scene()                             noexcept = default;
+		~Scene()                            noexcept;
 
 		void       update();
 		Camera*    getMainCamera();

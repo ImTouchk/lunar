@@ -13,6 +13,16 @@ namespace lunar::Render
 	LUNAR_HANDLE_IMPL(GpuCubemap);
 	LUNAR_HANDLE_IMPL(Window);
 
+	void RenderContext_T::useCamera(const Camera& camera)
+	{
+		this->renderCamera = &camera;
+	}
+
+	void RenderContext_T::useCamera(const Camera* camera)
+	{
+		this->renderCamera = camera;
+	}
+
 	Window RenderContext_T::createWindow
 	(
 		int                     width,
@@ -57,8 +67,9 @@ namespace lunar::Render
 		const std::initializer_list<GpuProgramStageData>& stages
 	)
 	{
-		programs.emplace_back(this, programType, stages);
-		return make_handle(programs);
+		GpuProgram_T* program = new GpuProgram_T(this, programType, stages);
+		programs.push_back(program);
+		return Handle2<GpuProgram_T>(programs, programs.size() - 1);
 	}
 
 	GpuProgram RenderContext_T::createProgram
@@ -67,8 +78,9 @@ namespace lunar::Render
 		const std::span<GpuProgramStageData>& stages
 	)
 	{
-		programs.emplace_back(this, programType, stages);
-		return make_handle(programs);
+		GpuProgram_T* program = new GpuProgram_T(this, programType, stages);
+		programs.push_back(program);
+		return Handle2<GpuProgram_T>(programs, programs.size() - 1);
 	}
 
 	GpuBuffer RenderContext_T::createBuffer
@@ -210,35 +222,53 @@ namespace lunar::Render
 		DEBUG_ASSERT(programs.size() == 0, "Default shaders must be built before any other shaders.");
 		DEBUG_ASSERT(defaultProgramsBuilt == false, "Default shaders were already built.");
 
+		/*
+			Since we do not want the default assets to ever get cleaned up,
+			the refCount is manually increased by 2 (which should, in theory,
+			make sure that they never get cleaned up). 
+			
+			If you remove the addition, the program gets instantly destroyed
+			because we are discarding their handles.
+		
+			This code is absolutely horrendous but I really feel there is no other
+			better way of doing this.
+		*/
+
 		GpuProgramBuilder()
 			.graphicsShader()
 			.addVertexSource(Fs::fromData("shader-src/screen.vert"))
 			.addFragmentSource(Fs::fromData("shader-src/unlit.frag"))
-			.build(this);
+			.build(this)->refCount += 2;
 
 		GpuProgramBuilder()
 			.graphicsShader()
 			.addVertexSource(Fs::fromData("shader-src/pbr/cubemap.vert"))
 			.addFragmentSource(Fs::fromData("shader-src/pbr/equirect_to_cubemap.frag"))
-			.build(this);
+			.build(this)->refCount += 2;
 
 		GpuProgramBuilder()
 			.graphicsShader()
 			.addVertexSource(Fs::fromData("shader-src/pbr/cubemap.vert"))
 			.addFragmentSource(Fs::fromData("shader-src/pbr/irradiance.frag"))
-			.build(this);
+			.build(this)->refCount += 2;
 
 		GpuProgramBuilder()
 			.graphicsShader()
 			.addVertexSource(Fs::fromData("shader-src/pbr/cubemap.vert"))
 			.addFragmentSource(Fs::fromData("shader-src/pbr/prefilter.frag"))
-			.build(this);
+			.build(this)->refCount += 2;
 
 		GpuProgramBuilder()
 			.graphicsShader()
 			.addVertexSource(Fs::fromData("shader-src/pbr/brdf.vert"))
 			.addFragmentSource(Fs::fromData("shader-src/pbr/brdf.frag"))
-			.build(this);
+			.build(this)->refCount += 2;
+
+		GpuProgramBuilder()
+			.graphicsShader()
+			.addVertexSource(Fs::fromData("shader-src/skybox.vert"))
+			.addFragmentSource(Fs::fromData("shader-src/skybox.frag"))
+			.build(this)->refCount += 2;
 
 		defaultProgramsBuilt = true;
 		DEBUG_LOG("Built default GPU programs.");

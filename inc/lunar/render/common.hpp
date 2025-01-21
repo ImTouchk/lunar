@@ -66,6 +66,13 @@ namespace lunar::Render
 
 namespace lunar::Render
 {
+	struct LUNAR_API MaterialProperties
+	{
+		float metallic  = 0.1f;
+		float roughness = 0.1f;
+		float ao        = 0.1f;
+	};
+
 	class LUNAR_API GpuVertexArrayObject_T;
 	class LUNAR_API GpuBuffer_T;
 	class LUNAR_API GpuProgram_T;
@@ -76,7 +83,6 @@ namespace lunar::Render
 	class LUNAR_API Window_T;
 	LUNAR_HANDLE(GpuVertexArrayObject);
 	LUNAR_HANDLE(GpuBuffer);
-	LUNAR_HANDLE(GpuProgram);
 	LUNAR_HANDLE(GpuTexture);
 	LUNAR_HANDLE(GpuCubemap);
 	LUNAR_HANDLE(GpuMesh);

@@ -7,16 +7,16 @@
 #include <lunar/render/program.hpp>
 #include <lunar/render/mesh.hpp>
 #include <lunar/render/window.hpp>
+#include <lunar/core/common.hpp>
 
+#include <imgui.h>
 #include <vector>
 #include <span>
 
-#include <imgui.h>
-
+namespace lunar { class LUNAR_API Camera; }
 
 namespace lunar::Render
 {
-	//class LUNAR_API Camera;
 	class LUNAR_API RenderContext_T
 	{
 	public:
@@ -26,8 +26,13 @@ namespace lunar::Render
 		template <typename T>
 		inline void begin(Handle<T> target) { begin(&target.get()); }
 		void        begin(RenderTarget* target);
-		void        draw(GpuProgram program, GpuTexture texture);
+		void        clear(float r, float g, float b, float a);
+		void        draw(Scene& scene);
 		void        draw(GpuMesh mesh);
+		void        draw(GpuCubemap cubemap);
+		void        useCamera(const Camera* camera);
+		void        useCamera(const Camera& camera);
+
 		void        end();
 
 		GpuMesh     getMesh(MeshPrimitive primitive);
@@ -97,7 +102,7 @@ namespace lunar::Render
 	private:
 		vector<GpuVertexArrayObject_T> vertexArrays         = {};
 		vector<GpuBuffer_T>            buffers              = {};
-		vector<GpuProgram_T>           programs             = {};
+		vector<GpuProgram_T*>          programs             = {};
 		vector<GpuTexture_T>           textures             = {};
 		vector<GpuMesh_T>              meshes               = {};
 		vector<GpuCubemap_T>           cubemaps             = {};
@@ -106,10 +111,13 @@ namespace lunar::Render
 		bool                           inFrameScope         = false;
 		bool                           defaultProgramsBuilt = false;
 		bool                           defaultMeshesBuilt   = false;
-		//const Camera*                  renderCamera         = nullptr;
+		int                            viewportWidth        = 0;
+		int                            viewportHeight       = 0;
+		const Camera*                  renderCamera         = nullptr;
 
 		void loadDefaultMeshes();
 		void loadDefaultPrograms();
+		void setViewportSize(int width, int height);
 
 #		ifdef LUNAR_OPENGL
 		GLuint                         frameBuffer  = 0;

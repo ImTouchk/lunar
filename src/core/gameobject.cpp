@@ -7,7 +7,7 @@
 
 namespace lunar
 {
-	GameObject_T::GameObject_T(Scene_T* scene, const std::string_view& name, GameObject parent) noexcept
+	GameObject_T::GameObject_T(Scene* scene, const std::string_view& name, GameObject parent) noexcept
 		: name(name),
 		parent(parent),
 		scene(scene),
@@ -16,7 +16,7 @@ namespace lunar
 
 	}
 
-	Scene_T* GameObject_T::getScene()
+	Scene* GameObject_T::getScene()
 	{
 		return scene;
 	}

@@ -26,17 +26,30 @@ namespace lunar
 		};
 	}
 
+	/*
+		Represents a list of actions that need to happen in order for the combo to be satisfied.
+		Example: { "keyboard.esc", "mouse.left_button" } would require both to be pressed at the same time.
+		Check "input.cpp" for a list of all supported values.
+	*/
+	using InputCombo = std::initializer_list<std::string_view>;
+
 	class LUNAR_API InputHandler
 	{
-	public:
-		using InputCombo = std::initializer_list<std::string_view>;
-		
+	public:	
 		virtual void      update()            = 0;
 		virtual glm::vec2 getAxis()     const = 0;
 		virtual glm::vec2 getRotation() const = 0;
 		virtual bool      getAction(const std::string_view&) const = 0;
 		virtual bool      getActionUp(const std::string_view&) const = 0;
 		virtual bool      getActionDown(const std::string_view&) const = 0;
+
+		/*
+			@brief Registers a new input action that can be checked.
+			@param name Name of the action to be registered.
+			@param combos A list of input combinations that can trigger this action.
+			@example window->registerAction("close", { { "keyboard.esc" }, { "keyboard.alt", "keyboard.f4" } });
+			@see input.cpp
+		*/
 		void              registerAction(const std::string_view& name, const std::initializer_list<InputCombo>& combos);
 
 	protected:

@@ -5,24 +5,23 @@
 
 namespace lunar
 {
-	LUNAR_HANDLE_IMPL(Scene);
 	LUNAR_HANDLE_IMPL(GameObject);
 
-	Scene_T::Scene_T(const std::string_view& name) noexcept
+	Scene::Scene(const std::string_view& name) noexcept
 		: name(name)
 	{
 	}
 
-	Scene_T::~Scene_T() noexcept
+	Scene::~Scene() noexcept
 	{
 	}
 
-	GameObject Scene_T::getGameObject(size_t number)
+	GameObject Scene::getGameObject(size_t number)
 	{
 		return make_handle(objects, number);
 	}
 
-	GameObject Scene_T::getGameObject(const std::string_view& name)
+	GameObject Scene::getGameObject(const std::string_view& name)
 	{
 		for (size_t i = 0; i < objects.size(); i++)
 			if (objects[i].getName().compare(name) == 0)
@@ -31,23 +30,23 @@ namespace lunar
 		return nullptr;
 	}
 
-	GameObject Scene_T::createGameObject(const std::string_view& name, GameObject parent)
+	GameObject Scene::createGameObject(const std::string_view& name, GameObject parent)
 	{
 		objects.emplace_back(this, name, parent);
 		return make_handle(objects);
 	}
 
-	void Scene_T::setMainCamera(Camera* camera)
+	void Scene::setMainCamera(Camera* camera)
 	{
 		this->mainCamera = camera;
 	}
 
-	Camera* Scene_T::getMainCamera()
+	Camera* Scene::getMainCamera()
 	{
 		return mainCamera;
 	}
 
-	void Scene_T::update()
+	void Scene::update()
 	{
 		for (auto& component : components)
 			component->update();

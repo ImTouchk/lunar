@@ -31,14 +31,14 @@ namespace lunar
 		const char*      getClassName()  const;
 		const GameObject getGameObject() const;
 		GameObject       getGameObject();
-		Scene_T*         getScene();
-		const Scene_T*   getScene()      const;
+		Scene*           getScene();
+		const Scene*     getScene()      const;
 		Transform&       getTransform();
 		const Transform& getTransform()  const;
 
 	protected:
 		GameObject gameObject = nullptr;
-		Scene_T*   scene      = nullptr;
+		Scene*   scene      = nullptr;
 
 		friend class GameObject_T;
 	};

@@ -12,6 +12,11 @@ namespace lunar
 		{ t.setValid( bool() ) };
 	};
 
+	//template<typename T>
+	//concept RefCounted = requires(T t) { 
+	//	{ t.refCount } -> std::same_as<size_t>; 
+	//};
+
 	template<typename T>
 	class LUNAR_API Handle
 	{
@@ -22,19 +27,69 @@ namespace lunar
 		Handle()                                    noexcept = default;
 		~Handle()                                   noexcept = default;
 
-		T*       operator->()           { return &(ref->operator[](idx)); }
-		const T* operator->() const     { return &(ref->operator[](idx)); }
-		T&       get()                  { return ref->operator[](idx); }
-		const T& get()       const      { return ref->operator[](idx); }
-		bool     operator==(T* pointer) { return pointer == (ref->data() + idx); }
+		T* operator->()                       { return &(ref->operator[](idx)); }
+		const T* operator->()           const { return &(ref->operator[](idx)); }
+		T& get()                              { return ref->operator[](idx); }
+		const T& get()                  const { return ref->operator[](idx); }
+		bool     operator==(T* pointer)       { return pointer == (ref->data() + idx); }
+
+		template<typename = typename std::enable_if<HasValidCheck<T>>::type>
+		bool     valid()     const { return get().valid(); }
+
+
+	protected:
+		vector<T>* ref = nullptr;
+		size_t     idx = 0;
+	};
+
+	template<typename T>
+	class LUNAR_API Handle2 
+	{
+	public:
+		using TyPtr = T*;
+		using TyRef = T&;
+
+		Handle2(std::nullptr_t)                          noexcept : ref(nullptr), idx(0) {}
+		Handle2(vector<TyPtr>& collection, size_t index) noexcept : ref(&collection), idx(index) 
+		{
+			T* element = (*ref)[idx];
+			element->refCount++;
+		}
+		Handle2(vector<TyPtr>& collection, TyPtr object) noexcept : ref(&collection), idx(0) 
+		{
+			for (size_t i = 0; i < collection.size(); i++)
+				if (collection[i] == object)
+					idx = i;
+
+			T* element = (*ref)[idx];
+			element->refCount++;
+		}
+		Handle2()                                    noexcept = default;
+		~Handle2()                                   noexcept
+		{
+			if (ref != nullptr)
+			{
+				T* element = (*ref)[idx];
+				element->refCount--;
+
+				if (element->refCount <= 0)
+					delete element;
+			}
+		}
+
+		T*       operator->()           { return ref->operator[](idx); }
+		const T* operator->() const     { return ref->operator[](idx); }
+		T&       get()                  { return *(ref->operator[](idx)); }
+		const T& get()       const      { return *(ref->operator[](idx)); }
+		bool     operator==(T* pointer) { return pointer == (*ref)[idx]; }
 		
 		template<typename = typename std::enable_if<HasValidCheck<T>>::type>
 		bool     valid()     const      { return get().valid(); }
 
 
 	protected:
-		vector<T>* ref = nullptr;
-		size_t     idx = 0;
+		vector<TyPtr>* ref = nullptr;
+		size_t         idx = 0;
 	};
 
 	template<typename T>

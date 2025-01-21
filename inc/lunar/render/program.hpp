@@ -16,6 +16,7 @@ namespace lunar::Render
 		eIrradianceMapBuilder = 2,
 		ePrefilterMapBuilder  = 3,
 		eBrdfBuilder          = 4,
+		eSkyboxShader         = 5
 	};
 
 	struct LUNAR_API GpuProgramBuilder
@@ -35,6 +36,5 @@ namespace lunar::Render
 		GpuProgramType                   programType = GpuProgramType::eUnknown;
 		std::vector<GpuProgramStageData> stages      = {};
 		std::array<std::string, 4>       stageBytes  = {};
-
 	};
 }

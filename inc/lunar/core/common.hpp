@@ -4,10 +4,9 @@
 
 namespace lunar
 {
-	class LUNAR_API Scene_T;
+	class LUNAR_API Scene;
 	class LUNAR_API GameObject_T;
 	class LUNAR_API Component_T;
-	LUNAR_HANDLE(Scene);
 	LUNAR_HANDLE(GameObject);
 	LUNAR_SHARED_HANDLE(Component);
 }

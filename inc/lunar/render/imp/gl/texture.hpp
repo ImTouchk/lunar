@@ -109,11 +109,13 @@ namespace lunar::Render
 		GpuCubemap_T()  noexcept = default;
 		~GpuCubemap_T() noexcept = default;
 
-	private:
+	public:
 		GpuTexture environmentMap = nullptr;
 		GpuTexture irradianceMap  = nullptr;
 		GpuTexture prefilterMap   = nullptr;
 		GpuTexture brdfLut        = nullptr;
+
+	private:
 		int        width          = -1;
 		int        height         = -1;
 	};

@@ -91,11 +91,11 @@ namespace lunar::Render
 	public:
 		GpuMesh_T
 		(
-			RenderContext_T*     context,
-			GpuVertexArrayObject vertexArray,
-			GpuBuffer            vertexBuffer,
-			GpuBuffer            indexBuffer,
-			MeshTopology         topology
+			RenderContext_T*             context,
+			GpuVertexArrayObject         vertexArray,
+			GpuBuffer                    vertexBuffer,
+			GpuBuffer                    indexBuffer,
+			MeshTopology                 topology
 		) noexcept;
 		GpuMesh_T() noexcept = default;
 		~GpuMesh_T() noexcept;
@@ -113,6 +113,8 @@ namespace lunar::Render
 		size_t               vertexCount  = 0;
 		size_t               indexCount   = 0;
 		MeshTopology         meshTopology = MeshTopology::eTriangles;
+		//GpuTexture           textures[10] = {};
+		//size_t               textureCount = 0;
 	};
 
 	enum class LUNAR_API MeshPrimitive

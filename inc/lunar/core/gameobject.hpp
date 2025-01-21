@@ -16,12 +16,12 @@ namespace lunar
 	class LUNAR_API GameObject_T
 	{
 	public:
-		GameObject_T(Scene_T* scene, const std::string_view& name, GameObject parent = nullptr) noexcept;
+		GameObject_T(Scene* scene, const std::string_view& name, GameObject parent = nullptr) noexcept;
 		GameObject_T()  noexcept = default;
 		~GameObject_T() noexcept = default;
 
 		std::string_view       getName() const;
-		Scene_T*               getScene();
+		Scene*                 getScene();
 		GameObject             getParent();
 		std::vector<Component> getComponents();
 		Component              getComponent(const std::type_info& ty);
@@ -42,7 +42,7 @@ namespace lunar
 		}
 
 	private:
-		Scene_T*    scene     = nullptr;
+		Scene*    scene     = nullptr;
 		GameObject  parent    = nullptr;
 		std::string name      = "GameObject";
 		Transform   transform = {};

@@ -115,6 +115,11 @@ namespace lunar::Render
 		return height;
 	}
 
+	GLFWwindow* Window_T::glfwGetHandle()
+	{
+		return handle;
+	}
+
 	bool Window_T::isActive() const
 	{
 		return handle != nullptr && glfwWindowShouldClose(handle) == GLFW_FALSE;
@@ -314,6 +319,17 @@ namespace lunar::Render
 		Global GLFW context
 	*/
 
+	void GLAPIENTRY DebugCallback
+	(
+		GLenum        source,
+		GLenum        type,
+		GLuint        id,
+		GLenum        severity,
+		GLsizei       length,
+		const GLchar* message,
+		const void* userParam
+	);
+
 	namespace imp
 	{
 		GLFWGlobalContext::~GLFWGlobalContext() noexcept
@@ -334,9 +350,10 @@ namespace lunar::Render
 
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // for Mac
+			glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 			glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 			this->headless = glfwCreateWindow(640, 480, "", nullptr, nullptr);
@@ -347,9 +364,19 @@ namespace lunar::Render
 
 			glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
 
+			int flags;
+			glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+			if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+			{
+				glEnable(GL_DEBUG_OUTPUT);
+				glDebugMessageCallback(DebugCallback, nullptr);
+				DEBUG_LOG("OpenGL debugging enabled.");
+			}
+
 			glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 			glEnable(GL_DEPTH_TEST);
 			glDepthFunc(GL_LEQUAL);
+
 		}
 	}
 

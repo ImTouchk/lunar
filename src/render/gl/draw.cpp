@@ -1,7 +1,10 @@
 #include <lunar/render/imp.hpp>
 #include <lunar/render/context.hpp>
-#include <lunar/render/render_components.hpp>
+#include <lunar/render/components.hpp>
 #include <lunar/debug/assert.hpp>
+#include <lunar/core/scene.hpp>
+#include <lunar/core/component.hpp>
+
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,6 +20,12 @@ namespace lunar::Render
 
 		int v_width  = target->getRenderWidth();
 		int v_height = target->getRenderHeight();
+
+		if (typeid(*target).hash_code() == typeid(Window_T).hash_code())
+		{
+			Window_T* window = static_cast<Window_T*>(target);
+			glfwMakeContextCurrent(window->glfwGetHandle());
+		}
 
 		if (typeid(*target).hash_code() == typeid(GpuTexture_T).hash_code())
 		{
@@ -37,6 +46,14 @@ namespace lunar::Render
 
 		glViewport(0, 0, v_width, v_height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		if (v_width != viewportWidth || v_height != viewportHeight)
+			setViewportSize(v_width, v_height);
+	}
+
+	void RenderContext_T::clear(float r, float g, float b, float a)
+	{
+		glClearColor(r, g, b, a);
 	}
 
 	void RenderContext_T::draw(GpuMesh mesh)
@@ -44,12 +61,29 @@ namespace lunar::Render
 		GpuVertexArrayObject vertex_arr = mesh->getVertexArray();
 		vertex_arr->bind();
 		glDrawElements((GLenum)mesh->getTopology(), mesh->getVertexCount(), GL_UNSIGNED_INT, 0);
+		vertex_arr->unbind();
 	}
 
-	void RenderContext_T::draw(GpuProgram program, GpuTexture texture)
+	void RenderContext_T::draw(Scene& scene)
 	{
-		program->use();
+		
+	}
 
+	void RenderContext_T::draw(GpuCubemap cubemap)
+	{
+		const GpuMesh cube_mesh  = getMesh(MeshPrimitive::eCube);
+		GpuProgram    shader     = getProgram(GpuDefaultPrograms::eSkyboxShader);
+		auto          view       = renderCamera->getViewMatrix();
+		auto          projection = renderCamera->getProjectionMatrix(viewportWidth, viewportHeight);
+		
+		shader->use();
+		shader->uniform("view", view);
+		shader->uniform("projection", projection);
+		shader->bind("environmentMap", 0, cubemap->environmentMap);
+		shader->bind("irradianceMap", 1, cubemap->irradianceMap);
+		shader->bind("prefilterMap", 2, cubemap->prefilterMap);
+		shader->bind("brdfMap", 3, cubemap->brdfLut);
+		draw(cube_mesh);
 	}
 
 	void RenderContext_T::end()
@@ -57,7 +91,7 @@ namespace lunar::Render
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		this->inFrameScope = false;
-		//this->renderCamera = nullptr;
+		this->renderCamera = nullptr;
 		this->target       = nullptr;
 	}
 

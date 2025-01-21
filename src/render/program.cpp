@@ -4,6 +4,8 @@
 
 namespace lunar::Render
 {
+	template class LUNAR_API lunar::Handle2<GpuProgram_T>;
+
 	GpuProgramBuilder& GpuProgramBuilder::graphicsShader()
 	{
 		this->programType = GpuProgramType::eGraphics;
@@ -53,6 +55,6 @@ namespace lunar::Render
 
 	GpuProgram RenderContext_T::getProgram(size_t number)
 	{
-		return make_handle(programs, number);
+		return Handle2<GpuProgram_T>(programs, number);
 	}
 }

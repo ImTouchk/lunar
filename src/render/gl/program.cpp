@@ -97,7 +97,7 @@ namespace lunar::Render
 
 	GpuProgram_T::~GpuProgram_T()
 	{
-		if (handle != 0)
+		if (handle != 0 && refCount <= 0)
 			glDeleteProgram(handle);
 	}
 
@@ -129,5 +129,26 @@ namespace lunar::Render
 	GLuint GpuProgram_T::glGetHandle()
 	{
 		return handle;
+	}
+
+	/*
+		Move operators
+	*/
+
+	GpuProgram_T::GpuProgram_T(GpuProgram_T&& other) noexcept
+	{
+		this->handle      = std::move(other.handle);
+		this->programType = std::move(other.programType);
+
+		other.handle = 0;
+	}
+
+	GpuProgram_T& GpuProgram_T::operator=(GpuProgram_T&& other) noexcept
+	{
+		this->handle      = std::move(other.handle);
+		this->programType = std::move(other.programType);
+
+		other.handle = 0;
+		return *this;
 	}
 }
