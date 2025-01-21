@@ -78,6 +78,25 @@ namespace lunar::Render
 		friend void GLFW_CursorEnterCb(GLFWwindow*, int);
 	};
 
+	struct LUNAR_API WindowBuilder
+	{
+	public:
+		WindowBuilder()  noexcept = default;
+		~WindowBuilder() noexcept = default;
+
+		WindowBuilder& size(int width, int height);
+		WindowBuilder& samples(int msaa);
+		WindowBuilder& fullscreen(bool value);
+		Window         build(RenderContext context, const std::string_view& title);
+
+	private:
+		int  width        = -1;
+		int  height       = -1;
+		int  msaa         = 0;
+		bool isFullscreen = false;
+		bool enableVsync  = false;
+	};
+
 	namespace imp
 	{
 		struct LUNAR_API GLFWGlobalContext

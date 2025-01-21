@@ -352,28 +352,39 @@ namespace lunar::Render
 			glDepthFunc(GL_LEQUAL);
 		}
 	}
-}
 
-//WindowBuilder& WindowBuilder::setTitle(const std::string_view& title)
-//{
-//	this->title = title;
-//	return *this;
-//}
-//
-//WindowBuilder& WindowBuilder::loadFromConfigFile(const Fs::Path& path)
-//{
-//	auto config = Fs::ConfigFile(path);
-//	setSize(
-//		config.get_or<int>("width", 800),
-//		config.get_or<int>("height", 600)
-//	);
-//
-//	setFullscreen(config.get_or<int>("fullscreen", 0));
-//	return *this;
-//}
-//
-//WindowBuilder& WindowBuilder::setRenderContext(RenderContext context)
-//{
-//	renderContext = context;
-//	return *this;
-//}
+	/*
+		Window builder
+	*/
+
+	WindowBuilder& WindowBuilder::fullscreen(bool value)
+	{
+		this->isFullscreen = value;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::size(int width, int height)
+	{
+		this->width  = width;
+		this->height = height;
+		return *this;
+	}
+
+	WindowBuilder& WindowBuilder::samples(int count)
+	{
+		this->msaa = count;
+		return *this;
+	}
+
+	Window WindowBuilder::build(RenderContext context, const std::string_view& title)
+	{
+		return context->createWindow(
+			this->width,
+			this->height,
+			this->isFullscreen,
+			title,
+			this->msaa,
+			this->enableVsync
+		);
+	}
+}

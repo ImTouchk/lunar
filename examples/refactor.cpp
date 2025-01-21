@@ -10,31 +10,31 @@ int main()
 	using namespace lunar;
 	using namespace lunar::Render;
 
-	auto window_builder = WindowBuilder();
-	auto window = window_builder
-		.loadFromConfigFile(Fs::fromBase("window.cfg"))
-		.create();
-
 	RenderContext context = std::make_shared<RenderContext_T>();
-	
+	Window        window  = WindowBuilder()
+		.size(800, 600)
+		.samples(4)
+		.build(context, "Hello, world!");
+
+	auto          scene   = Scene_T("Test");
+	GameObject    object  = scene.createGameObject("Test Object");
+
+	scene.setMainCamera(&object->addComponent<Camera>());
+
 	auto img   = Fs::ImageFile(Fs::fromData("skybox/sky.hdr"));
-	auto scene = Scene_T("Test");
 	GpuCubemap cubemap = context->createCubemap(img.width, img.height, img.bytes, true);
-	GameObject obj     = scene.createGameObject("Fack you");
 	
-	auto components = obj->getComponents();
-	DEBUG_LOG("Game object {}", obj->getName()); 
+	auto components = object->getComponents();
+	DEBUG_LOG("Game object {}", object->getName()); 
 	DEBUG_LOG("Components (count: {}): ", components.size());
+	for (auto& component : components)
+		DEBUG_LOG("Component '{}'", component->getClassName());
 
-	while (!window.shouldClose())
+	while (window->isActive())
 	{
-		window.pollEvents();
 
-		context->begin(&window);
-
-		context->end();
-
-		window.update();
+		window->update();
+		window->pollEvents();
 	}
 
 
