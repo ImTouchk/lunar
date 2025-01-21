@@ -52,8 +52,7 @@ namespace lunar::Render
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment_map->glGetHandle(), 0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glBindVertexArray(cube_mesh->getVertexArray()->handle);
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+			context->draw(cube_mesh);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -95,8 +94,7 @@ namespace lunar::Render
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradiance_map->glGetHandle(), 0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glBindVertexArray(cube_mesh->getVertexArray()->handle);
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+			context->draw(cube_mesh);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -142,9 +140,8 @@ namespace lunar::Render
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilter_map->glGetHandle(), mip);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-				glBindVertexArray(cube_mesh->getVertexArray()->handle);
-				glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+				
+				context->draw(cube_mesh);
 			}
 		}
 
@@ -178,8 +175,7 @@ namespace lunar::Render
 		shader->use();
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		glBindVertexArray(quad_mesh->getVertexArray()->handle);
-		glDrawElements(GL_TRIANGLES, quad_mesh->getVertexCount(), GL_UNSIGNED_INT, 0);
+		context->draw(quad_mesh);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

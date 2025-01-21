@@ -118,6 +118,12 @@ namespace lunar::Render
 		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(m4));
 	}
 
+	void GpuProgram_T::uniform(const std::string_view& name, const float f)
+	{
+		GLint loc = glGetUniformLocation(handle, name.data());
+		glUniform1f(loc, f);
+	}
+
 	void GpuProgram_T::bind(const std::string_view& name, size_t location, GpuTexture texture)
 	{
 		GLint name_loc = glGetUniformLocation(handle, name.data());

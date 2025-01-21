@@ -14,6 +14,10 @@
 #	include <vulkan/vulkan.hpp>
 #endif
 
+#ifdef LUNAR_OPENGL
+#	include <lunar/render/imp/gl/window.hpp>
+#endif
+
 namespace lunar::Render
 {
 	struct LUNAR_API Window_T : public RenderTarget, public InputHandler
@@ -32,26 +36,28 @@ namespace lunar::Render
 		Window_T()  noexcept = default;
 		~Window_T() noexcept;
 
-		void        toggleCursorLocked();
-		void        setCursorLocked(bool value);
-		void        update()                                    override;
+		void                    toggleCursorLocked();
+		void                    setCursorLocked(bool value);
+		void                    update()                                    override;
 
-		void        close();
-		bool        isActive()                                  const;
-		bool        isMinimized()                               const;
-		bool        isFullscreen()                              const;
-		bool        isCursorLocked()                            const;
-		int         getRenderWidth()                            const override;
-		int         getRenderHeight()                           const override;
-		bool        getActionDown(const std::string_view& name) const override;
-		bool        getActionUp(const std::string_view& name)   const override;
-		bool        getAction(const std::string_view& name)     const override;
-		glm::vec2   getAxis()                                   const override;
-		glm::vec2   getRotation()                               const override;
-		GLFWwindow* glfwGetHandle();
+		void                    close();
+		bool                    isActive()                                  const;
+		bool                    isMinimized()                               const;
+		bool                    isFullscreen()                              const;
+		bool                    isCursorLocked()                            const;
+		int                     getRenderWidth()                            const override;
+		int                     getRenderHeight()                           const override;
+		bool                    getActionDown(const std::string_view& name) const override;
+		bool                    getActionUp(const std::string_view& name)   const override;
+		bool                    getAction(const std::string_view& name)     const override;
+		glm::vec2               getAxis()                                   const override;
+		glm::vec2               getRotation()                               const override;
+		GLFWwindow*             glfwGetHandle();
+		imp::WindowBackendData& getBackendData();
 
 		static void pollEvents();
 
+		size_t                            refCount     = 0;
 	private:
 		GLFWwindow*                       handle       = nullptr;
 		int                               width        = -1;
@@ -64,12 +70,15 @@ namespace lunar::Render
 		glm::vec2                         axis         = { 0, 0 };
 		glm::vec2                         rotation     = { 0, 0 };
 		glm::vec2                         lastMouse    = { 0, 0 };
-		bool                              mouseInside  = false;
+		bool                              mouseInside  = true;
 		bool                              mouseLocked  = false;
 		RenderContext_T*                  context      = nullptr;
 		ImGuiContext*                     imguiContext = nullptr;
+		imp::WindowBackendData            imp          = {};
 
 		bool checkActionValue(const std::string_view& name, KeyState required) const;
+		void initializeBackendData();
+		void clearBackendData();
 
 		friend void GLFW_FramebufferSizeCb(GLFWwindow*, int, int);
 		friend void GLFW_KeyCallback(GLFWwindow*, int, int, int, int);
@@ -106,6 +115,7 @@ namespace lunar::Render
 			~GLFWGlobalContext() noexcept;
 
 			GLFWwindow* headless = nullptr;
+			GLuint      vao      = 0;
 		};
 	}
 }

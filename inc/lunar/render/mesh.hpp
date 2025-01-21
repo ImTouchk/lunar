@@ -92,7 +92,6 @@ namespace lunar::Render
 		GpuMesh_T
 		(
 			RenderContext_T*             context,
-			GpuVertexArrayObject         vertexArray,
 			GpuBuffer                    vertexBuffer,
 			GpuBuffer                    indexBuffer,
 			MeshTopology                 topology
@@ -100,13 +99,15 @@ namespace lunar::Render
 		GpuMesh_T() noexcept = default;
 		~GpuMesh_T() noexcept;
 
-		GpuVertexArrayObject getVertexArray();
-		size_t               getVertexCount()  const;
-		size_t               getIndicesCount() const;
-		MeshTopology         getTopology()     const;
+		//GpuVertexArrayObject& getVertexArray();
+		size_t                getVertexCount()  const;
+		size_t                getIndicesCount() const;
+		MeshTopology          getTopology()     const;
+		GpuBuffer             getVertexBuffer();
+		GpuBuffer             getIndexBuffer();
 
 	private:
-		GpuVertexArrayObject vertexArray  = nullptr;
+		//GpuVertexArrayObject vertexArray  = nullptr;
 		GpuBuffer            vertexBuffer = nullptr;
 		GpuBuffer            indexBuffer  = nullptr;
 		RenderContext_T*     context      = nullptr;
@@ -132,11 +133,9 @@ namespace lunar::Render
 		GpuMeshBuilder& useRenderContext(RenderContext_T* context);
 		GpuMeshBuilder& fromVertexArray(const std::span<const Vertex>& vertices);
 		GpuMeshBuilder& fromIndexArray(const std::span<const uint32_t>& indices);
-		GpuMeshBuilder& defaultVertexArray();
 		GpuMesh         build();
 
 	private:
-		GpuVertexArrayObject vertexArray  = nullptr;
 		GpuBuffer            vertexBuffer = nullptr;
 		GpuBuffer            indexBuffer  = nullptr;
 		RenderContext_T*     context      = nullptr;

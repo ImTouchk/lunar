@@ -5,10 +5,9 @@
 
 namespace lunar::Render
 {
-	LUNAR_HANDLE_IMPL(GpuTexture);
-	LUNAR_HANDLE_IMPL(GpuProgram);
-	LUNAR_HANDLE_IMPL(GpuTexture);
-	LUNAR_HANDLE_IMPL(GpuBuffer);
+	LUNAR_REF_HANDLE_IMPL(GpuTexture);
+	LUNAR_REF_HANDLE_IMPL(GpuProgram);
+	LUNAR_REF_HANDLE_IMPL(GpuBuffer);
 	LUNAR_HANDLE_IMPL(GpuMesh);
 	LUNAR_HANDLE_IMPL(GpuCubemap);
 	LUNAR_HANDLE_IMPL(Window);
@@ -33,8 +32,10 @@ namespace lunar::Render
 		bool                    vsync
 	)
 	{
-		windows.emplace_back(this, width, height, fullscreen, name, msaa, vsync);
-		return make_handle(windows);
+		Window_T* window = new Window_T(this, width, height, fullscreen, name, msaa, vsync);
+		windows.push_back(window);
+		glfwMakeContextCurrent(window->glfwGetHandle());
+		return RefHandle<Window_T>(windows, windows.size() - 1);
 	}
 
 	GpuTexture RenderContext_T::createTexture
@@ -51,14 +52,17 @@ namespace lunar::Render
 		TextureFlags      flags
 	)
 	{
-		textures.emplace_back(
-			this, 
-			width, height, 
-			data, srcFormat, dataFormat, 
-			dstFormat, type, 
+		GpuTexture_T* texture = new GpuTexture_T
+		(
+			this,
+			width, height,
+			data, srcFormat, dataFormat,
+			dstFormat, type,
 			filtering, wrapping, flags
 		);
-		return make_handle(textures);
+
+		textures.push_back(texture);
+		return RefHandle<GpuTexture_T>(textures, textures.size() - 1);
 	}
 
 	GpuProgram RenderContext_T::createProgram
@@ -69,7 +73,7 @@ namespace lunar::Render
 	{
 		GpuProgram_T* program = new GpuProgram_T(this, programType, stages);
 		programs.push_back(program);
-		return Handle2<GpuProgram_T>(programs, programs.size() - 1);
+		return RefHandle<GpuProgram_T>(programs, programs.size() - 1);
 	}
 
 	GpuProgram RenderContext_T::createProgram
@@ -80,7 +84,7 @@ namespace lunar::Render
 	{
 		GpuProgram_T* program = new GpuProgram_T(this, programType, stages);
 		programs.push_back(program);
-		return Handle2<GpuProgram_T>(programs, programs.size() - 1);
+		return RefHandle<GpuProgram_T>(programs, programs.size() - 1);
 	}
 
 	GpuBuffer RenderContext_T::createBuffer
@@ -91,19 +95,19 @@ namespace lunar::Render
 		void* data
 	)
 	{
-		buffers.emplace_back(this, type, usageFlags, size, data);
-		return make_handle(buffers);
+		GpuBuffer_T* buffer = new GpuBuffer_T(this, type, usageFlags, size, data);
+		buffers.push_back(buffer);
+		return RefHandle<GpuBuffer_T>(buffers, buffers.size() - 1);
 	}
 
 	GpuMesh RenderContext_T::createMesh
 	(
-		GpuVertexArrayObject vertexArray,
-		GpuBuffer            vertexBuffer,
-		GpuBuffer            indexBuffer,
-		MeshTopology         topology
+		GpuBuffer    vertexBuffer,
+		GpuBuffer    indexBuffer,
+		MeshTopology topology
 	)
 	{
-		meshes.emplace_back(this, vertexArray, vertexBuffer, indexBuffer, topology);
+		meshes.emplace_back(this, vertexBuffer, indexBuffer, topology);
 		return make_handle(meshes);
 	}
 
@@ -117,12 +121,6 @@ namespace lunar::Render
 	{
 		cubemaps.emplace_back(this, width, height, data, isSourceHdr);
 		return make_handle(cubemaps);
-	}
-
-	GpuVertexArrayObject RenderContext_T::createVertexArray()
-	{
-		vertexArrays.emplace_back(this);
-		return make_handle(vertexArrays);
 	}
 
 	void RenderContext_T::loadDefaultMeshes()
@@ -201,14 +199,12 @@ namespace lunar::Render
 
 		GpuMeshBuilder()
 			.useRenderContext(this)
-			.defaultVertexArray()
 			.fromVertexArray(cube_vertices)
 			.fromIndexArray(cube_indices)
 			.build();
 
 		GpuMeshBuilder()
 			.useRenderContext(this)
-			.defaultVertexArray()
 			.fromVertexArray(quad_vertices)
 			.fromIndexArray(quad_indices)
 			.build();

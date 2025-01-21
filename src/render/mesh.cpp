@@ -288,19 +288,18 @@ namespace lunar::Render
 	GpuMesh_T::GpuMesh_T
 	(
 		RenderContext_T* context,
-		GpuVertexArrayObject vertexArray,
 		GpuBuffer            vertexBuffer,
 		GpuBuffer            indexBuffer,
 		MeshTopology         meshTopology
 	) noexcept : context(context), 
-		vertexArray(vertexArray),
 		vertexBuffer(vertexBuffer),
 		indexBuffer(indexBuffer),
 		meshTopology(meshTopology)
 	{
-		vertexArray->bind(vertexBuffer, indexBuffer);
-		vertexCount = vertexBuffer->getSize() / sizeof(Vertex);
-		indexCount  = indexBuffer->getSize() / sizeof(uint32_t);
+		//this->vertexArray->bind(this->vertexBuffer, this->indexBuffer);
+		vertexCount = this->vertexBuffer->getSize() / sizeof(Vertex);
+		indexCount  = this->indexBuffer->getSize() / sizeof(uint32_t);
+		//this->vertexArray->unbind();
 	}
 
 	GpuMesh_T::~GpuMesh_T()
@@ -308,10 +307,10 @@ namespace lunar::Render
 
 	}
 
-	GpuVertexArrayObject GpuMesh_T::getVertexArray()
-	{
-		return vertexArray;
-	}
+	//GpuVertexArrayObject& GpuMesh_T::getVertexArray()
+	//{
+	//	return vertexArray;
+	//}
 
 	size_t GpuMesh_T::getVertexCount() const
 	{
@@ -328,23 +327,33 @@ namespace lunar::Render
 		return meshTopology;
 	}
 
+	GpuBuffer GpuMesh_T::getVertexBuffer()
+	{
+		return vertexBuffer;
+	}
+
+	GpuBuffer GpuMesh_T::getIndexBuffer()
+	{
+		return indexBuffer;
+	}
+
 	GpuMeshBuilder& GpuMeshBuilder::useRenderContext(RenderContext_T* context)
 	{
 		this->context = context;
 		return *this;
 	}
 
-	GpuMeshBuilder& GpuMeshBuilder::defaultVertexArray()
-	{
-		this->vertexArray = context->createVertexArray();
-		return *this;
-	}
+	//GpuMeshBuilder& GpuMeshBuilder::defaultVertexArray()
+	//{
+	//	this->vertexArray = context->createVertexArray();
+	//	return *this;
+	//}
 
 	GpuMeshBuilder& GpuMeshBuilder::fromVertexArray(const std::span<const Vertex>& vertices)
 	{
 		this->vertexBuffer = context->createBuffer(
 			GpuBufferType::eVertex,
-			GpuBufferUsageFlagBits::eNone,
+			GpuBufferUsageFlagBits::eStatic,
 			vertices.size() * sizeof(Render::Vertex),
 			(void*)vertices.data()
 		);
@@ -355,7 +364,7 @@ namespace lunar::Render
 	{
 		this->indexBuffer = context->createBuffer(
 			GpuBufferType::eIndex,
-			GpuBufferUsageFlagBits::eNone,
+			GpuBufferUsageFlagBits::eStatic,
 			indices.size() * sizeof(uint32_t),
 			(void*)indices.data()
 		);
@@ -365,7 +374,7 @@ namespace lunar::Render
 
 	GpuMesh GpuMeshBuilder::build()
 	{
-		return context->createMesh(vertexArray, vertexBuffer, indexBuffer, MeshTopology::eTriangles);
+		return context->createMesh(vertexBuffer, indexBuffer, MeshTopology::eTriangles);
 	}
 
 	GpuMesh RenderContext_T::getMesh(MeshPrimitive primitive)

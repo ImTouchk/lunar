@@ -44,6 +44,8 @@ namespace lunar::Render
 
 		GLuint glGetHandle();
 
+	public:
+		GLuint              refCount   = 0;
 	private:
 		GLuint              handle     = 0;
 		GpuBufferType       type       = GpuBufferType::eUnknown;
@@ -62,6 +64,7 @@ namespace lunar::Render
 		void bind();
 		void unbind();
 
-		GLuint handle = 0;
+		GLuint refCount = 0;
+		GLuint handle   = 0;
 	};
 }

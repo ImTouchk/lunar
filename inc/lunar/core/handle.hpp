@@ -17,6 +17,11 @@ namespace lunar
 	//	{ t.refCount } -> std::same_as<size_t>; 
 	//};
 
+	/*
+		A Handle<T> object acts like a normal raw pointer, except it guarantees that it 
+		will not be invalidated in the future due to something out of the API caller's 
+		control (e.g.: vector resizing).
+	*/
 	template<typename T>
 	class LUNAR_API Handle
 	{
@@ -42,20 +47,23 @@ namespace lunar
 		size_t     idx = 0;
 	};
 
+	/*
+		A RefHandle<T> acts pretty much like a smart pointer for an object created by the engine.
+	*/
 	template<typename T>
-	class LUNAR_API Handle2 
+	class LUNAR_API RefHandle
 	{
 	public:
 		using TyPtr = T*;
 		using TyRef = T&;
 
-		Handle2(std::nullptr_t)                          noexcept : ref(nullptr), idx(0) {}
-		Handle2(vector<TyPtr>& collection, size_t index) noexcept : ref(&collection), idx(index) 
+		RefHandle(std::nullptr_t)                          noexcept : ref(nullptr), idx(0) {}
+		RefHandle(vector<TyPtr>& collection, size_t index) noexcept : ref(&collection), idx(index)
 		{
 			T* element = (*ref)[idx];
 			element->refCount++;
 		}
-		Handle2(vector<TyPtr>& collection, TyPtr object) noexcept : ref(&collection), idx(0) 
+		RefHandle(vector<TyPtr>& collection, TyPtr object) noexcept : ref(&collection), idx(0)
 		{
 			for (size_t i = 0; i < collection.size(); i++)
 				if (collection[i] == object)
@@ -64,8 +72,8 @@ namespace lunar
 			T* element = (*ref)[idx];
 			element->refCount++;
 		}
-		Handle2()                                    noexcept = default;
-		~Handle2()                                   noexcept
+		RefHandle()                                    noexcept = default;
+		~RefHandle()                                   noexcept
 		{
 			if (ref != nullptr)
 			{
@@ -86,6 +94,43 @@ namespace lunar
 		template<typename = typename std::enable_if<HasValidCheck<T>>::type>
 		bool     valid()     const      { return get().valid(); }
 
+		/* Copy & move operators */
+
+		RefHandle(const RefHandle& other) noexcept
+			: ref(other.ref),
+			idx(other.idx)
+		{
+			T* element = (*ref)[idx];
+			element->refCount++;
+		}
+
+		RefHandle& operator=(const RefHandle& other) noexcept
+		{
+			ref = other.ref;
+			idx = other.idx;
+			
+			T* element = (*ref)[idx];
+			element->refCount++;
+			return *this;
+		}
+
+		RefHandle(RefHandle&& other) noexcept
+			: ref(other.ref),
+			idx(other.idx)
+		{
+			other.ref = nullptr;
+			other.idx = 0;
+		}
+
+		RefHandle& operator=(RefHandle&& other) noexcept
+		{
+			ref = other.ref;
+			idx = other.idx;
+
+			other.ref = nullptr;
+			other.idx = 0;
+			return *this;
+		}
 
 	protected:
 		vector<TyPtr>* ref = nullptr;
@@ -112,5 +157,9 @@ namespace lunar
 }
 
 #define LUNAR_HANDLE(Type)          using Type = lunar::Handle<Type##_T>
-#define LUNAR_SHARED_HANDLE(Type)   using Type = std::shared_ptr<Type##_T>
 #define LUNAR_HANDLE_IMPL(Type)     template class LUNAR_API lunar::Handle<Type##_T>
+
+#define LUNAR_REF_HANDLE(Type)      using Type = lunar::RefHandle<Type##_T>
+#define LUNAR_REF_HANDLE_IMPL(Type) template class LUNAR_API lunar::RefHandle<Type##_T>
+
+#define LUNAR_SHARED_HANDLE(Type)   using Type = std::shared_ptr<Type##_T>

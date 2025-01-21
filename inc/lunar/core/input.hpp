@@ -85,6 +85,7 @@ namespace lunar
 namespace lunar::Input
 {
 	LUNAR_API InputHandler& GetGlobalHandler();
+	LUNAR_API void          SetGlobalHandler(InputHandler*);
 	LUNAR_API void          SetGlobalHandler(InputHandler&);
 	LUNAR_API bool          GetAction(const std::string_view& name);
 	LUNAR_API bool          GetActionUp(const std::string_view& name);

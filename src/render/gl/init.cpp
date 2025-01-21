@@ -7,6 +7,17 @@
 
 namespace lunar::Render
 {
+	void GLAPIENTRY DebugCallback
+	(
+		GLenum        source,
+		GLenum        type,
+		GLuint        id,
+		GLenum        severity,
+		GLsizei       length,
+		const GLchar* message,
+		const void* userParam
+	);
+
 	RenderContext_T::RenderContext_T() noexcept
 	{
 		/*
@@ -38,7 +49,7 @@ namespace lunar::Render
 		programs.clear();
 		textures.clear();
 		buffers.clear();
-		vertexArrays.clear();
+		//vertexArrays.clear();
 		windows.clear();
 
 		glDeleteFramebuffers(1, &frameBuffer);
@@ -54,6 +65,29 @@ namespace lunar::Render
 		glViewport(0, 0, width, height);
 	}
 
+	void Window_T::initializeBackendData()
+	{
+		int flags;
+		glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+		if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+		{
+			glEnable(GL_DEBUG_OUTPUT);
+			glDebugMessageCallback(DebugCallback, nullptr);
+			DEBUG_LOG("OpenGL debugging enabled.");
+		}
+
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+
+		glGenVertexArrays(1, &imp.globalVao);
+	}
+
+	void Window_T::clearBackendData()
+	{
+		glDeleteVertexArrays(1, &imp.globalVao);
+	}
+
 	void GLAPIENTRY DebugCallback
 	(
 		GLenum        source,
@@ -65,7 +99,7 @@ namespace lunar::Render
 		const void* userParam
 	)
 	{
-		if (type == GL_DEBUG_TYPE_ERROR)
+		if (severity == GL_DEBUG_SEVERITY_HIGH || severity == GL_DEBUG_SEVERITY_MEDIUM)
 			DEBUG_ERROR("OpenGL error: {}", message);
 	}
 }

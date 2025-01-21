@@ -84,6 +84,8 @@ namespace lunar::Render
 
 		GLuint glGetHandle();
 		
+	public:
+		size_t           refCount  = 0;
 	private:
 		GLuint           handle    = 0;
 		TextureFormat    format    = TextureFormat::eUnknown;

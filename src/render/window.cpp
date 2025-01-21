@@ -22,6 +22,8 @@
 
 namespace lunar::Render
 {
+	LUNAR_REF_HANDLE_IMPL(Window);
+
 	void GLFW_FramebufferSizeCb(GLFWwindow*, int, int);
 	void GLFW_KeyCallback(GLFWwindow*, int, int, int, int);
 	void GLFW_MouseBtnCallback(GLFWwindow*, int, int, int);
@@ -69,6 +71,7 @@ namespace lunar::Render
 			glfwSwapInterval(2);
 		}
 
+		glfwMakeContextCurrent(handle);
 		glfwSetWindowUserPointer(handle, this);
 
 		glfwSetFramebufferSizeCallback(handle, GLFW_FramebufferSizeCb);
@@ -83,6 +86,8 @@ namespace lunar::Render
 		ImGui_ImplGlfw_InitForOpenGL(handle, true);
 		ImGui_ImplOpenGL3_Init();
 
+		initializeBackendData();
+
 		DEBUG_LOG("Window initialized.");
 	}
 
@@ -90,6 +95,7 @@ namespace lunar::Render
 	{
 		if (handle != nullptr)
 		{
+			clearBackendData();
 			glfwDestroyWindow(handle);
 			DEBUG_LOG("Window destroyed.");
 		}
@@ -141,7 +147,7 @@ namespace lunar::Render
 
 	void Window_T::setCursorLocked(bool value)
 	{
-		glfwSetInputMode(handle, GLFW_CURSOR, value ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(handle, GLFW_CURSOR, value ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 		mouseLocked = value;
 	}
 
@@ -156,7 +162,7 @@ namespace lunar::Render
 
 	inline void SetAxisValue(GLFWwindow* handle, int lower, int upper, float& value)
 	{
-		int first = glfwGetKey(handle, lower);
+		int first  = glfwGetKey(handle, lower);
 		int second = glfwGetKey(handle, upper);
 
 		value = 0.f;
@@ -255,6 +261,11 @@ namespace lunar::Render
 		return rotation;
 	}
 
+	imp::WindowBackendData& Window_T::getBackendData()
+	{
+		return this->imp;
+	}
+
 	/*
 		Event handlers
 	*/
@@ -319,21 +330,12 @@ namespace lunar::Render
 		Global GLFW context
 	*/
 
-	void GLAPIENTRY DebugCallback
-	(
-		GLenum        source,
-		GLenum        type,
-		GLuint        id,
-		GLenum        severity,
-		GLsizei       length,
-		const GLchar* message,
-		const void* userParam
-	);
-
 	namespace imp
 	{
 		GLFWGlobalContext::~GLFWGlobalContext() noexcept
 		{
+			glDeleteVertexArrays(1, &vao);
+
 			glfwDestroyWindow(headless);
 			glfwTerminate();
 			DEBUG_LOG("Context destroyed.");
@@ -364,19 +366,7 @@ namespace lunar::Render
 
 			glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
 
-			int flags;
-			glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-			if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
-			{
-				glEnable(GL_DEBUG_OUTPUT);
-				glDebugMessageCallback(DebugCallback, nullptr);
-				DEBUG_LOG("OpenGL debugging enabled.");
-			}
-
-			glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_LEQUAL);
-
+			glGenVertexArrays(1, &vao);
 		}
 	}
 

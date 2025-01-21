@@ -81,11 +81,12 @@ namespace lunar::Render
 	class LUNAR_API GpuMesh_T;
 	class LUNAR_API RenderContext_T;
 	class LUNAR_API Window_T;
-	LUNAR_HANDLE(GpuVertexArrayObject);
-	LUNAR_HANDLE(GpuBuffer);
-	LUNAR_HANDLE(GpuTexture);
+	LUNAR_REF_HANDLE(GpuVertexArrayObject);
+	LUNAR_REF_HANDLE(GpuBuffer);
+	LUNAR_REF_HANDLE(GpuTexture);
+	LUNAR_REF_HANDLE(GpuProgram);
+	LUNAR_REF_HANDLE(Window);
 	LUNAR_HANDLE(GpuCubemap);
 	LUNAR_HANDLE(GpuMesh);
-	LUNAR_HANDLE(Window);
 	LUNAR_SHARED_HANDLE(RenderContext);
 }

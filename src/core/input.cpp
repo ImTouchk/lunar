@@ -93,6 +93,12 @@ namespace lunar::Input
 		return *GLOBAL_HANDLER;
 	}
 
+	void SetGlobalHandler(InputHandler* handler)
+	{
+		GLOBAL_HANDLER = handler;
+		return;
+	}
+
 	void SetGlobalHandler(InputHandler& handler)
 	{
 		GLOBAL_HANDLER = &handler;

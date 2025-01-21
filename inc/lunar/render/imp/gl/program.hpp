@@ -54,6 +54,7 @@ namespace lunar::Render
 		~GpuProgram_T();
 
 		void           use();
+		void           uniform(const std::string_view& name, const float f);
 		void           uniform(const std::string_view& name, const glm::vec4& v4);
 		void           uniform(const std::string_view& name, const glm::mat4& m4);
 		void           bind(const std::string_view& name, size_t location, GpuTexture texture);
@@ -71,6 +72,4 @@ namespace lunar::Render
 		GLuint         handle      = 0;
 		GpuProgramType programType = GpuProgramType::eUnknown;
 	};
-
-	using GpuProgram = Handle2<GpuProgram_T>;
 }

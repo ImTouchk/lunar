@@ -48,7 +48,6 @@ namespace lunar::Render
 			int                     msaa,
 			bool                    vsync
 		);
-		GpuVertexArrayObject createVertexArray();
 		GpuBuffer            createBuffer
 		(
 			GpuBufferType type, 
@@ -81,7 +80,6 @@ namespace lunar::Render
 		);
 		GpuMesh              createMesh
 		(
-			GpuVertexArrayObject vertexArray,
 			GpuBuffer            vertexBuffer,
 			GpuBuffer            indexBuffer,
 			MeshTopology         topology
@@ -100,20 +98,19 @@ namespace lunar::Render
 #endif
 
 	private:
-		vector<GpuVertexArrayObject_T> vertexArrays         = {};
-		vector<GpuBuffer_T>            buffers              = {};
-		vector<GpuProgram_T*>          programs             = {};
-		vector<GpuTexture_T>           textures             = {};
-		vector<GpuMesh_T>              meshes               = {};
-		vector<GpuCubemap_T>           cubemaps             = {};
-		vector<Window_T>               windows              = {};
-		RenderTarget*                  target               = nullptr;
-		bool                           inFrameScope         = false;
-		bool                           defaultProgramsBuilt = false;
-		bool                           defaultMeshesBuilt   = false;
-		int                            viewportWidth        = 0;
-		int                            viewportHeight       = 0;
-		const Camera*                  renderCamera         = nullptr;
+		vector<GpuBuffer_T*>            buffers              = {};
+		vector<GpuProgram_T*>           programs             = {};
+		vector<GpuTexture_T*>           textures             = {};
+		vector<GpuMesh_T>               meshes               = {};
+		vector<GpuCubemap_T>            cubemaps             = {};
+		vector<Window_T*>               windows              = {};
+		RenderTarget*                   target               = nullptr;
+		bool                            inFrameScope         = false;
+		bool                            defaultProgramsBuilt = false;
+		bool                            defaultMeshesBuilt   = false;
+		int                             viewportWidth        = 0;
+		int                             viewportHeight       = 0;
+		const Camera*                   renderCamera         = nullptr;
 
 		void loadDefaultMeshes();
 		void loadDefaultPrograms();
