@@ -38,9 +38,15 @@ namespace lunar::Render
 		return *this;
 	}
 
-	GpuTextureBuilder& GpuTextureBuilder::filtering(TextureFiltering filtering)
+	GpuTextureBuilder& GpuTextureBuilder::minFiltering(TextureFiltering filtering)
 	{
-		this->textureFiltering = filtering;
+		this->minFilter = filtering;
+		return *this;
+	}
+
+	GpuTextureBuilder& GpuTextureBuilder::magFiltering(TextureFiltering filtering)
+	{
+		this->magFilter = filtering;
 		return *this;
 	}
 
@@ -66,7 +72,8 @@ namespace lunar::Render
 			this->srcDataFormat,
 			this->dstFormat,
 			this->textureType,
-			this->textureFiltering,
+			this->minFilter,
+			this->magFilter,
 			this->textureWrapping,
 			this->flags
 		);

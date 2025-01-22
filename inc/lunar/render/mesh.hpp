@@ -103,7 +103,7 @@ namespace lunar::Render
 			GpuBuffer                    indexBuffer,
 			MeshTopology                 topology,
 			GpuBuffer                    materialsBuffer,
-			const std::span<GpuTexture>& textures
+			GpuTexture                   materialsAtlas
 		) noexcept;
 		GpuMesh_T()  noexcept = default;
 		~GpuMesh_T() noexcept;
@@ -115,17 +115,17 @@ namespace lunar::Render
 		GpuBuffer             getVertexBuffer();
 		GpuBuffer             getIndexBuffer();
 		GpuBuffer             getMaterialsBuffer();
+		GpuTexture            getMaterialsAtlas();
 	private:
 		//GpuVertexArrayObject vertexArray  = nullptr;
 		GpuBuffer            vertexBuffer    = nullptr;
 		GpuBuffer            indexBuffer     = nullptr;
 		GpuBuffer            materialsBuffer = nullptr;
+		GpuTexture           materialsAtlas  = nullptr;
 		RenderContext_T*     context         = nullptr;
 		size_t               vertexCount     = 0;
 		size_t               indexCount      = 0;
 		MeshTopology         meshTopology    = MeshTopology::eTriangles;
-		GpuTexture           textures[20]    = {};
-		size_t               textureCount    = 0;
 	};
 
 	enum class LUNAR_API MeshPrimitive
@@ -150,11 +150,10 @@ namespace lunar::Render
 		GpuBuffer            vertexBuffer    = nullptr;
 		GpuBuffer            indexBuffer     = nullptr;
 		GpuBuffer            materialsBuffer = nullptr;
+		GpuTexture           materialsAtlas  = nullptr;
 		RenderContext_T*     context         = nullptr;
 		size_t               vertexCount     = 0;
 		size_t               indicesCount    = 0;
-		GpuTexture           textures[20]    = {};
-		size_t               textureCount    = 0;
 
 		void fromGltfFile(const Fs::Path& path);
 	};

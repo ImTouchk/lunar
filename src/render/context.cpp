@@ -47,7 +47,8 @@ namespace lunar::Render
 		TextureDataFormat dataFormat,
 		TextureFormat     dstFormat,
 		TextureType       type,
-		TextureFiltering  filtering,
+		TextureFiltering  minFiltering,
+		TextureFiltering  magFiltering,
 		TextureWrapping   wrapping,
 		TextureFlags      flags
 	)
@@ -58,7 +59,10 @@ namespace lunar::Render
 			width, height,
 			data, srcFormat, dataFormat,
 			dstFormat, type,
-			filtering, wrapping, flags
+			minFiltering,
+			magFiltering,
+			wrapping, 
+			flags
 		);
 
 		textures.push_back(texture);
@@ -102,14 +106,14 @@ namespace lunar::Render
 
 	GpuMesh RenderContext_T::createMesh
 	(
-		GpuBuffer                    vertexBuffer,
-		GpuBuffer                    indexBuffer,
-		MeshTopology                 topology,
-		GpuBuffer                    materialsBuffer,
-		const std::span<GpuTexture>& textures
+		GpuBuffer    vertexBuffer,
+		GpuBuffer    indexBuffer,
+		MeshTopology topology,
+		GpuBuffer    materialsBuffer,
+		GpuTexture   materialsAtlas
 	)
 	{
-		meshes.emplace_back(this, vertexBuffer, indexBuffer, topology, materialsBuffer, textures);
+		meshes.emplace_back(this, vertexBuffer, indexBuffer, topology, materialsBuffer, materialsAtlas);
 		return make_handle(meshes);
 	}
 

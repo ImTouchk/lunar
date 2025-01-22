@@ -292,21 +292,17 @@ namespace lunar::Render
 		GpuBuffer                    indexBuffer,
 		MeshTopology                 topology,
 		GpuBuffer                    materialsBuffer,
-		const std::span<GpuTexture>& textures
+		GpuTexture                   materialsAtlas
 	) noexcept : context(context), 
 		vertexBuffer(vertexBuffer),
 		indexBuffer(indexBuffer),
 		materialsBuffer(materialsBuffer),
+		materialsAtlas(materialsAtlas),
 		meshTopology(topology)
 	{
 		//this->vertexArray->bind(this->vertexBuffer, this->indexBuffer);
 		vertexCount = this->vertexBuffer->getSize() / sizeof(Vertex);
 		indexCount  = this->indexBuffer->getSize() / sizeof(uint32_t);
-
-		for (size_t i = 0; i < textures.size(); i++)
-			this->textures[i] = textures[i];
-
-		this->textureCount = textures.size();
 		//this->vertexArray->unbind();
 	}
 
@@ -348,5 +344,10 @@ namespace lunar::Render
 	GpuBuffer GpuMesh_T::getMaterialsBuffer()
 	{
 		return materialsBuffer;
+	}
+
+	GpuTexture GpuMesh_T::getMaterialsAtlas()
+	{
+		return materialsAtlas;
 	}
 }

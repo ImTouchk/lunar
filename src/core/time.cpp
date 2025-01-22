@@ -4,7 +4,7 @@
 #include <vector>
 #include <mutex>
 
-namespace Time
+namespace lunar::Time
 {
 	TimeContext_T TIME_CONTEXT = {};
 

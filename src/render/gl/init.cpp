@@ -79,6 +79,7 @@ namespace lunar::Render
 		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
+		glDisable(GL_CULL_FACE);
 
 		glGenVertexArrays(1, &imp.globalVao);
 

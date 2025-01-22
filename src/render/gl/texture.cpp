@@ -15,7 +15,8 @@ namespace lunar::Render
 		TextureDataFormat dataFormat,
 		TextureFormat     dstFormat,
 		TextureType       type,
-		TextureFiltering  filtering,
+		TextureFiltering  minFiltering,
+		TextureFiltering  magFiltering,
 		TextureWrapping   wrapping,
 		TextureFlags      flags
 	) noexcept
@@ -23,20 +24,18 @@ namespace lunar::Render
 		height(height),
 		format(dstFormat),
 		type(type),
-		filtering(filtering),
+		minFiltering(minFiltering),
+		magFiltering(magFiltering),
 		wrapping(wrapping),
 		flags(flags)
-	{
-		GLint min_filter = (filtering == TextureFiltering::eNearest) ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR;
-		GLint mag_filter = (filtering == TextureFiltering::eNearest) ? GL_NEAREST : GL_LINEAR;
-		
+	{	
 		glGenTextures(1, &handle);
 		glBindTexture((GLenum)type, handle);
 		glTexParameteri((GLenum)type, GL_TEXTURE_WRAP_S, (GLint)wrapping);
 		glTexParameteri((GLenum)type, GL_TEXTURE_WRAP_T, (GLint)wrapping);
 		glTexParameteri((GLenum)type, GL_TEXTURE_WRAP_R, (GLint)wrapping);
-		glTexParameteri((GLenum)type, GL_TEXTURE_MIN_FILTER, min_filter);
-		glTexParameteri((GLenum)type, GL_TEXTURE_MAG_FILTER, mag_filter);
+		glTexParameteri((GLenum)type, GL_TEXTURE_MIN_FILTER, (GLint)minFiltering);
+		glTexParameteri((GLenum)type, GL_TEXTURE_MAG_FILTER, (GLint)magFiltering);
 
 		if (type == TextureType::eCubemap)
 		{
@@ -70,8 +69,6 @@ namespace lunar::Render
 			);
 		}
 
-		glGenerateMipmap((GLenum)type);
-
 		if (flags & TextureFlagBits::eBindless)
 		{
 			this->bindless = glGetTextureHandleARB(this->handle);
@@ -85,6 +82,13 @@ namespace lunar::Render
 	{
 		if (handle != 0)
 			glDeleteTextures(1, &handle);
+	}
+
+	void GpuTexture_T::generateMipmaps()
+	{
+		glBindTexture((GLenum)type, handle);
+		glGenerateMipmap((GLenum)type);
+		glBindTexture((GLenum)type, 0);
 	}
 
 	int GpuTexture_T::getRenderWidth() const

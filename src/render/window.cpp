@@ -368,14 +368,6 @@ namespace lunar::Render
 
 			glGenVertexArrays(1, &vao);
 
-			GLint ext_count = 0;
-			glGetIntegerv(GL_NUM_EXTENSIONS, &ext_count);
-			for (size_t i = 0; i < ext_count; i++)
-			{
-				const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
-				DEBUG_LOG("OpenGL extension: {}", extension);
-			}
-
 			if (!GLAD_GL_ARB_bindless_texture)
 			{
 				DEBUG_LOG("Extension 'GL_ARB_bindless_texture' not supported on this device.");

@@ -42,6 +42,122 @@ namespace lunar::Render
 		return *this;
 	}
 
+	struct MaterialTextureData
+	{
+		int startX;
+		int startY;
+		int width;
+		int height;
+	};
+
+	struct TextureAtlasInfo
+	{
+		int                                    totalWidth  = 0;
+		int                                    totalHeight = 0;
+		int                                    textures    = 0;
+		std::unique_ptr<MaterialTextureData[]> materials   = nullptr;
+		GpuTexture                             handle      = nullptr;
+	};
+
+	inline void CreateTextureAtlas
+	(
+		RenderContext_T*  context,
+		fastgltf::Asset&  asset,
+		TextureAtlasInfo& output
+	)
+	{
+		auto  colors    = std::vector<uint32_t>();
+		auto& materials = asset.materials;
+
+		for (fastgltf::Material& material : materials)
+		{
+			if (material.pbrData.baseColorTexture.has_value())
+				continue;
+			else
+				output.textures++;
+		}
+
+		output.materials = std::make_unique<MaterialTextureData[]>(output.textures);
+
+		size_t i = 0;
+		for(fastgltf::Material& material : materials)
+		{
+			if (material.pbrData.baseColorTexture.has_value())
+				continue;
+
+			auto color = material.pbrData.baseColorFactor;
+			
+			uint32_t value = 0;
+			value |= static_cast<uint32_t>(glm::round(color.x() * 255.f));
+			value |= static_cast<uint32_t>(glm::round(color.y() * 255.f)) << 8;;
+			value |= static_cast<uint32_t>(glm::round(color.z() * 255.f)) << 16;
+			value |= static_cast<uint32_t>(glm::round(color.w() * 255.f)) << 24;
+			colors.push_back(value);
+
+			auto& data = output.materials[i];
+			data.width  = 1;
+			data.height = 1;
+			data.startX = output.totalWidth;
+			data.startY = output.totalHeight;
+
+			output.totalWidth  += 1;
+			output.totalHeight += 1;
+			i++;
+		}
+
+		output.handle = context->createTexture
+		(
+			output.totalWidth,
+			output.totalHeight,
+			colors.data(),
+			TextureFormat::eRGBA,
+			TextureDataFormat::eUnsignedByte
+		);
+	}
+
+	struct MappedMaterial
+	{
+		glm::vec2  atlasBegin = { 0, 0 };
+		glm::vec2  atlasEnd   = { 0, 0 };
+		float      metallic   = 0.1f;
+		float      roughness  = 0.1f;
+		float      ao         = 0.1f;
+		float      padding    = 0.69f;
+	};
+
+	inline void MapMaterialData
+	(
+		fastgltf::Asset&  asset,
+		TextureAtlasInfo& atlasInfo,
+		MappedMaterial*   output,
+		size_t&           i
+	)
+	{
+		auto& materials = asset.materials;
+		
+		i = 0;
+		for (fastgltf::Material& material : materials)
+		{
+			if (material.pbrData.baseColorTexture.has_value())
+				continue;
+
+			output[i].metallic   = 0.01f + material.pbrData.metallicFactor;
+			output[i].roughness  = 0.01f + material.pbrData.roughnessFactor;
+			output[i].ao         = glm::clamp(material.ior, 1.f, 4.f) / 4.f;
+			output[i].atlasBegin = glm::uvec2
+			{
+				(float)atlasInfo.materials[i].startX / (float)atlasInfo.totalWidth,
+				(float)atlasInfo.materials[i].startY / (float)atlasInfo.totalHeight
+			};
+			output[i].atlasEnd   = glm::uvec2
+			{
+				(float)(atlasInfo.materials[i].startX + atlasInfo.materials[i].width) / (float)atlasInfo.totalWidth,
+				(float)(atlasInfo.materials[i].startY + atlasInfo.materials[i].height) / (float)atlasInfo.totalHeight
+			};
+			i++;
+		}
+	}
+
 	void GpuMeshBuilder::fromGltfFile(const Fs::Path& path)
 	{
 		auto options = fastgltf::Options::LoadGLBBuffers | 
@@ -67,61 +183,12 @@ namespace lunar::Render
 			return;
 		}
 
-		struct MappedMaterial
-		{
-			glm::uvec2 albedo    = { 0, 0 };
-			float      metallic  = 0.1f;
-			float      roughness = 0.1f;
-			float      ao        = 0.1f;
-			float      padding   = 0.f;
-		};
+		TextureAtlasInfo atlas_info     = {};
+		MappedMaterial   materials[20]  = {};
+		size_t           material_count = 0;
 
-		MappedMaterial materials[20] = {};
-
-		for (size_t i = 0; i < asset->materials.size(); i++)
-		{
-			auto& material = asset->materials[i];
-			
-			float ao        = glm::clamp(material.ior, 1.f, 4.f) / 4.f;
-			float roughness = material.pbrData.roughnessFactor;
-			float metallic  = material.pbrData.metallicFactor;
-
-			if (material.pbrData.baseColorTexture.has_value())
-			{
-				DEBUG_LOG("Not implemented. Skipping...");
-				continue;
-			}
-
-			auto color = material.pbrData.baseColorFactor;
-
-			uint32_t value = 0;
-			value |= static_cast<uint32_t>(glm::round(color.x() * 255.f));
-			value |= static_cast<uint32_t>(glm::round(color.y() * 255.f)) << 8;;
-			value |= static_cast<uint32_t>(glm::round(color.z() * 255.f)) << 16;
-			value |= static_cast<uint32_t>(glm::round(color.w() * 255.f)) << 24;
-
-			GpuTexture texture = GpuTextureBuilder()
-				.type(TextureType::e2D)
-				.wrapping(TextureWrapping::eRepeat)
-				.filtering(TextureFiltering::eLinear)
-				.fromByteBuffer(TextureFormat::eRGBA, TextureDataFormat::eUnsignedByte, 1, 1, &value)
-				.destFormat(TextureFormat::eRGBA)
-				.addFlags(TextureFlagBits::eBindless)
-				.build(context);
-
-			GLuint64 albedo_handle = texture->glGetBindlessHandle();
-
-			materials[i] = MappedMaterial
-			{
-				.albedo      = glm::uvec2(albedo_handle & 0xFFFFFFFF, albedo_handle >> 32),
-				.metallic    = metallic,
-				.roughness   = roughness,
-				.ao          = ao
-			};
-
-			textures[i] = texture;
-			textureCount++;
-		}
+		CreateTextureAtlas(context, asset.get(), atlas_info);
+		MapMaterialData(asset.get(), atlas_info, materials, material_count);
 
 		auto& mesh = asset->meshes[0];
 
@@ -219,6 +286,8 @@ namespace lunar::Render
 			buf_size,
 			data_buffer.get()
 		);
+
+		this->materialsAtlas = atlas_info.handle;
 	}
 
 	GpuMeshBuilder& GpuMeshBuilder::fromMeshFile(const Fs::Path& path)
@@ -232,8 +301,7 @@ namespace lunar::Render
 
 	GpuMesh GpuMeshBuilder::build()
 	{
-		auto span = std::span<GpuTexture>(textures, textureCount);
-		return context->createMesh(vertexBuffer, indexBuffer, MeshTopology::eTriangles, materialsBuffer, span);
+		return context->createMesh(vertexBuffer, indexBuffer, MeshTopology::eTriangles, materialsBuffer, materialsAtlas);
 	}
 
 	GpuMesh RenderContext_T::getMesh(MeshPrimitive primitive)

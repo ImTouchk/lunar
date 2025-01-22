@@ -44,11 +44,11 @@ namespace lunar::Render
 			);
 		}
 
-		glViewport(0, 0, v_width, v_height);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		if (v_width != viewportWidth || v_height != viewportHeight)
 			setViewportSize(v_width, v_height);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	}
 
 	void RenderContext_T::clear(float r, float g, float b, float a)
@@ -111,6 +111,7 @@ namespace lunar::Render
 			MeshRenderer* mesh_renderer = static_cast<MeshRenderer*>(component.get());
 			auto&         mesh          = mesh_renderer->mesh;
 			auto&         program       = mesh_renderer->program;
+			auto          mesh_atlas    = mesh->getMaterialsAtlas();
 			auto          mesh_data     = imp::GpuMeshData
 			{
 				.model = mesh_renderer->getModelMatrix()
@@ -121,6 +122,10 @@ namespace lunar::Render
 			program->bind("irradianceMap", 1, cubemap->irradianceMap);
 			program->bind("prefilterMap", 2, cubemap->prefilterMap);
 			program->bind("brdfMap", 3, cubemap->brdfLut);
+
+			if(mesh_atlas.exists())
+				program->bind("albedoAtlas", 4, mesh_atlas);
+			
 
 			window_data.meshDataUniform->upload(mesh_data);
 			window_data.meshDataUniform->bind(1);

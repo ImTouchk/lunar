@@ -1,4 +1,5 @@
-#version 420 core
+#version 450 core
+#extension GL_ARB_bindless_texture : require
 out vec4 frag_col;
 
 layout (location = 0) in vec2 uv;
@@ -7,28 +8,34 @@ layout (location = 2) in vec3 normal;
 
 layout (std140, binding = 0) uniform SceneData
 {
-	mat4 view;
 	mat4 projection;
-	mat4 model;
+	mat4 view;
 	vec3 camera_pos;
 };
 
-layout (std140, binding = 1) uniform LightingData
+layout (std140, binding = 1) uniform MeshData
 {
-	float metallic;
-	float roughness;
-	float ao;
-	int lights_count;
-	vec3 light_pos[10];
-	vec3 light_col[10];
-    int is_hdr_cubemap;
+	mat4 model;
+};
+
+layout (std430, binding = 2) buffer MaterialBuffer
+{
+	struct Material
+	{
+		vec2 atlasBegin;
+		vec2 atlasEnd;
+		float metallic;
+		float roughness;
+		float ao;
+	} materials[20];
+	int primitiveToMaterial[];
 };
 
 uniform samplerCube environmentMap;
 uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfMap;
-uniform sampler2D albedoMap;
+uniform sampler2D albedoAtlas;
 
 const float PI = 3.14159265359;
   
@@ -40,7 +47,13 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness);
 
 void main()
 {		
-	vec3 albedo = pow(texture(albedoMap, uv).rgb, vec3(2.2));
+    Material  mat       = materials[0];
+    float     roughness = mat.roughness;
+    float     metallic  = mat.metallic;
+    float     ao        = mat.ao;
+    vec2      real_uv   = vec2(mat.atlasBegin) + (vec2(mat.atlasEnd) - vec2(mat.atlasBegin)) * uv;
+
+	vec3 albedo = pow(texture(albedoAtlas, real_uv).rgb, vec3(2.2));
     vec3 N = normalize(normal);
     vec3 V = normalize(camera_pos - world_pos);
     vec3 R = reflect(-V, N);
@@ -50,40 +63,40 @@ void main()
 	           
     // reflectance equation
     vec3 Lo = vec3(0.0);
-    for(int i = 0; i < lights_count; ++i) 
-    {
-        // calculate per-light radiance
-        vec3 L = normalize(light_pos[i] - world_pos);
-        vec3 H = normalize(V + L);
-        float distance    = length(light_pos[i] - world_pos);
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance     = light_col[i] * attenuation;        
-        
-        // cook-torrance brdf
-        float NDF = DistributionGGX(N, H, roughness);        
-        float G   = GeometrySmith(N, V, L, roughness);      
-        vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
-        
-        vec3  numerator   = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-        vec3  specular    = numerator / denominator;  
-        
-        vec3 kS = F;
-        vec3 kD = vec3(1.0) - kS;
-        kD *= 1.0 - metallic;	  
-            
-        // add to outgoing radiance Lo
-        float NdotL = max(dot(N, L), 0.0);                
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
-    }   
-
+//    for(int i = 0; i < lights_count; ++i) 
+//    {
+//        // calculate per-light radiance
+//        vec3 L = normalize(light_pos[i] - world_pos);
+//        vec3 H = normalize(V + L);
+//        float distance    = length(light_pos[i] - world_pos);
+//        float attenuation = 1.0 / (distance * distance);
+//        vec3 radiance     = light_col[i] * attenuation;        
+//        
+//        // cook-torrance brdf
+//        float NDF = DistributionGGX(N, H, roughness);        
+//        float G   = GeometrySmith(N, V, L, roughness);      
+//        vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
+//        
+//        vec3  numerator   = NDF * G * F;
+//        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+//        vec3  specular    = numerator / denominator;  
+//        
+//        vec3 kS = F;
+//        vec3 kD = vec3(1.0) - kS;
+//        kD *= 1.0 - metallic;	  
+//            
+//        // add to outgoing radiance Lo
+//        float NdotL = max(dot(N, L), 0.0);                
+//        Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
+//    }   
+//
     vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
 
     vec3 kS = F;
     vec3 kD = 1.0 - kS;
     kD     *= 1.0 - metallic;
 
-    vec3 irradiance = (is_hdr_cubemap == 1) ? texture(irradianceMap, N).rgb : vec3(0.03);
+    vec3 irradiance = (1 == 1) ? texture(irradianceMap, N).rgb : vec3(0.03);
     vec3 diffuse    = irradiance * albedo;
 
     const float MAX_REFLECTION_LOD = 4.0;

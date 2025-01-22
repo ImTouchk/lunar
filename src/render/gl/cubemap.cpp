@@ -25,8 +25,10 @@ namespace lunar::Render
 			512, 512, nullptr,
 			TextureFormat::eRGB,
 			TextureDataFormat::eFloat,
-			TextureFormat::eRGBA,
-			TextureType::eCubemap
+			TextureFormat::eRGB16F,
+			TextureType::eCubemap,
+			TextureFiltering::eLinearMipmapLinear,
+			TextureFiltering::eLinear
 		);
 
 		GpuMesh    cube_mesh = context->getMesh(MeshPrimitive::eCube);
@@ -56,8 +58,7 @@ namespace lunar::Render
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		glBindTexture(GL_TEXTURE_CUBE_MAP, environment_map->glGetHandle());
-		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+		environment_map->generateMipmaps();
 
 		return environment_map;
 	}
@@ -69,7 +70,7 @@ namespace lunar::Render
 			32, 32, nullptr,
 			TextureFormat::eRGB,
 			TextureDataFormat::eFloat,
-			TextureFormat::eRGBA,
+			TextureFormat::eRGB16F,
 			TextureType::eCubemap
 		);
 
@@ -108,9 +109,13 @@ namespace lunar::Render
 			128, 128, nullptr,
 			TextureFormat::eRGB,
 			TextureDataFormat::eFloat,
-			TextureFormat::eRGBA,
-			TextureType::eCubemap
+			TextureFormat::eRGB16F,
+			TextureType::eCubemap,
+			TextureFiltering::eLinearMipmapLinear,
+			TextureFiltering::eLinear
 		);
+
+		prefilter_map->generateMipmaps();
 
 		GpuMesh    cube_mesh = context->getMesh(MeshPrimitive::eCube);
 		GpuProgram shader    = context->getProgram(GpuDefaultPrograms::ePrefilterMapBuilder);
@@ -198,6 +203,7 @@ namespace lunar::Render
 			TextureDataFormat::eFloat,
 			TextureFormat::eRGB16F,
 			TextureType::e2D,
+			TextureFiltering::eLinear,
 			TextureFiltering::eLinear,
 			TextureWrapping::eClampToEdge
 		);

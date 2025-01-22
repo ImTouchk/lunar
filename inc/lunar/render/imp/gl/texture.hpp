@@ -21,9 +21,10 @@ namespace lunar::Render
 
 	enum class LUNAR_API TextureFiltering : GLenum
 	{
-		eUnknown = 0,
-		eNearest,
-		eLinear
+		eUnknown            = 0,
+		eNearest            = GL_NEAREST,
+		eLinear             = GL_LINEAR,
+		eLinearMipmapLinear = GL_LINEAR_MIPMAP_LINEAR,
 	};
 
 	enum class LUNAR_API TextureWrapping : GLint
@@ -44,7 +45,8 @@ namespace lunar::Render
 	{
 		eUnknown = 0,
 		e2D      = GL_TEXTURE_2D,
-		eCubemap = GL_TEXTURE_CUBE_MAP
+		e2DArray = GL_TEXTURE_2D_ARRAY,
+		eCubemap = GL_TEXTURE_CUBE_MAP,
 	};
 
 	enum class LUNAR_API TextureFlagBits
@@ -65,12 +67,13 @@ namespace lunar::Render
 			int               height,
 			void*             data,
 			TextureFormat     srcFormat,
-			TextureDataFormat dataFormat = TextureDataFormat::eUnsignedByte,
-			TextureFormat     dstFormat  = TextureFormat::eRGBA,
-			TextureType       type       = TextureType::e2D,
-			TextureFiltering  filtering  = TextureFiltering::eLinear,
-			TextureWrapping   wrapping   = TextureWrapping::eRepeat,
-			TextureFlags      flags      = TextureFlagBits::eNone
+			TextureDataFormat dataFormat   = TextureDataFormat::eUnsignedByte,
+			TextureFormat     dstFormat    = TextureFormat::eRGBA,
+			TextureType       type         = TextureType::e2D,
+			TextureFiltering  minFiltering = TextureFiltering::eLinear,
+			TextureFiltering  magFiltering = TextureFiltering::eLinear,
+			TextureWrapping   wrapping     = TextureWrapping::eRepeat,
+			TextureFlags      flags        = TextureFlagBits::eNone
 		) noexcept;
 		GpuTexture_T()  noexcept = default;
 		~GpuTexture_T() noexcept;
@@ -83,21 +86,24 @@ namespace lunar::Render
 		TextureFlags     getFlags()        const;
 		TextureType      getType()         const;
 
+		void             generateMipmaps();
+
 		GLuint   glGetHandle();
 		GLuint64 glGetBindlessHandle();
 		
 	public:
 		size_t           refCount  = 0;
 	private:
-		GLuint           handle    = 0;
-		GLuint64         bindless  = 0;
-		TextureFormat    format    = TextureFormat::eUnknown;
-		TextureFiltering filtering = TextureFiltering::eUnknown;
-		TextureWrapping  wrapping  = TextureWrapping::eUnknown;
-		TextureFlags     flags     = TextureFlagBits::eNone;
-		TextureType      type      = TextureType::eUnknown;
-		int              width     = -1;
-		int              height    = -1;
+		GLuint           handle       = 0;
+		GLuint64         bindless     = 0;
+		TextureFormat    format       = TextureFormat::eUnknown;
+		TextureFiltering minFiltering = TextureFiltering::eUnknown;
+		TextureFiltering magFiltering = TextureFiltering::eUnknown;
+		TextureWrapping  wrapping     = TextureWrapping::eUnknown;
+		TextureFlags     flags        = TextureFlagBits::eNone;
+		TextureType      type         = TextureType::eUnknown;
+		int              width        = -1;
+		int              height       = -1;
 	}; 
 
 	class LUNAR_API GpuCubemap_T
@@ -143,7 +149,8 @@ namespace lunar::Render
 		GpuTextureBuilder& destFormat(TextureFormat format);
 		GpuTextureBuilder& type(TextureType type);
 		GpuTextureBuilder& wrapping(TextureWrapping wrapping);
-		GpuTextureBuilder& filtering(TextureFiltering filtering);
+		GpuTextureBuilder& minFiltering(TextureFiltering filtering);
+		GpuTextureBuilder& magFiltering(TextureFiltering filtering);
 		GpuTextureBuilder& addFlags(TextureFlags flags);
 
 		GpuTexture build(RenderContext context);
@@ -157,7 +164,8 @@ namespace lunar::Render
 		TextureDataFormat srcDataFormat    = TextureDataFormat::eUnsignedByte;
 		TextureFormat     dstFormat        = TextureFormat::eUnknown;
 		TextureType       textureType      = TextureType::eUnknown;
-		TextureFiltering  textureFiltering = TextureFiltering::eUnknown;
+		TextureFiltering  minFilter        = TextureFiltering::eUnknown;
+		TextureFiltering  magFilter        = TextureFiltering::eUnknown;
 		TextureWrapping   textureWrapping  = TextureWrapping::eUnknown;
 		TextureFlags      flags            = TextureFlagBits::eNone;
 	};

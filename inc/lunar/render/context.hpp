@@ -71,12 +71,13 @@ namespace lunar::Render
 			int               height,
 			void*             data,
 			TextureFormat     srcFormat,
-			TextureDataFormat dataFormat = TextureDataFormat::eUnsignedByte,
-			TextureFormat     dstFormat  = TextureFormat::eRGBA,
-			TextureType       type       = TextureType::e2D,
-			TextureFiltering  filtering  = TextureFiltering::eLinear,
-			TextureWrapping   wrapping   = TextureWrapping::eRepeat,
-			TextureFlags      flags      = TextureFlagBits::eNone
+			TextureDataFormat dataFormat   = TextureDataFormat::eUnsignedByte,
+			TextureFormat     dstFormat    = TextureFormat::eRGBA,
+			TextureType       type         = TextureType::e2D,
+			TextureFiltering  minFiltering = TextureFiltering::eLinear,
+			TextureFiltering  magFiltering = TextureFiltering::eLinear,
+			TextureWrapping   wrapping     = TextureWrapping::eRepeat,
+			TextureFlags      flags        = TextureFlagBits::eNone
 		);
 		GpuMesh              createMesh
 		(
@@ -84,7 +85,7 @@ namespace lunar::Render
 			GpuBuffer                    indexBuffer,
 			MeshTopology                 topology,
 			GpuBuffer                    materialsBuffer,
-			const std::span<GpuTexture>& textures
+			GpuTexture                   materialsAtlas
 		);
 		GpuCubemap           createCubemap
 		(

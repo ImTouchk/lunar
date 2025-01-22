@@ -2,7 +2,7 @@
 #include <lunar/api.hpp>
 #include <atomic>
 
-namespace Time
+namespace lunar::Time
 {
 	struct LUNAR_API TimeContext_T
 	{
