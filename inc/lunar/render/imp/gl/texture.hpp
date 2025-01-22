@@ -49,7 +49,8 @@ namespace lunar::Render
 
 	enum class LUNAR_API TextureFlagBits
 	{
-		eNone = 0
+		eNone     = 0,
+		eBindless = 1 << 0
 	};
 
 	LUNAR_FLAGS(TextureFlags, TextureFlagBits);
@@ -82,12 +83,14 @@ namespace lunar::Render
 		TextureFlags     getFlags()        const;
 		TextureType      getType()         const;
 
-		GLuint glGetHandle();
+		GLuint   glGetHandle();
+		GLuint64 glGetBindlessHandle();
 		
 	public:
 		size_t           refCount  = 0;
 	private:
 		GLuint           handle    = 0;
+		GLuint64         bindless  = 0;
 		TextureFormat    format    = TextureFormat::eUnknown;
 		TextureFiltering filtering = TextureFiltering::eUnknown;
 		TextureWrapping  wrapping  = TextureWrapping::eUnknown;
@@ -120,5 +123,42 @@ namespace lunar::Render
 	private:
 		int        width          = -1;
 		int        height         = -1;
+	};
+
+	struct LUNAR_API GpuTextureBuilder
+	{
+	public:
+		GpuTextureBuilder()  noexcept = default;
+		~GpuTextureBuilder() noexcept = default;
+
+		GpuTextureBuilder& fromByteBuffer
+		(
+			TextureFormat     srcFormat, 
+			TextureDataFormat srcDataFormat, 
+			int               width, 
+			int               height, 
+			void*             data
+		); 
+
+		GpuTextureBuilder& destFormat(TextureFormat format);
+		GpuTextureBuilder& type(TextureType type);
+		GpuTextureBuilder& wrapping(TextureWrapping wrapping);
+		GpuTextureBuilder& filtering(TextureFiltering filtering);
+		GpuTextureBuilder& addFlags(TextureFlags flags);
+
+		GpuTexture build(RenderContext context);
+		GpuTexture build(RenderContext_T* context);
+
+	private:
+		void*             data             = nullptr;
+		int               width            = -1;
+		int               height           = -1;
+		TextureFormat     srcFormat        = TextureFormat::eUnknown;
+		TextureDataFormat srcDataFormat    = TextureDataFormat::eUnsignedByte;
+		TextureFormat     dstFormat        = TextureFormat::eUnknown;
+		TextureType       textureType      = TextureType::eUnknown;
+		TextureFiltering  textureFiltering = TextureFiltering::eUnknown;
+		TextureWrapping   textureWrapping  = TextureWrapping::eUnknown;
+		TextureFlags      flags            = TextureFlagBits::eNone;
 	};
 }

@@ -25,12 +25,14 @@ namespace lunar
 		Scene()                             noexcept = default;
 		~Scene()                            noexcept;
 
-		void       update();
-		Camera*    getMainCamera();
-		void       setMainCamera(Camera* camera);
-		GameObject getGameObject(size_t number);
-		GameObject getGameObject(const std::string_view& name);
-		GameObject createGameObject
+		void                    update();
+		Camera*                 getMainCamera();
+		void                    setMainCamera(Camera* camera);
+		GameObject              getGameObject(size_t number);
+		GameObject              getGameObject(const std::string_view& name);
+		std::span<GameObject_T> getGameObjects();
+		std::span<Component>    getComponents();
+		GameObject              createGameObject
 		(
 			const std::string_view& name,
 			GameObject              parent = nullptr

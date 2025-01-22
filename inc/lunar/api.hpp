@@ -82,3 +82,9 @@ namespace Lunar::imp
 		return hash;
 	}
 }
+
+#ifdef _MSC_VER
+#	define LUNAR_DEBUG_DISPLAY(expr) __declspec(property(get = expr))
+#else
+#	define LUNAR_DEBUG_DISPLAY(expr)
+#endif

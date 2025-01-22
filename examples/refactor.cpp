@@ -61,6 +61,18 @@ int main()
 	window->registerAction("toggle_menu", { { "keyboard.esc" } });
 	Input::SetGlobalHandler(&window.get());
 
+	GpuMesh mesh = GpuMeshBuilder()
+		.useRenderContext(context.get())
+		.fromMeshFile(Fs::fromData("models/house.gltf"))
+		.build();
+
+	GameObject object2   = scene.createGameObject("House");
+	auto&      renderer  = object2->addComponent<MeshRenderer>();
+
+	renderer.mesh    = mesh;
+	renderer.program = context->getProgram(GpuDefaultPrograms::eBasicPbrShader);
+
+
 	while (window->isActive())
 	{
 		if (window->getActionDown("toggle_menu"))
@@ -73,6 +85,7 @@ int main()
 
 		context->useCamera(camera);
 		context->draw(cubemap);
+		context->draw(scene);
 
 		context->end();
 

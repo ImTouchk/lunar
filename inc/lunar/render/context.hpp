@@ -80,9 +80,11 @@ namespace lunar::Render
 		);
 		GpuMesh              createMesh
 		(
-			GpuBuffer            vertexBuffer,
-			GpuBuffer            indexBuffer,
-			MeshTopology         topology
+			GpuBuffer                    vertexBuffer,
+			GpuBuffer                    indexBuffer,
+			MeshTopology                 topology,
+			GpuBuffer                    materialsBuffer,
+			const std::span<GpuTexture>& textures
 		);
 		GpuCubemap           createCubemap
 		(
@@ -111,6 +113,7 @@ namespace lunar::Render
 		int                             viewportWidth        = 0;
 		int                             viewportHeight       = 0;
 		const Camera*                   renderCamera         = nullptr;
+		GpuCubemap                      cubemap              = nullptr;
 
 		void loadDefaultMeshes();
 		void loadDefaultPrograms();

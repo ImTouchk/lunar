@@ -1,7 +1,9 @@
 #include <lunar/render/components.hpp>
 #include <lunar/debug/log.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace lunar
 {
@@ -60,5 +62,15 @@ namespace lunar
 	const glm::vec3& Camera::getRight() const
 	{
 		return right;
+	}
+
+	glm::mat4 MeshRenderer::getModelMatrix() const
+	{
+		const auto& transform   = getTransform();
+		auto        scale       = glm::scale(glm::mat4(1.f), transform.scale);
+		auto        translation = glm::translate(glm::mat4(1.f), transform.position);
+		auto        rot_quat    = glm::quat(glm::radians(transform.rotation));
+		auto        rotation    = glm::mat4(rot_quat);
+		return translation * rotation * scale;
 	}
 }

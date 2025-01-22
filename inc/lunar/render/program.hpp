@@ -16,7 +16,8 @@ namespace lunar::Render
 		eIrradianceMapBuilder = 2,
 		ePrefilterMapBuilder  = 3,
 		eBrdfBuilder          = 4,
-		eSkyboxShader         = 5
+		eSkyboxShader         = 5,
+		eBasicPbrShader       = 6
 	};
 
 	struct LUNAR_API GpuProgramBuilder

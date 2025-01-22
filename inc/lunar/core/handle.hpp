@@ -41,7 +41,6 @@ namespace lunar
 		template<typename = typename std::enable_if<HasValidCheck<T>>::type>
 		bool     valid()     const { return get().valid(); }
 
-
 	protected:
 		vector<T>* ref = nullptr;
 		size_t     idx = 0;
@@ -91,8 +90,7 @@ namespace lunar
 		const T& get()       const      { return *(ref->operator[](idx)); }
 		bool     operator==(T* pointer) { return pointer == (*ref)[idx]; }
 		
-		template<typename = typename std::enable_if<HasValidCheck<T>>::type>
-		bool     valid()     const      { return get().valid(); }
+		bool     exists()     const     { return ref !=  nullptr;}
 
 		/* Copy & move operators */
 
@@ -100,8 +98,11 @@ namespace lunar
 			: ref(other.ref),
 			idx(other.idx)
 		{
-			T* element = (*ref)[idx];
-			element->refCount++;
+			if (this->ref != nullptr)
+			{
+				T* element = (*ref)[idx];
+				element->refCount++;
+			}
 		}
 
 		RefHandle& operator=(const RefHandle& other) noexcept
@@ -109,8 +110,12 @@ namespace lunar
 			ref = other.ref;
 			idx = other.idx;
 			
-			T* element = (*ref)[idx];
-			element->refCount++;
+			if (this->ref != nullptr)
+			{
+				T* element = (*ref)[idx];
+				element->refCount++;
+			}
+
 			return *this;
 		}
 

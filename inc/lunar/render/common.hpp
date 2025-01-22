@@ -16,8 +16,6 @@ namespace lunar::Render
 		glm::vec3 normal;
 		float     uv_y;
 		glm::vec4 color;
-		glm::vec3 tangent;
-		glm::vec3 bitangent;
 	};
 
 	struct LUNAR_API UniformBufferData
@@ -48,31 +46,10 @@ namespace lunar::Render
 		glm::vec4 colors[10];
 		int isCubemapHdr;
 	};
-
-	struct LUNAR_API GpuMaterial
-	{
-		int   albedoMap;
-		float metallic;
-		float roughness;
-		float ao;
-	};
-
-	struct LUNAR_API GpuMaterialData
-	{
-		int         count         = 0;
-		GpuMaterial materials[15] = {};
-	};
 }
 
 namespace lunar::Render
 {
-	struct LUNAR_API MaterialProperties
-	{
-		float metallic  = 0.1f;
-		float roughness = 0.1f;
-		float ao        = 0.1f;
-	};
-
 	class LUNAR_API GpuVertexArrayObject_T;
 	class LUNAR_API GpuBuffer_T;
 	class LUNAR_API GpuProgram_T;

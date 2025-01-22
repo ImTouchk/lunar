@@ -38,6 +38,8 @@ target_sources(lunar PRIVATE
     ${LUNAR_SRC} 
     "src/render/context.cpp"
     "src/render/mesh.cpp"
+    "src/render/mesh_builder.cpp"
+    "src/render/texture_builder.cpp"
     "src/render/program.cpp"
     "src/render/components.cpp"
     "src/render/window.cpp"

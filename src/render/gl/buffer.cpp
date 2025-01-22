@@ -32,6 +32,19 @@ namespace lunar::Render
 		}
 	}
 
+	void GpuBuffer_T::bind(size_t location)
+	{
+		glBindBuffer((GLenum)type, handle);
+		glBindBufferBase((GLenum)type, location, handle);
+	}
+
+	void GpuBuffer_T::upload(void* data, size_t size, size_t offset)
+	{
+		glBindBuffer((GLenum)type, handle);
+		glBufferSubData((GLenum)type, offset, size, data);
+		glBindBuffer((GLenum)type, 0);
+	}
+
 	size_t GpuBuffer_T::getSize() const
 	{
 		DEBUG_ASSERT(handle != 0);
@@ -78,15 +91,11 @@ namespace lunar::Render
 		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 		glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv_x));
 		glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv_y));
-		glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-		glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
 		glEnableVertexAttribArray(3);
 		glEnableVertexAttribArray(4);
-		glEnableVertexAttribArray(5);
-		glEnableVertexAttribArray(6);
 		glBindVertexArray(0);
 	}
 

@@ -81,10 +81,25 @@ namespace lunar::Render
 		glDepthFunc(GL_LEQUAL);
 
 		glGenVertexArrays(1, &imp.globalVao);
+
+		imp.sceneDataUniform = context->createBuffer(
+			GpuBufferType::eUniform,
+			GpuBufferUsageFlagBits::eDynamic,
+			sizeof(imp::GpuSceneData),
+			nullptr
+		);
+
+		imp.meshDataUniform = context->createBuffer(
+			GpuBufferType::eUniform,
+			GpuBufferUsageFlagBits::eDynamic,
+			sizeof(imp::GpuMeshData),
+			nullptr
+		);
 	}
 
 	void Window_T::clearBackendData()
 	{
+		imp.meshDataUniform = nullptr;
 		glDeleteVertexArrays(1, &imp.globalVao);
 	}
 

@@ -10,7 +10,9 @@ namespace lunar::Render
 	{
 		struct WindowBackendData
 		{
-			GLuint globalVao = 0;
+			GLuint    globalVao        = 0;
+			GpuBuffer sceneDataUniform = nullptr;
+			GpuBuffer meshDataUniform  = nullptr;
 		};
 	}
 }

@@ -62,33 +62,71 @@ namespace lunar::Render
 			? imp::GetGlobalRenderContext().glfw.vao
 			: static_cast<Window_T*>(target)->getBackendData().globalVao;
 
-		GpuBuffer vertex = mesh->getVertexBuffer();
-		GpuBuffer index  = mesh->getIndexBuffer();
+		GpuBuffer vertex    = mesh->getVertexBuffer();
+		GpuBuffer index     = mesh->getIndexBuffer();
+		GpuBuffer materials = mesh->getMaterialsBuffer();
 
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vertex->glGetHandle());
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index->glGetHandle());
+		if (materials.exists())
+		{
+			materials->bind(2);
+		}	
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 		glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv_x));
 		glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv_y));
-		glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-		glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
 		glEnableVertexAttribArray(3);
 		glEnableVertexAttribArray(4);
-		glEnableVertexAttribArray(5);
-		glEnableVertexAttribArray(6);
 
 		glDrawElements((GLenum)mesh->getTopology(), mesh->getIndicesCount(), GL_UNSIGNED_INT, 0);
 	}
 
 	void RenderContext_T::draw(Scene& scene)
 	{
+		Window_T* window      = static_cast<Window_T*>(target);
+		auto&     window_data = window->getBackendData();
 		
+		auto      scene_data  = imp::GpuSceneData
+		{
+			.projection     = renderCamera->getProjectionMatrix(viewportWidth, viewportHeight),
+			.view           = renderCamera->getViewMatrix(),
+			.cameraPosition = renderCamera->getTransform().position
+		};
+
+		window_data.sceneDataUniform->upload(scene_data);
+		window_data.sceneDataUniform->bind(0);
+
+		auto components = scene.getComponents();
+		for (Component& component : components)
+		{
+			if (component == nullptr || typeid(*component).hash_code() != typeid(MeshRenderer).hash_code())
+				continue;
+
+			MeshRenderer* mesh_renderer = static_cast<MeshRenderer*>(component.get());
+			auto&         mesh          = mesh_renderer->mesh;
+			auto&         program       = mesh_renderer->program;
+			auto          mesh_data     = imp::GpuMeshData
+			{
+				.model = mesh_renderer->getModelMatrix()
+			};
+
+			program->use();
+			program->bind("environmentMap", 0, cubemap->environmentMap);
+			program->bind("irradianceMap", 1, cubemap->irradianceMap);
+			program->bind("prefilterMap", 2, cubemap->prefilterMap);
+			program->bind("brdfMap", 3, cubemap->brdfLut);
+
+			window_data.meshDataUniform->upload(mesh_data);
+			window_data.meshDataUniform->bind(1);
+
+			draw(mesh);
+		}
 	}
 
 	void RenderContext_T::draw(GpuCubemap cubemap)
@@ -106,6 +144,8 @@ namespace lunar::Render
 		shader->bind("prefilterMap", 2, cubemap->prefilterMap);
 		shader->bind("brdfMap", 3, cubemap->brdfLut);
 		draw(cube_mesh);
+
+		this->cubemap = cubemap;
 	}
 
 	void RenderContext_T::end()

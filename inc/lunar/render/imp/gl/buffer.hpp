@@ -42,6 +42,13 @@ namespace lunar::Render
 		GpuBufferUsageFlags getUsageFlags() const;
 		size_t              getSize()       const;
 
+		void                bind();
+		void                bind(size_t location);
+		void                upload(void* data, size_t size, size_t offset = 0);
+
+		template<typename T>
+		inline void         upload(const T& object, size_t offset = 0) { upload((void*)(&object), sizeof(T), offset); }
+
 		GLuint glGetHandle();
 
 	public:

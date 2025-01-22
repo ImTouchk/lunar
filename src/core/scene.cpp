@@ -36,6 +36,16 @@ namespace lunar
 		return make_handle(objects);
 	}
 
+	std::span<GameObject_T> Scene::getGameObjects()
+	{
+		return objects;
+	}
+
+	std::span<Component> Scene::getComponents()
+	{
+		return components;
+	}
+
 	void Scene::setMainCamera(Camera* camera)
 	{
 		this->mainCamera = camera;

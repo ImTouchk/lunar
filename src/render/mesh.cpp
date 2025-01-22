@@ -287,18 +287,26 @@ namespace lunar::Render
 {
 	GpuMesh_T::GpuMesh_T
 	(
-		RenderContext_T* context,
-		GpuBuffer            vertexBuffer,
-		GpuBuffer            indexBuffer,
-		MeshTopology         meshTopology
+		RenderContext_T*             context,
+		GpuBuffer                    vertexBuffer,
+		GpuBuffer                    indexBuffer,
+		MeshTopology                 topology,
+		GpuBuffer                    materialsBuffer,
+		const std::span<GpuTexture>& textures
 	) noexcept : context(context), 
 		vertexBuffer(vertexBuffer),
 		indexBuffer(indexBuffer),
-		meshTopology(meshTopology)
+		materialsBuffer(materialsBuffer),
+		meshTopology(topology)
 	{
 		//this->vertexArray->bind(this->vertexBuffer, this->indexBuffer);
 		vertexCount = this->vertexBuffer->getSize() / sizeof(Vertex);
 		indexCount  = this->indexBuffer->getSize() / sizeof(uint32_t);
+
+		for (size_t i = 0; i < textures.size(); i++)
+			this->textures[i] = textures[i];
+
+		this->textureCount = textures.size();
 		//this->vertexArray->unbind();
 	}
 
@@ -337,48 +345,8 @@ namespace lunar::Render
 		return indexBuffer;
 	}
 
-	GpuMeshBuilder& GpuMeshBuilder::useRenderContext(RenderContext_T* context)
+	GpuBuffer GpuMesh_T::getMaterialsBuffer()
 	{
-		this->context = context;
-		return *this;
-	}
-
-	//GpuMeshBuilder& GpuMeshBuilder::defaultVertexArray()
-	//{
-	//	this->vertexArray = context->createVertexArray();
-	//	return *this;
-	//}
-
-	GpuMeshBuilder& GpuMeshBuilder::fromVertexArray(const std::span<const Vertex>& vertices)
-	{
-		this->vertexBuffer = context->createBuffer(
-			GpuBufferType::eVertex,
-			GpuBufferUsageFlagBits::eStatic,
-			vertices.size() * sizeof(Render::Vertex),
-			(void*)vertices.data()
-		);
-		return *this;
-	}
-
-	GpuMeshBuilder& GpuMeshBuilder::fromIndexArray(const std::span<const uint32_t>& indices)
-	{
-		this->indexBuffer = context->createBuffer(
-			GpuBufferType::eIndex,
-			GpuBufferUsageFlagBits::eStatic,
-			indices.size() * sizeof(uint32_t),
-			(void*)indices.data()
-		);
-
-		return *this;
-	}
-
-	GpuMesh GpuMeshBuilder::build()
-	{
-		return context->createMesh(vertexBuffer, indexBuffer, MeshTopology::eTriangles);
-	}
-
-	GpuMesh RenderContext_T::getMesh(MeshPrimitive primitive)
-	{
-		return make_handle(meshes, (size_t)primitive);
+		return materialsBuffer;
 	}
 }

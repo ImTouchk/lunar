@@ -352,7 +352,7 @@ namespace lunar::Render
 
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // for Mac
 			glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
@@ -367,6 +367,24 @@ namespace lunar::Render
 			glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
 
 			glGenVertexArrays(1, &vao);
+
+			GLint ext_count = 0;
+			glGetIntegerv(GL_NUM_EXTENSIONS, &ext_count);
+			for (size_t i = 0; i < ext_count; i++)
+			{
+				const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
+				DEBUG_LOG("OpenGL extension: {}", extension);
+			}
+
+			if (!GLAD_GL_ARB_bindless_texture)
+			{
+				DEBUG_LOG("Extension 'GL_ARB_bindless_texture' not supported on this device.");
+				//abort();
+			}
+			else
+			{
+				DEBUG_LOG("Found support for all required OpenGL extensions.");
+			}
 		}
 	}
 

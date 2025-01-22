@@ -72,6 +72,12 @@ namespace lunar::Render
 
 		glGenerateMipmap((GLenum)type);
 
+		if (flags & TextureFlagBits::eBindless)
+		{
+			this->bindless = glGetTextureHandleARB(this->handle);
+			glMakeTextureHandleResidentARB(this->bindless);
+		}
+
 		glBindTexture((GLenum)type, 0);
 	}
 
@@ -94,6 +100,11 @@ namespace lunar::Render
 	GLuint GpuTexture_T::glGetHandle()
 	{
 		return handle;
+	}
+
+	GLuint64 GpuTexture_T::glGetBindlessHandle()
+	{
+		return bindless;
 	}
 
 	TextureType GpuTexture_T::getType() const

@@ -102,12 +102,14 @@ namespace lunar::Render
 
 	GpuMesh RenderContext_T::createMesh
 	(
-		GpuBuffer    vertexBuffer,
-		GpuBuffer    indexBuffer,
-		MeshTopology topology
+		GpuBuffer                    vertexBuffer,
+		GpuBuffer                    indexBuffer,
+		MeshTopology                 topology,
+		GpuBuffer                    materialsBuffer,
+		const std::span<GpuTexture>& textures
 	)
 	{
-		meshes.emplace_back(this, vertexBuffer, indexBuffer, topology);
+		meshes.emplace_back(this, vertexBuffer, indexBuffer, topology, materialsBuffer, textures);
 		return make_handle(meshes);
 	}
 
@@ -264,6 +266,12 @@ namespace lunar::Render
 			.graphicsShader()
 			.addVertexSource(Fs::fromData("shader-src/skybox.vert"))
 			.addFragmentSource(Fs::fromData("shader-src/skybox.frag"))
+			.build(this)->refCount += 2;
+
+		GpuProgramBuilder()
+			.graphicsShader()
+			.addVertexSource(Fs::fromData("shader-src/pbr.vert"))
+			.addFragmentSource(Fs::fromData("shader-src/pbr.frag"))
 			.build(this)->refCount += 2;
 
 		defaultProgramsBuilt = true;
