@@ -15,13 +15,18 @@ set(LUNAR_USE_IMGUI ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git)
-FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git)
-FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git)
-FetchContent_Declare(fastgltf GIT_REPOSITORY https://github.com/spnda/fastgltf.git GIT_TAG main)
-FetchContent_MakeAvailable(json glm glfw fastgltf)
+# include(FetchContent)
+# FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git)
+# FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git)
+# FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git)
+# FetchContent_Declare(fastgltf GIT_REPOSITORY https://github.com/spnda/fastgltf.git GIT_TAG main)
+# FetchContent_MakeAvailable(json glm glfw fastgltf)
 
+find_package(ReactPhysics3D REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(fastgltf REQUIRED)
+find_package(nlohmann_json REQUIRED)
 find_package(JNI REQUIRED)
 
 file(GLOB LUNAR_SRC 
@@ -62,24 +67,20 @@ if(${LUNAR_EXPERIMENTAL})
     target_compile_definitions(lunar PUBLIC LUNAR_EXPERIMENTAL)
 endif()
 
-add_subdirectory(reactphysics3d)
-target_link_libraries(lunar PUBLIC reactphysics3d)
-#target_include_directories(lunar PUBLIC reactphysics3d)
-
 if(${LUNAR_USE_IMGUI})
     message("-- lunar: Using imgui library")
     add_library(imgui STATIC)
     target_sources(imgui PRIVATE
-        "imgui/imgui.h"
-        "imgui/imgui.cpp"
-        "imgui/imgui_demo.cpp"
-        "imgui/imgui_draw.cpp"
-        "imgui/imgui_widgets.cpp"
-        "imgui/imgui_tables.cpp"
-        "imgui/backends/imgui_impl_glfw.cpp"
-        "imgui/backends/imgui_impl_glfw.h"
+        "deps/imgui/imgui.h"
+        "deps/imgui/imgui.cpp"
+        "deps/imgui/imgui_demo.cpp"
+        "deps/imgui/imgui_draw.cpp"
+        "deps/imgui/imgui_widgets.cpp"
+        "deps/imgui/imgui_tables.cpp"
+        "deps/imgui/backends/imgui_impl_glfw.cpp"
+        "deps/imgui/backends/imgui_impl_glfw.h"
     )
-    target_include_directories(imgui PUBLIC "imgui" "imgui/backends")
+    target_include_directories(imgui PUBLIC "deps/imgui" "deps/imgui/backends")
     target_link_libraries(imgui PUBLIC glfw)
     target_include_directories(imgui PUBLIC glfw)
 
@@ -87,15 +88,15 @@ if(${LUNAR_USE_IMGUI})
         target_link_libraries(imgui PUBLIC Vulkan::Vulkan)
         target_include_directories(imgui PUBLIC Vulkan::Vulkan)
         target_sources(imgui PRIVATE
-            "imgui/backends/imgui_impl_vulkan.h"
-            "imgui/backends/imgui_impl_vulkan.cpp"
+            "deps/imgui/backends/imgui_impl_vulkan.h"
+            "deps/imgui/backends/imgui_impl_vulkan.cpp"
         )
     endif()
 
     if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
         target_sources(imgui PRIVATE
-            "imgui/backends/imgui_impl_opengl3.h"
-            "imgui/backends/imgui_impl_opengl3.cpp"
+            "deps/imgui/backends/imgui_impl_opengl3.h"
+            "deps/imgui/backends/imgui_impl_opengl3.cpp"
         )
     endif()
     
@@ -197,8 +198,16 @@ endif()
 target_sources(lunar PRIVATE "stb_image.h")
 
 target_include_directories(lunar PUBLIC inc)
-target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf)
-target_link_libraries(lunar PUBLIC nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf)
+#target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf ReactPhysics3D::ReactPhysics3D)
+target_link_libraries(lunar PUBLIC 
+    nlohmann_json::nlohmann_json
+    JNI::JNI 
+    JNI::JVM 
+    glm::glm 
+    glfw
+    fastgltf::fastgltf 
+    ReactPhysics3D::ReactPhysics3D
+)
 
 target_compile_definitions(lunar PRIVATE LUNAR_LIBRARY_EXPORT)
 
