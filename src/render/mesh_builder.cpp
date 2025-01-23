@@ -177,6 +177,11 @@ namespace lunar::Render
 		}
 
 		auto asset = parser.loadGltf(data.get(), path.parent_path(), options);
+		if (asset.error() != fastgltf::Error::None)
+		{
+			DEBUG_ERROR("Couldn't parse GLTF file at '{}'.", path.generic_string());
+			return;
+		}
 		// todo; error
 
 		auto& meshes = asset->meshes;
@@ -299,7 +304,7 @@ namespace lunar::Render
 	GpuMeshBuilder& GpuMeshBuilder::fromMeshFile(const Fs::Path& path)
 	{
 		auto extension = path.extension().generic_string();
-		if (extension.compare(".gltf") == 0 || extension.compare(".gltb") == 0)
+		if (extension.compare(".gltf") == 0 || extension.compare(".glb") == 0)
 			fromGltfFile(path);
 
 		return *this;
