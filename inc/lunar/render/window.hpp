@@ -55,6 +55,7 @@ namespace lunar::Render
 		glm::vec2               getAxis()                                   const override;
 		glm::vec2               getRotation()                               const override;
 		GLFWwindow*             glfwGetHandle();
+		ImGuiContext*           imguiGetHandle();
 		imp::WindowBackendData& getBackendData();
 
 		static void pollEvents();

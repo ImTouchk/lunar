@@ -147,6 +147,11 @@ namespace lunar::Render
 		return handle;
 	}
 
+	ImGuiContext* Window_T::imguiGetHandle()
+	{
+		return imguiContext;
+	}
+
 	bool Window_T::isActive() const
 	{
 		return handle != nullptr && glfwWindowShouldClose(handle) == GLFW_FALSE;
