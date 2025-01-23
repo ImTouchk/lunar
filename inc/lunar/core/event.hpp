@@ -22,7 +22,6 @@ namespace lunar
 		{
 			EventListener callbacks[MAX_LISTENERS] = {};
 		};
-
 	}
 
 	class LUNAR_API EventHandler
@@ -32,7 +31,7 @@ namespace lunar
 		void removeEventListener(size_t type, EventListener listener);
 
 	protected:
-		void triggerEvent(size_t type, Event& e);
+		void fireEvent(size_t type, Event& e);
 			
 		std::unordered_map<size_t, imp::EventListeners> listeners;
 	};

@@ -58,6 +58,21 @@ namespace lunar
 		return comp;
 	}
 
+	GameObject GameObject_T::createChildObject(const std::string_view& name)
+	{
+		return getScene()->createGameObject(name, this);
+	}
+
+	std::vector<GameObject> GameObject_T::getChildren()
+	{
+		auto  children = std::vector<GameObject>();
+		auto& objects  = getScene()->objects;
+		for (auto& object : objects)
+			if (object.parent == this)
+				children.push_back(make_handle(objects, &object));
+		return children;
+	}
+
 	Transform& GameObject_T::getTransform()
 	{
 		return transform;

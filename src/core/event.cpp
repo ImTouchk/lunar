@@ -46,7 +46,7 @@ namespace lunar
 		DEBUG_ASSERT(true, "removeEventListener called on invalid function");
 	}
 
-	void EventHandler::triggerEvent(size_t type, Event& e)
+	void EventHandler::fireEvent(size_t type, Event& e)
 	{
 		auto it = listeners.find(type);
 		if (it == listeners.end())

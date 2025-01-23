@@ -3,13 +3,19 @@
 #include <lunar/debug/log.hpp>
 #include <lunar/render/components.hpp>
 
+#include <reactphysics3d/reactphysics3d.h>
+
 namespace lunar
 {
 	LUNAR_HANDLE_IMPL(GameObject);
 
+	reactphysics3d::PhysicsCommon PHYSICS_COMMON;
+
 	Scene::Scene(const std::string_view& name) noexcept
-		: name(name)
+		: name(name),
+		physicsWorld(PHYSICS_COMMON.createPhysicsWorld())
 	{
+
 	}
 
 	Scene::~Scene() noexcept
@@ -30,9 +36,18 @@ namespace lunar
 		return nullptr;
 	}
 
-	GameObject Scene::createGameObject(const std::string_view& name, GameObject parent)
+	GameObject Scene::createGameObject(const std::string_view& name, GameObject_T* parent)
 	{
-		objects.emplace_back(this, name, parent);
+		DEBUG_ASSERT(name.size() > 0);
+		DEBUG_ASSERT(parent == nullptr || parent->getScene() == this);
+
+		objects.emplace_back(this, name, make_handle(objects, parent));
+		
+		GameObject handle = make_handle(objects);
+		auto       event  = Events::SceneObjectCreated(*this, handle);
+		
+		fireEvent(SceneEventType::eObjectCreated, event);
+
 		return make_handle(objects);
 	}
 
@@ -60,6 +75,16 @@ namespace lunar
 	{
 		for (auto& component : components)
 			component->update();
+	}
+
+	void Scene::physicsUpdate(double dt)
+	{
+		this->physicsWorld->update(dt);
+	}
+
+	PhysicsWorld* Scene::getPhysicsWorld()
+	{
+		return this->physicsWorld;
 	}
 }
 

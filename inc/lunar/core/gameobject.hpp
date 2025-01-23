@@ -41,8 +41,10 @@ namespace lunar
 			return *new_component;
 		}
 
+		std::vector<GameObject> getChildren();
+		GameObject              createChildObject(const std::string_view& name);
 	private:
-		Scene*    scene     = nullptr;
+		Scene*      scene     = nullptr;
 		GameObject  parent    = nullptr;
 		std::string name      = "GameObject";
 		Transform   transform = {};

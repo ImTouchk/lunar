@@ -1,9 +1,9 @@
 #pragma once
 #include <lunar/core/gameobject.hpp>
+#include <lunar/core/scene_event.hpp>
 #include <lunar/core/event.hpp>
-#include <lunar/utils/collections.hpp>
 #include <lunar/file/json_file.hpp>
-#include <lunar/utils/identifiable.hpp>
+#include <lunar/utils/collections.hpp>
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 #include <functional>
@@ -17,6 +17,8 @@ namespace Render { class LUNAR_API Camera; }
 
 namespace lunar
 {
+	using PhysicsWorld = reactphysics3d::PhysicsWorld;
+
 	class LUNAR_API Camera;
 	class LUNAR_API Scene : public EventHandler
 	{
@@ -26,6 +28,8 @@ namespace lunar
 		~Scene()                            noexcept;
 
 		void                    update();
+		void                    physicsUpdate(double dt);
+		PhysicsWorld*           getPhysicsWorld();
 		Camera*                 getMainCamera();
 		void                    setMainCamera(Camera* camera);
 		GameObject              getGameObject(size_t number);
@@ -35,8 +39,16 @@ namespace lunar
 		GameObject              createGameObject
 		(
 			const std::string_view& name,
-			GameObject              parent = nullptr
+			GameObject_T*           parent = nullptr
 		);
+
+		template<SceneEventClass T>
+		inline void             addEventListener(EventListener_T<T> listener)
+		{
+			EventHandler::addEventListener((size_t)T::getType(), [listener](Event& e) {
+				listener(static_cast<T&>(e)); 
+			});
+		}
 
 	private:
 		std::string          name         = "Scene";
@@ -44,6 +56,11 @@ namespace lunar
 		vector<Component>    components   = {};
 		rp3d::PhysicsWorld*  physicsWorld = nullptr;
 		Camera*              mainCamera   = nullptr;
+
+		inline void fireEvent(SceneEventType type, Event& e)
+		{
+			EventHandler::fireEvent((size_t)type, e);
+		}
 
 		friend class GameObject_T;
 	};
