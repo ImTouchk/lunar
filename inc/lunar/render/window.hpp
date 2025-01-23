@@ -36,6 +36,8 @@ namespace lunar::Render
 		Window_T()  noexcept = default;
 		~Window_T() noexcept;
 
+		void                    toggleFullscreen();
+		void                    setFullscreen(bool value);
 		void                    toggleCursorLocked();
 		void                    setCursorLocked(bool value);
 		void                    update()                                    override;

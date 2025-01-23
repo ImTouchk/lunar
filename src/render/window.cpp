@@ -113,11 +113,32 @@ namespace lunar::Render
 
 	int Window_T::getRenderWidth() const
 	{
+		/* 
+			Both functions need improving but I am too lazy right now 
+			to implement the right solution for fullscreen toggling
+		*/
+
+		if (fullscreen)
+		{
+			GLFWmonitor*       monitor  = glfwGetWindowMonitor(handle);
+			const GLFWvidmode* vid_mode = glfwGetVideoMode(monitor);
+			
+			return vid_mode->width;
+		}
+
 		return width;
 	}
 
 	int Window_T::getRenderHeight() const
 	{
+		if (fullscreen)
+		{
+			GLFWmonitor*       monitor  = glfwGetWindowMonitor(handle);
+			const GLFWvidmode* vid_mode = glfwGetVideoMode(monitor);
+
+			return vid_mode->height;
+		}
+
 		return height;
 	}
 
@@ -134,6 +155,25 @@ namespace lunar::Render
 	bool Window_T::isMinimized() const
 	{
 		return width == 0 || height == 0;
+	}
+
+	bool Window_T::isFullscreen() const
+	{
+		return fullscreen;
+	}
+
+	void Window_T::toggleFullscreen()
+	{
+		GLFWmonitor*       monitor  = glfwGetPrimaryMonitor();
+		const GLFWvidmode* vid_mode = glfwGetVideoMode(monitor);
+
+		fullscreen = !fullscreen;
+
+		switch (fullscreen)
+		{
+		case true:  glfwSetWindowMonitor(handle, monitor, 0, 0, vid_mode->width, vid_mode->height, GLFW_DONT_CARE); break;
+		case false: glfwSetWindowMonitor(handle, NULL, 5, 5, width, height, GLFW_DONT_CARE); break;
+		}
 	}
 
 	/*
@@ -299,6 +339,10 @@ namespace lunar::Render
 	void GLFW_FramebufferSizeCb(GLFWwindow* handle, int width, int height)
 	{
 		auto& window  = GetWindowHandle(handle);
+
+		if (window.fullscreen)
+			return;
+
 		window.width  = width;
 		window.height = height;
 	}
