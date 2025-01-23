@@ -47,7 +47,8 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness);
 
 void main()
 {		
-    Material  mat       = materials[0];
+    int       matIdx    = primitiveToMaterial[gl_PrimitiveID];
+    Material  mat       = materials[matIdx];
     float     roughness = mat.roughness;
     float     metallic  = mat.metallic;
     float     ao        = mat.ao;

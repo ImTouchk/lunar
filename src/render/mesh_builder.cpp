@@ -53,7 +53,7 @@ namespace lunar::Render
 	struct TextureAtlasInfo
 	{
 		int                                    totalWidth  = 0;
-		int                                    totalHeight = 0;
+		int                                    totalHeight = 1;
 		int                                    textures    = 0;
 		std::unique_ptr<MaterialTextureData[]> materials   = nullptr;
 		GpuTexture                             handle      = nullptr;
@@ -98,10 +98,9 @@ namespace lunar::Render
 			data.width  = 1;
 			data.height = 1;
 			data.startX = output.totalWidth;
-			data.startY = output.totalHeight;
+			data.startY = 0;
 
 			output.totalWidth  += 1;
-			output.totalHeight += 1;
 			i++;
 		}
 
@@ -111,7 +110,12 @@ namespace lunar::Render
 			output.totalHeight,
 			colors.data(),
 			TextureFormat::eRGBA,
-			TextureDataFormat::eUnsignedByte
+			TextureDataFormat::eUnsignedByte,
+			TextureFormat::eRGBA,
+			TextureType::e2D,
+			TextureFiltering::eNearest,
+			TextureFiltering::eNearest,
+			TextureWrapping::eRepeat
 		);
 	}
 
@@ -141,15 +145,15 @@ namespace lunar::Render
 			if (material.pbrData.baseColorTexture.has_value())
 				continue;
 
-			output[i].metallic   = 0.01f + material.pbrData.metallicFactor;
-			output[i].roughness  = 0.01f + material.pbrData.roughnessFactor;
+			output[i].metallic   = glm::max(material.pbrData.metallicFactor, 0.1f);
+			output[i].roughness  = glm::max(material.pbrData.roughnessFactor, 0.1f);
 			output[i].ao         = glm::clamp(material.ior, 1.f, 4.f) / 4.f;
-			output[i].atlasBegin = glm::uvec2
+			output[i].atlasBegin = glm::vec2
 			{
 				(float)atlasInfo.materials[i].startX / (float)atlasInfo.totalWidth,
 				(float)atlasInfo.materials[i].startY / (float)atlasInfo.totalHeight
 			};
-			output[i].atlasEnd   = glm::uvec2
+			output[i].atlasEnd   = glm::vec2
 			{
 				(float)(atlasInfo.materials[i].startX + atlasInfo.materials[i].width) / (float)atlasInfo.totalWidth,
 				(float)(atlasInfo.materials[i].startY + atlasInfo.materials[i].height) / (float)atlasInfo.totalHeight
@@ -205,10 +209,12 @@ namespace lunar::Render
 			auto&  index_accessor = asset->accessors[p.indicesAccessor.value()];
 			
 			int    material_idx   = p.materialIndex.value_or(0);
-			material_indices.emplace_back(material_idx);
 
 			fastgltf::iterateAccessor<uint32_t>(asset.get(), index_accessor, [&](uint32_t idx) {
 				indices.emplace_back(idx + initial_idx);
+
+				if(indices.size() % 3 == 0)
+					material_indices.emplace_back(material_idx);
 			});
 
 			auto& pos_accessor = asset->accessors[p.findAttribute("POSITION")->accessorIndex];
