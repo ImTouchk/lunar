@@ -1,9 +1,0 @@
-[submodule "imgui"]
-	path = imgui
-	url = https://github.com/ocornut/imgui
-[submodule "JoltPhysics"]
-	path = JoltPhysics
-	url = https://github.com/jrouwe/JoltPhysics
-[submodule "reactphysics3d"]
-	path = reactphysics3d
-	url = https://github.com/DanielChappuis/reactphysics3d
