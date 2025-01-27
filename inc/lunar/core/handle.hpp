@@ -32,11 +32,13 @@ namespace lunar
 		Handle()                                    noexcept = default;
 		~Handle()                                   noexcept = default;
 
-		T* operator->()                       { return &(ref->operator[](idx)); }
-		const T* operator->()           const { return &(ref->operator[](idx)); }
-		T& get()                              { return ref->operator[](idx); }
-		const T& get()                  const { return ref->operator[](idx); }
-		bool     operator==(T* pointer)       { return pointer == (ref->data() + idx); }
+		T* operator->()                           { return &(ref->operator[](idx)); }
+		const T* operator->()               const { return &(ref->operator[](idx)); }
+		T& get()                                  { return ref->operator[](idx); }
+		const T& get()                      const { return ref->operator[](idx); }
+		T*       pointer()                        { if (ref == nullptr) return nullptr; return &(get()); }
+		bool     operator==(T* pointer)     const { return pointer == (ref->data() + idx); }
+		bool     operator==(std::nullptr_t) const { return ref == nullptr; }
 
 		template<typename = typename std::enable_if<HasValidCheck<T>>::type>
 		bool     valid()     const { return get().valid(); }

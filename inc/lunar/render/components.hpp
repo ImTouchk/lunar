@@ -15,10 +15,8 @@ namespace lunar
 		void             update() override;
 		glm::mat4        getViewMatrix() const;
 		glm::mat4        getProjectionMatrix(int renderWidth, int renderHeight) const;
-		const glm::vec3& getFront() const;
-		const glm::vec3& getRight() const;
 
-	private:
+	public:
 		glm::vec3 front = { 0.f, 0.f, -1.f };
 		glm::vec3 right = { 1.f, 0.f, 0.f };
 		glm::vec3 up    = { 0.f, 1.f, 0.f };

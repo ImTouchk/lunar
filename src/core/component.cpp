@@ -36,12 +36,12 @@ namespace lunar
 		return scene;
 	}
 
-	Transform& Component_T::getTransform()
+	const Transform& Component_T::getTransform() const
 	{
 		return getGameObject()->getTransform();
 	}
 
-	const Transform& Component_T::getTransform() const
+	Transform& Component_T::getTransform()
 	{
 		return getGameObject()->getTransform();
 	}

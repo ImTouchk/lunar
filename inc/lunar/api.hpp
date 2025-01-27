@@ -22,10 +22,12 @@
 #endif
 
 #ifdef WIN32
-#	ifdef LUNAR_LIBRARY_EXPORT
+#	if defined(LUNAR_DLL) && defined(LUNAR_LIBRARY_EXPORT)
 #		define LUNAR_API __declspec(dllexport)
-#	else
+#	elif defined(LUNAR_DLL)
 #		define LUNAR_API __declspec(dllimport)
+#	else
+#		define LUNAR_API
 #	endif
 #endif
 
@@ -69,7 +71,7 @@ namespace lunar
 	
 #define LUNAR_FLAGS(Name, Underlying) using Name = lunar::Flags<Underlying>
 
-namespace Lunar::imp
+namespace lunar::imp
 {
 	constexpr LUNAR_API size_t fnv1a_hash(const std::string_view& str)
 	{

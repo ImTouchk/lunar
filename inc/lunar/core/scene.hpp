@@ -2,6 +2,7 @@
 #include <lunar/core/gameobject.hpp>
 #include <lunar/core/scene_event.hpp>
 #include <lunar/core/event.hpp>
+#include <lunar/render/common.hpp>
 #include <lunar/file/json_file.hpp>
 #include <lunar/utils/collections.hpp>
 #include <nlohmann/json.hpp>
@@ -24,7 +25,11 @@ namespace lunar
 	{
 	public:
 		Scene(const std::string_view& name) noexcept;
-		Scene()                             noexcept = default;
+
+		Scene(Scene&&)                      noexcept = delete;
+		Scene(const Scene&)                 noexcept = delete;
+		
+		Scene()                             noexcept;
 		~Scene()                            noexcept;
 
 		void                    update();
@@ -32,6 +37,8 @@ namespace lunar
 		PhysicsWorld*           getPhysicsWorld();
 		Camera*                 getMainCamera();
 		void                    setMainCamera(Camera* camera);
+		std::string_view        getName() const;
+		void                    setName(const std::string_view& name);
 		GameObject              getGameObject(size_t number);
 		GameObject              getGameObject(const std::string_view& name);
 		std::span<GameObject_T> getGameObjects();
@@ -50,6 +57,17 @@ namespace lunar
 			});
 		}
 
+		/*
+			Due to how object handles currently work, copying or moving
+			the scene object would invalidate all of them, so it's probably
+			a better idea to just disable this functionality. 
+			I don't think it would be a great idea to copy/move this object
+			in any case \(o_o)/
+		*/
+
+		Scene& operator=(const Scene&) = delete;
+		Scene& operator=(Scene&&)      = delete;
+
 	private:
 		std::string          name         = "Scene";
 		vector<GameObject_T> objects      = {};
@@ -63,6 +81,47 @@ namespace lunar
 		}
 
 		friend class GameObject_T;
+	};
+
+	struct LUNAR_API SceneLoader
+	{
+		using ComponentJsonParser = std::function<Component(const nlohmann::json&)>;
+		using VisitorDict         = std::unordered_map<std::string, ComponentJsonParser>;
+
+
+		SceneLoader()  noexcept = default;
+		~SceneLoader() noexcept  = default;
+	
+		SceneLoader& destination(Scene& scene);
+		SceneLoader& useRenderContext(Render::RenderContext context);
+		SceneLoader& loadJsonFile(const Fs::Path& path);
+
+		SceneLoader& useCoreSerializers();
+		SceneLoader& useCustomClassSerializer(
+			const std::string& componentName,
+			const ComponentJsonParser& parser
+		);
+
+		template<typename T> requires IsComponentType<T> && IsJsonSerializable<T>
+		SceneLoader& useClassSerializer(const std::string& componentName)
+		{
+			return useCustomClassSerializer(componentName, [](const nlohmann::json& json) -> Component {
+				auto component = std::make_shared<T>(T::Deserialize(json));
+				return component;
+			});
+		}
+
+	private:
+		void parseComponents(GameObject object, const nlohmann::json& json);
+		void parseTransform(GameObject object, const nlohmann::json& json);
+		void parseGameObject(
+			const nlohmann::json& json, 
+			GameObject            parent = nullptr
+		);
+
+		VisitorDict           visitors      = {};
+		Scene*                result        = nullptr;
+		Render::RenderContext renderContext = nullptr;
 	};
 }
 
@@ -114,44 +173,5 @@ namespace Core
 	//	std::shared_ptr<Script::VirtualMachine>& scriptingVm;
 	//};
 
-	//struct LUNAR_API SceneBuilder
-	//{
-	//	using ComponentJsonParser = std::function<std::shared_ptr<Component>(const nlohmann::json&)>;
 
-	//	SceneBuilder() = default;
-	//	~SceneBuilder() = default;
-	//	
-	//	SceneBuilder& useCoreSerializers();
-	//	SceneBuilder& useCustomClassSerializer(
-	//		const std::string& componentName,
-	//		const ComponentJsonParser& parser
-	//	);
-
-	//	template<typename T> requires IsDerivedComponent<T> && IsJsonSerializable<T>
-	//	SceneBuilder& useClassSerializer(const std::string& componentName) 
-	//	{
-	//		return useCustomClassSerializer(componentName, [](const nlohmann::json& json) -> std::shared_ptr<Component> {
-	//			auto component = std::make_shared<Component>(T::Deserialize(json));
-	//			return component;
-	//		});
-	//	}
-
-	//	SceneBuilder& fromJsonFile(const Fs::Path& path);
-
-	//	SceneBuilder& setName(const std::string_view& name);
-	//	SceneBuilder& useScriptingVm(std::shared_ptr<Script::VirtualMachine>& vm);
-	//	std::shared_ptr<Scene> create();
-
-	//private:
-	//	void parseGameObject(
-	//		const nlohmann::json& json, 
-	//		Scene* scene,
-	//		GameObject* parent = nullptr
-	//	);
-
-	//	std::string name = "Untitled Scene";
-	//	std::shared_ptr<Script::VirtualMachine> scriptingVm = nullptr;
-	//	std::unordered_map<std::string, ComponentJsonParser> componentParsers = {};
-	//	Fs::Path jsonFile = "";
-	//};
 }

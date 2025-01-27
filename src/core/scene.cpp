@@ -18,6 +18,11 @@ namespace lunar
 
 	}
 
+	Scene::Scene() noexcept
+		: physicsWorld(PHYSICS_COMMON.createPhysicsWorld())
+	{
+	}
+
 	Scene::~Scene() noexcept
 	{
 	}
@@ -41,7 +46,7 @@ namespace lunar
 		DEBUG_ASSERT(name.size() > 0);
 		DEBUG_ASSERT(parent == nullptr || parent->getScene() == this);
 
-		objects.emplace_back(this, name, make_handle(objects, parent));
+		objects.emplace_back(this, name, parent == nullptr ? nullptr : make_handle(objects, parent));
 		
 		GameObject handle = make_handle(objects);
 		auto       event  = Events::SceneObjectCreated(*this, handle);
@@ -69,6 +74,16 @@ namespace lunar
 	Camera* Scene::getMainCamera()
 	{
 		return mainCamera;
+	}
+
+	std::string_view Scene::getName() const
+	{
+		return name;
+	}
+
+	void Scene::setName(const std::string_view& name)
+	{
+		this->name = name;
 	}
 
 	void Scene::update()
@@ -102,108 +117,7 @@ namespace lunar
 //		return *this;
 //	}
 //
-//	SceneBuilder& SceneBuilder::useCoreSerializers()
-//	{
-//		useCustomClassSerializer("core.scriptComponent", [](const nlohmann::json&) -> std::shared_ptr<Component> {
-//			DEBUG_LOG("Hello, world!");
-//			return nullptr;
-//		});
-//
-//		useCustomClassSerializer("core.render.camera", [](const nlohmann::json&) -> std::shared_ptr<Component> {
-//			return std::make_shared<Render::Camera>();
-//		});
-//		return *this;
-//	}
-//
-//	SceneBuilder& SceneBuilder::useCustomClassSerializer(const std::string& name, const ComponentJsonParser& parser)
-//	{
-//		componentParsers[name] = parser;
-//		return *this;
-//	}
-//
-//	SceneBuilder& SceneBuilder::fromJsonFile(const Fs::Path& path)
-//	{
-//		jsonFile = path;
-//		return *this;
-//	}
-//
-//	void SceneBuilder::parseGameObject
-//	(
-//		const nlohmann::json& json,
-//		Scene* scene,
-//		GameObject* parent
-//	)
-//	{
-//		const std::string name = json.contains("name")
-//			? json["name"]
-//			: "GameObject";
-//
-//		auto& game_object = scene->createGameObject(name, parent);
-//
-//		if (json.contains("transform"))
-//		{
-//			auto& transform_data = json["transform"];
-//			auto& transform      = game_object.getTransform();
-//			
-//			if (transform_data.contains("position"))
-//			{
-//				auto& pos_data = transform_data["position"];
-//				auto& position = transform.position;
-//				position.x = pos_data.value("x", 0.f);
-//				position.y = pos_data.value("y", 0.f);
-//				position.z = pos_data.value("z", 0.f);
-//			}
-//
-//			if (transform_data.contains("rotation"))
-//			{
-//				auto& rot_data = transform_data["rotation"];
-//				auto& rotation = transform.rotation;
-//				rotation.x = rot_data.value("x", 0.f);
-//				rotation.y = rot_data.value("y", 0.f);
-//				rotation.z = rot_data.value("z", 0.f);
-//			}
-//
-//			if (transform_data.contains("scale"))
-//			{
-//				auto& scale_data = transform_data["scale"];
-//				auto& scale = transform.scale;
-//				scale.x = scale_data.value("x", 0.f);
-//				scale.y = scale_data.value("y", 0.f);
-//				scale.z = scale_data.value("z", 0.f);
-//			}
-//		}
-//
-//		if (json.contains("components"))
-//		{
-//			auto& components = json["components"];
-//			for (auto& [key, component] : components.items())
-//			{
-//				const std::string component_type = component["type"];
-//				if (!componentParsers.contains(component_type))
-//				{
-//					DEBUG_WARN("Found component '{}' inside scene file '{}' but no suitable parser for it. Skipping...", component_type, jsonFile.string());
-//					continue;
-//				}
-//
-//				auto parsed_component = componentParsers[component_type](component);
-//				if (parsed_component == nullptr)
-//				{
-//					DEBUG_WARN("Component of type '{}' was parsed but result was NULL. Skipping...", component_type);
-//					continue;
-//				}
-//
-//				game_object.addComponent(parsed_component);
-//				DEBUG_LOG("Parsed component of type '{}'...", component_type);
-//			}
-//		}
-//
-//		if (json.contains("children"))
-//		{
-//			auto& children = json["children"];
-//			for (auto& [key, child] : children.items())
-//				parseGameObject(child, scene, &game_object);
-//		}
-//	}
+
 //
 //	std::shared_ptr<Scene> SceneBuilder::create()
 //	{

@@ -20,33 +20,46 @@ namespace lunar
 		GameObject_T()  noexcept = default;
 		~GameObject_T() noexcept = default;
 
-		std::string_view       getName() const;
+		void                   update();
+		size_t                 getId()             const;
+		std::string_view       getName()           const;
 		Scene*                 getScene();
 		GameObject             getParent();
 		std::vector<Component> getComponents();
 		Component              getComponent(const std::type_info& ty);
+		const Transform&       getTransform()      const;
 		Transform&             getTransform();
-		const Transform&       getTransform() const;
-		
+		glm::vec3              getWorldPos()       const;
+		glm::quat              getWorldRotation()  const;
+		glm::vec3              getWorldScale()     const;
+		glm::mat4              getWorldTransform() const;
+		glm::vec3              getLocalPos()       const;
+		glm::vec3              getLocalRotation()  const;
+		glm::vec3              getLocalScale()     const;
+		void                   setWorldPos(glm::vec3 pos);
+		void                   setLocalPos(glm::vec3 pos);
+
 		template<typename T> requires IsComponentType<T>
 		T*                     getComponent() { return static_cast<T*>(getComponent(typeid(T)).get()); }
 
-		Component&             addComponent(Component created);
+		Component_T*           addComponent(Component created);
 		template <typename T, class... _Valty> requires IsComponentType<T>
-		T&                     addComponent(_Valty&&... ctor_values)
+		T*                     addComponent(_Valty&&... ctor_values)
 		{
 			DEBUG_ASSERT(getComponent<T>() == nullptr, "There can exist only one component of type <T> on a single gameobject.");
 			auto new_component = std::make_shared<T>(std::forward<_Valty>(ctor_values)...);
 			addComponent(new_component);
-			return *new_component;
+			return new_component.get();
 		}
 
 		std::vector<GameObject> getChildren();
 		GameObject              createChildObject(const std::string_view& name);
 	private:
+		size_t      id        = 0;
 		Scene*      scene     = nullptr;
 		GameObject  parent    = nullptr;
 		std::string name      = "GameObject";
+		size_t      nameHash  = 0;
 		Transform   transform = {};
 	};
 }

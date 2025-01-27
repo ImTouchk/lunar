@@ -114,7 +114,9 @@ namespace lunar::Render
 			auto          mesh_atlas    = mesh->getMaterialsAtlas();
 			auto          mesh_data     = imp::GpuMeshData
 			{
-				.model = mesh_renderer->getModelMatrix()
+				.model = mesh_renderer
+					->getGameObject()
+					->getWorldTransform()
 			};
 
 			program->use();

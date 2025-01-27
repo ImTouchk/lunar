@@ -54,16 +54,6 @@ namespace lunar
 		return glm::lookAt(transform.position, transform.position + front, up);
 	}
 
-	const glm::vec3& Camera::getFront() const
-	{
-		return front;
-	}
-
-	const glm::vec3& Camera::getRight() const
-	{
-		return right;
-	}
-
 	glm::mat4 MeshRenderer::getModelMatrix() const
 	{
 		const auto& transform   = getTransform();

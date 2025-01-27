@@ -3,17 +3,31 @@
 #include <lunar/core/scene.hpp>
 #include <lunar/debug/log.hpp>
 #include <functional>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <atomic>
 #include <map>
 
 namespace lunar
 {
+	std::atomic<size_t> GAMEOBJECT_COUNTER = 1;
+
 	GameObject_T::GameObject_T(Scene* scene, const std::string_view& name, GameObject parent) noexcept
 		: name(name),
+		nameHash(lunar::imp::fnv1a_hash(name)),
 		parent(parent),
+		id(GAMEOBJECT_COUNTER++),
 		scene(scene),
 		transform()
 	{
 
+	}
+
+	size_t GameObject_T::getId() const
+	{
+		return id;
 	}
 
 	Scene* GameObject_T::getScene()
@@ -24,8 +38,10 @@ namespace lunar
 	Component GameObject_T::getComponent(const std::type_info& ty)
 	{
 		for (auto& component : scene->components)
-			if (typeid(*component).hash_code() == ty.hash_code() && component->getGameObject() == this)
+		{
+			if (typeid(*component).hash_code() == ty.hash_code() && component->getGameObject()->getId() == id)
 				return component;
+		}
 
 		return nullptr;
 	}
@@ -49,13 +65,13 @@ namespace lunar
 		return parent;
 	}
 
-	Component& GameObject_T::addComponent(Component created)
+	Component_T* GameObject_T::addComponent(Component created)
 	{
-		auto& comp = getScene()->components.emplace_back(created);
+		auto& comp       = scene->components.emplace_back(created);
 		comp->gameObject = make_handle(scene->objects, this);
 		comp->scene      = scene;
 		comp->start();
-		return comp;
+		return comp.get();
 	}
 
 	GameObject GameObject_T::createChildObject(const std::string_view& name)
@@ -73,12 +89,79 @@ namespace lunar
 		return children;
 	}
 
-	Transform& GameObject_T::getTransform()
+	void GameObject_T::update()
+	{
+
+	}
+
+	glm::mat4 GameObject_T::getWorldTransform() const
+	{
+		auto scale       = getWorldScale();
+		auto rotation    = getWorldRotation();
+		auto position    = getWorldPos();
+		auto scale_mat   = glm::scale(glm::mat4(1.f), scale);
+		auto translation = glm::translate(glm::mat4(1.f), position);
+		auto rot_mat     = glm::mat4(rotation);
+		return translation * rot_mat * scale_mat;
+	}
+
+	glm::vec3 GameObject_T::getWorldPos() const
+	{
+		if (parent == nullptr)
+			return transform.position;
+		else
+			return glm::vec3(
+				parent->getWorldTransform() * glm::vec4(transform.position, 1)
+			);
+	}
+
+	glm::quat GameObject_T::getWorldRotation() const
+	{
+		if (parent == nullptr)
+			return glm::quat(glm::radians(transform.rotation));
+		else
+			return glm::normalize(
+				parent->getWorldRotation() * glm::quat(glm::radians(transform.rotation))
+			);
+	}
+
+	glm::vec3 GameObject_T::getWorldScale() const
+	{
+		if (parent == nullptr)
+			return transform.scale;
+		else
+			return transform.scale * parent->getWorldScale();
+	}
+
+	glm::vec3 GameObject_T::getLocalPos() const
+	{
+		return transform.position;
+	}
+
+	void GameObject_T::setWorldPos(glm::vec3 pos)
+	{
+		if (parent != nullptr)
+		{
+			auto parent_mat    = parent->getWorldTransform();
+			auto parent_inv    = glm::inverse(parent_mat);
+			auto local_pos     = parent_inv * glm::vec4(pos, 1.f);
+			transform.position = glm::vec3(local_pos);
+		}
+		else
+			transform.position = pos;
+	}
+
+	void GameObject_T::setLocalPos(glm::vec3 pos)
+	{
+		transform.position = pos;
+	}
+
+	const Transform& GameObject_T::getTransform() const
 	{
 		return transform;
 	}
 
-	const Transform& GameObject_T::getTransform() const
+	Transform& GameObject_T::getTransform()
 	{
 		return transform;
 	}
