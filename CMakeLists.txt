@@ -3,24 +3,20 @@ project(lunar VERSION 0.2.0)
 
 message("-- lunar: Version ${lunar_VERSION_MAJOR}.${lunar_VERSION_MINOR}.${lunar_VERSION_PATCH}")
 
-set(LUNAR_BUILD_EXAMPLE ON)
-set(LUNAR_BUNDLE_RESOURCES ON)
 set(LUNAR_RENDER_BACKEND "OPENGL")
-set(LUNAR_RESOURCES_DIR ${CMAKE_CURRENT_LIST_DIR}/resources)
-set(LUNAR_ASSETS_DIR ${LUNAR_RESOURCES_DIR}/data)
-set(LUNAR_RUNTIME_SHADER_BUILD ON)
-set(LUNAR_EXPERIMENTAL ON)
-set(LUNAR_USE_IMGUI ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# include(FetchContent)
-# FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git)
-# FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git)
-# FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git)
-# FetchContent_Declare(fastgltf GIT_REPOSITORY https://github.com/spnda/fastgltf.git GIT_TAG main)
-# FetchContent_MakeAvailable(json glm glfw fastgltf)
+if(LUNAR_ADD_INSTALL_PATHS)
+    list(APPEND CMAKE_PREFIX_PATH 
+        "deps/glm/install"
+        "deps/glfw/install"
+        "deps/fastgltf/install"
+        "deps/nlohmann-json/install"
+        "deps/reactphysics3d/install"
+    )
+endif()
 
 find_package(ReactPhysics3D REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -29,18 +25,21 @@ find_package(fastgltf REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(JNI REQUIRED)
 
+file(GLOB LUNAR_HEADERS "inc/lunar/*.hpp")
+message(${LUNAR_HEADERS})
+
 file(GLOB LUNAR_SRC 
-    "inc/lunar/file/*.hpp"
-    "inc/lunar/debug/*.hpp"
-    "inc/lunar/core/*.hpp"
     "src/core/*.cpp"
     "src/debug/*.cpp"
     "src/file/*.cpp"
+    "src/exp/*.cpp"
+    "src/utils/*.cpp"
 )
-message(${LUNAR_SRC})
-add_library(lunar SHARED)
+
+add_library(lunar STATIC)
 target_sources(lunar PRIVATE 
     ${LUNAR_SRC} 
+    ${LUNAR_HEADERS}
     "src/render/context.cpp"
     "src/render/mesh.cpp"
     "src/render/mesh_builder.cpp"
@@ -51,23 +50,9 @@ target_sources(lunar PRIVATE
     "src/stb_image.cpp"
 )
 
-if(${LUNAR_EXPERIMENTAL})
-    message("-- lunar: Including experimental features")
-    target_sources(lunar PRIVATE
-        "inc/lunar/exp/utils/token.hpp"
-        "inc/lunar/exp/utils/lexer.hpp"
-        "src/exp/utils/lexer.cpp"
+target_compile_definitions(lunar PUBLIC LUNAR_EXPERIMENTAL) # will be removed 
 
-        "inc/lunar/exp/utils/scanner.hpp"
-        "src/exp/utils/scanner.cpp"
-        
-        "inc/lunar/exp/ui/dom.hpp"
-        "src/exp/ui/dom.cpp"
-    )
-    target_compile_definitions(lunar PUBLIC LUNAR_EXPERIMENTAL)
-endif()
-
-if(${LUNAR_USE_IMGUI})
+if(ON)
     message("-- lunar: Using imgui library")
     add_library(imgui STATIC)
     target_sources(imgui PRIVATE
@@ -126,64 +111,6 @@ if(${LUNAR_RENDER_BACKEND} STREQUAL "OPENGL")
     target_compile_definitions(lunar PUBLIC LUNAR_OPENGL)
 endif()
 
-if(${LUNAR_RENDER_BACKEND} STREQUAL "VULKAN")
-    FetchContent_Declare(vma GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git)
-    FetchContent_MakeAvailable(vma)
-    find_package(Vulkan REQUIRED)
-
-    message("-- lunar: Using Vulkan backend")
-    target_sources(lunar PRIVATE
-        "src/render/vk_draw.cpp"
-        "src/render/vk_base.cpp"
-        "src/render/vk_image.cpp"
-        "src/render/vk_shader.cpp"
-        "src/render/vk_window.cpp"
-        "src/render/vk_buffer.cpp"
-        "inc/lunar/render/internal/render_vk.hpp"
-        "inc/lunar/render/internal/vk_base.hpp"
-        "inc/lunar/render/internal/vk_mesh.hpp"
-        "inc/lunar/render/internal/vk_buffer.hpp"
-        "inc/lunar/render/internal/vk_pipeline.hpp"
-        "inc/lunar/render/internal/vk_image.hpp"
-    )
-    target_compile_definitions(lunar PRIVATE
-        VULKAN_HPP_NO_CONSTRUCTORS  
-        LUNAR_VERBOSE
-        LUNAR_RUNTIME_SHADER_BUILD=${LUNAR_RUNTIME_SHADER_BUILD}
-    )
-    target_compile_definitions(lunar PUBLIC LUNAR_VULKAN)
-    target_include_directories(lunar SYSTEM INTERFACE Vulkan::Vulkan VulkanMemoryAllocator)
-    target_link_libraries(lunar PUBLIC Vulkan::Vulkan VulkanMemoryAllocator)
-
-    if(NOT ${LUNAR_RUNTIME_SHADER_BUILD})
-        message("-- lunar: Compiling Vulkan shaders at build time")
-
-        file(GLOB SHADER_FILES 
-            ${LUNAR_ASSETS_DIR}/shader-src/*.vert
-            ${LUNAR_ASSETS_DIR}/shader-src/*.frag
-            ${LUNAR_ASSETS_DIR}/shader-src/*.comp
-        )
-
-        foreach(SHADER_FILE IN LISTS SHADER_FILES)
-            get_filename_component(SHADER_FILE_NAME ${SHADER_FILE} NAME)
-            add_custom_command(
-                OUTPUT ${LUNAR_ASSETS_DIR}/shader-bin/${SHADER_FILE_NAME}.spv
-                COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER_FILE} -o ${LUNAR_ASSETS_DIR}/shader-bin/${SHADER_FILE_NAME}.spv
-                DEPENDS ${SHADER_FILE}
-                COMMENT "-- lunar: Compiling Vulkan shader '${SHADER_FILE_NAME}'"
-            )
-            list(APPEND LUNAR_COMPILED_SHADERS ${LUNAR_ASSETS_DIR}/shader-bin/${SHADER_FILE_NAME}.spv)
-        endForeach()
-
-        add_custom_target(lunar_shaders ALL DEPENDS ${LUNAR_COMPILED_SHADERS})
-        add_dependencies(lunar lunar_shaders)
-
-        unset(SHADER_FILES)
-    else()
-        set(LUNAR_COMPILED_SHADERS "")
-    endif()
-endif()
-
 if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/stb_image.h")
     message("-- lunar: Downloading 'stb_image.h' file")
     file(
@@ -198,7 +125,6 @@ endif()
 target_sources(lunar PRIVATE "stb_image.h")
 
 target_include_directories(lunar PUBLIC inc)
-#target_include_directories(lunar SYSTEM INTERFACE nlohmann_json JNI::JNI JNI::JVM glm glfw fastgltf ReactPhysics3D::ReactPhysics3D)
 target_link_libraries(lunar PUBLIC 
     nlohmann_json::nlohmann_json
     JNI::JNI 
@@ -210,7 +136,6 @@ target_link_libraries(lunar PUBLIC
 )
 
 target_compile_definitions(lunar PRIVATE LUNAR_LIBRARY_EXPORT)
-
 target_compile_definitions(lunar PUBLIC 
     LUNAR_RENDER_BACKEND="${LUNAR_RENDER_BACKEND}"
     LUNAR_VER_MAJOR=${lunar_VERSION_MAJOR}
@@ -221,21 +146,6 @@ target_compile_definitions(lunar PUBLIC
 if(MSVC)
     target_compile_options(lunar PUBLIC /Zc:preprocessor)
     message("-- lunar: Detected MSVC compiler")
-endif()
-
-if(${LUNAR_BUNDLE_RESOURCES})
-    add_custom_target(lunar_bundler 
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}
-    )
-    add_dependencies(lunar lunar_bundler)
-    message("-- lunar: Copying files from 'resources' folder to build directory.")
-endif()
-
-if(${LUNAR_BUILD_EXAMPLE})
-    add_executable(lunar-example "examples/refactor.cpp")
-    target_include_directories(lunar-example INTERFACE lunar)
-    target_link_libraries(lunar-example PUBLIC lunar)
-    message("-- lunar: Building example app.")
 endif()
 
 if(MINGW)
